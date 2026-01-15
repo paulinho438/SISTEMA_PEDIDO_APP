@@ -915,11 +915,8 @@ const approvalAction = computed(() => {
     }
   }
 
-  // Para outras ações, verificar se o usuário pode aprovar
-  if (cotacao.permissions && !cotacao.permissions.can_approve) {
-    return { type: 'none' }
-  }
-
+  // Status "finalizada" é um caso especial: gerentes podem analisar mesmo sem aprovações pendentes
+  // Isso permite que gerentes locais/gerais analisem cotações finalizadas independentemente de can_approve
   if (slug === 'finalizada') {
     // Apenas Gerente Local ou Gerente Geral podem escolher entre "Analisada" e "Analisada / Aguardando"
     // Outros perfis (como Engenheiro) devem aprovar diretamente
@@ -927,6 +924,10 @@ const approvalAction = computed(() => {
       return { type: 'options' }
     } else {
       // Para outros perfis, aprovar diretamente para "analisada"
+      // Mas só se tiver permissão can_approve
+      if (cotacao.permissions && !cotacao.permissions.can_approve) {
+        return { type: 'none' }
+      }
       return {
         type: 'single',
         targetStatus: 'analisada',
@@ -936,6 +937,11 @@ const approvalAction = computed(() => {
         description: 'Analisar a cotação.',
       }
     }
+  }
+
+  // Para outras ações, verificar se o usuário pode aprovar
+  if (cotacao.permissions && !cotacao.permissions.can_approve) {
+    return { type: 'none' }
   }
 
   const transitions = availableTransitions.value
