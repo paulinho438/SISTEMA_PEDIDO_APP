@@ -1,0 +1,66 @@
+import axios from '@/plugins/axios';
+
+class SolicitacaoService {
+  list(params = {}) {
+    return axios.get('/cotacoes', { params });
+  }
+
+  show(id) {
+    return axios.get(`/cotacoes/${id}`);
+  }
+
+  create(payload) {
+    return axios.post('/cotacoes', payload);
+  }
+
+  saveDetails(id, payload) {
+    return axios.post(`/cotacoes/${id}/detalhes`, payload);
+  }
+
+  finalize(id, payload) {
+    return axios.post(`/cotacoes/${id}/finalizar`, payload);
+  }
+
+  analyze(id, payload) {
+    return axios.post(`/cotacoes/${id}/analisar`, payload);
+  }
+
+  reprove(id, payload) {
+    return axios.post(`/cotacoes/${id}/reprovar`, payload);
+  }
+
+  assignBuyer(id, payload) {
+    return axios.post(`/cotacoes/${id}/assign-buyer`, payload);
+  }
+
+  approve(id, payload) {
+    return axios.post(`/cotacoes/${id}/approve`, payload);
+  }
+
+  reject(id, payload) {
+    return axios.post(`/cotacoes/${id}/reject`, payload);
+  }
+
+  imprimir(id) {
+    return axios.get(`/cotacoes/${id}/imprimir`, {
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/pdf'
+      }
+    });
+  }
+
+  acompanhamento() {
+    return axios.get('/cotacoes/acompanhamento');
+  }
+
+  analyzeAndSelectApprovals(id, payload) {
+    return axios.post(`/cotacoes/${id}/analisar-aprovacoes`, payload);
+  }
+
+  approveByLevel(id, level, payload) {
+    return axios.post(`/cotacoes/${id}/aprovar-nivel/${level}`, payload);
+  }
+}
+
+export default new SolicitacaoService();

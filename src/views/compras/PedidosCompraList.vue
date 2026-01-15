@@ -1,0 +1,210 @@
+<template>
+  <div class="card p-5 bg-page">
+    <!-- Cabeçalho -->
+    <div class="flex justify-content-between align-items-center mb-3">
+      <h5 class="text-900 mb-0">Pedidos de Compra</h5>
+      <Button label="Exportar" icon="pi pi-upload" class="p-button-outlined" @click="exportar" />
+    </div>
+
+    <!-- Campo de busca -->
+    <div class="flex justify-content-end mb-3">
+      <span class="p-input-icon-left">
+        <i class="pi pi-search" />
+        <InputText
+          v-model="filtroGlobal"
+          placeholder="Buscar por número, fornecedor, cotação..."
+          class="p-inputtext-sm"
+          style="width: 20rem"
+        />
+      </span>
+    </div>
+
+    <!-- Tabela -->
+    <DataTable
+      :value="pedidosFiltrados"
+      :paginator="true"
+      :rows="10"
+      dataKey="id"
+      responsiveLayout="scroll"
+      class="p-datatable-sm tabela-pedidos"
+      :loading="carregando"
+    >
+      <Column field="order_number" header="Nº Pedido" sortable></Column>
+      <Column field="order_date" header="Data" sortable>
+        <template #body="slotProps">
+          {{ formatarData(slotProps.data.order_date) }}
+        </template>
+      </Column>
+      <Column field="quote.quote_number" header="Nº Cotação" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.quote?.quote_number || '-' }}
+        </template>
+      </Column>
+      <Column field="supplier_name" header="Fornecedor" sortable></Column>
+      <Column field="total_amount" header="Valor Total" sortable>
+        <template #body="slotProps">
+          {{ formatarValor(slotProps.data.total_amount) }}
+        </template>
+      </Column>
+      <Column field="status" header="Status" sortable>
+        <template #body="slotProps">
+          <Tag
+            :value="getLabelStatus(slotProps.data.status)"
+            :severity="getCorStatus(slotProps.data.status)"
+          />
+        </template>
+      </Column>
+      <Column header="Ações">
+        <template #body="slotProps">
+          <Button
+            icon="pi pi-eye"
+            class="p-button-rounded p-button-text p-button-info"
+            @click="visualizar(slotProps.data)"
+            v-tooltip.top="'Visualizar detalhes'"
+          />
+        </template>
+      </Column>
+    </DataTable>
+
+    <Toast />
+  </div>
+</template>
+
+<script>
+import { ref, computed, onMounted } from 'vue';
+import { useToast } from 'primevue/usetoast';
+import { useRouter } from 'vue-router';
+import PurchaseOrderService from '@/service/PurchaseOrderService';
+
+export default {
+  name: 'PedidosCompraList',
+  setup() {
+    const toast = useToast();
+    const router = useRouter();
+
+    const pedidos = ref([]);
+    const filtroGlobal = ref('');
+    const carregando = ref(false);
+    const service = new PurchaseOrderService();
+
+    const carregar = async () => {
+      try {
+        carregando.value = true;
+        const { data } = await service.getAll({ per_page: 100 });
+        pedidos.value = data?.data?.data || [];
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Não foi possível carregar os pedidos de compra.';
+        toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
+      } finally {
+        carregando.value = false;
+      }
+    };
+
+    onMounted(carregar);
+
+    const pedidosFiltrados = computed(() => {
+      if (!filtroGlobal.value) return pedidos.value;
+      const termo = filtroGlobal.value.toLowerCase();
+      return pedidos.value.filter((p) =>
+        p.order_number?.toLowerCase().includes(termo) ||
+        p.supplier_name?.toLowerCase().includes(termo) ||
+        p.quote?.quote_number?.toLowerCase().includes(termo) ||
+        String(p.id).includes(termo)
+      );
+    });
+
+    const formatarValor = (valor) => {
+      return Number(valor || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      });
+    };
+
+    const formatarData = (data) => {
+      if (!data) return '-';
+      const date = new Date(data);
+      return date.toLocaleDateString('pt-BR');
+    };
+
+    const getLabelStatus = (status) => {
+      const statusMap = {
+        pendente: 'Pendente',
+        recebido: 'Recebido',
+        parcial: 'Parcial',
+        cancelado: 'Cancelado',
+      };
+      return statusMap[status] || status || '-';
+    };
+
+    const getCorStatus = (status) => {
+      const corMap = {
+        pendente: 'warning',
+        recebido: 'success',
+        parcial: 'info',
+        cancelado: 'danger',
+      };
+      return corMap[status] || 'secondary';
+    };
+
+    const visualizar = (pedido) => {
+      router.push({ name: 'pedidoCompraDetalhes', params: { id: pedido.id } });
+    };
+
+    const exportar = () => {
+      toast.add({
+        severity: 'info',
+        summary: 'Exportação',
+        detail: 'Funcionalidade em desenvolvimento',
+        life: 2500,
+      });
+    };
+
+    return {
+      pedidos,
+      filtroGlobal,
+      pedidosFiltrados,
+      visualizar,
+      exportar,
+      formatarValor,
+      formatarData,
+      getLabelStatus,
+      getCorStatus,
+      carregando,
+    };
+  },
+};
+</script>
+
+<style scoped>
+.bg-page {
+  background-color: #f6f9fb;
+}
+
+.tabela-pedidos :deep(.p-datatable-thead > tr > th) {
+  background-color: #f9fafb;
+  color: #333;
+  font-weight: 600;
+  border: none;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.tabela-pedidos :deep(.p-datatable-tbody > tr > td) {
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  color: #444;
+}
+
+.tabela-pedidos :deep(.p-datatable-tbody > tr:hover > td) {
+  background-color: #f7fafa;
+}
+
+:deep(.p-button-info.p-button-text) {
+  color: #1e90ff !important;
+}
+
+:deep(.p-paginator-bottom) {
+  border-top: none !important;
+  background: transparent !important;
+}
+</style>
+
