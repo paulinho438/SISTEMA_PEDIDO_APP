@@ -843,9 +843,47 @@ const isManager = computed(() => {
   
   // Verificar se o usuário tem grupo/permissão de Gerente Local ou Gerente Geral
   for (const perm of usuario.permissions) {
-    if (perm.permissions && Array.isArray(perm.permissions)) {
-      const groupName = perm.name?.toLowerCase() || ''
-      if (groupName.includes('gerente local') || groupName.includes('gerente geral')) {
+    if (perm && perm.name) {
+      // Normalizar o nome do grupo: remover espaços extras, converter para minúsculas, remover underscores
+      const groupName = perm.name.toLowerCase().replace(/_/g, ' ').trim()
+      
+      // Debug temporário (remover depois)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Verificando grupo:', { original: perm.name, normalized: groupName })
+      }
+      
+      // Verificar variações possíveis do nome
+      // Verifica se contém "gerente" e ("local" ou "geral")
+      const hasGerente = groupName.includes('gerente')
+      const hasLocal = groupName.includes('local')
+      const hasGeral = groupName.includes('geral')
+      
+      if (hasGerente && (hasLocal || hasGeral)) {
+        return true
+      }
+    }
+  }
+  return false
+})
+
+// Verificar se o usuário é Gerente Geral ou Diretor (podem aprovar em analise_gerencia)
+const isGeneralManagerOrDirector = computed(() => {
+  const usuario = store.state.usuario
+  if (!usuario || !usuario.permissions || !Array.isArray(usuario.permissions)) {
+    return false
+  }
+  
+  // Verificar se o usuário tem grupo/permissão de Gerente Geral ou Diretor
+  for (const perm of usuario.permissions) {
+    if (perm && perm.name) {
+      // Normalizar o nome do grupo: remover espaços extras, converter para minúsculas, remover underscores
+      const groupName = perm.name.toLowerCase().replace(/_/g, ' ').trim()
+      
+      // Verificar variações possíveis do nome
+      const hasGerenteGeral = (groupName.includes('gerente') && groupName.includes('geral')) || groupName.includes('gerente geral')
+      const hasDiretor = groupName.includes('diretor')
+      
+      if (hasGerenteGeral || hasDiretor) {
         return true
       }
     }
@@ -935,6 +973,70 @@ const approvalAction = computed(() => {
         buttonClass: 'p-button-success',
         icon: 'pi pi-check',
         description: 'Analisar a cotação.',
+      }
+    }
+  }
+
+  // Status "analisada" e "analisada_aguardando": gerentes podem encaminhar para análise da gerência
+  // mesmo sem aprovações pendentes, pois faz parte do fluxo de análise
+  if (slug === 'analisada' || slug === 'analisada_aguardando') {
+    // Verificar se há transição disponível para "analise_gerencia"
+    const transitions = availableTransitions.value
+    if (transitions.includes('analise_gerencia')) {
+      // Gerentes podem encaminhar para análise da gerência
+      if (isManager.value) {
+        return {
+          type: 'single',
+          targetStatus: 'analise_gerencia',
+          buttonLabel: 'Encaminhar para Gerência',
+          buttonClass: 'p-button-info',
+          icon: 'pi pi-arrow-right',
+          description: 'Encaminhar a cotação para análise da gerência.',
+        }
+      }
+      // Para outros perfis, verificar can_approve
+      if (cotacao.permissions && !cotacao.permissions.can_approve) {
+        return { type: 'none' }
+      }
+      return {
+        type: 'single',
+        targetStatus: 'analise_gerencia',
+        buttonLabel: 'Encaminhar para Gerência',
+        buttonClass: 'p-button-info',
+        icon: 'pi pi-arrow-right',
+        description: 'Encaminhar a cotação para análise da gerência.',
+      }
+    }
+  }
+
+  // Status "analise_gerencia": Gerente Geral e Diretor podem aprovar mesmo sem aprovações pendentes
+  // Isso permite que esses perfis aprovem cotações em análise da gerência independentemente de can_approve
+  if (slug === 'analise_gerencia') {
+    // Verificar se há transição disponível para "aprovado"
+    const transitions = availableTransitions.value
+    if (transitions.includes('aprovado')) {
+      // Gerente Geral e Diretor podem aprovar
+      if (isGeneralManagerOrDirector.value) {
+        return {
+          type: 'single',
+          targetStatus: 'aprovado',
+          buttonLabel: 'Aprovar Cotação',
+          buttonClass: 'p-button-success',
+          icon: 'pi pi-check',
+          description: 'Aprovar a cotação e concluir o fluxo de aprovação.',
+        }
+      }
+      // Para outros perfis, verificar can_approve
+      if (cotacao.permissions && !cotacao.permissions.can_approve) {
+        return { type: 'none' }
+      }
+      return {
+        type: 'single',
+        targetStatus: 'aprovado',
+        buttonLabel: 'Aprovar Cotação',
+        buttonClass: 'p-button-success',
+        icon: 'pi pi-check',
+        description: 'Aprovar a cotação e concluir o fluxo de aprovação.',
       }
     }
   }
