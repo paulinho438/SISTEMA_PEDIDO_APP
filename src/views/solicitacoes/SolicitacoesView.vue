@@ -1,524 +1,300 @@
+<template>
+  <div class="card p-5 bg-page">
+    <div class="flex align-items-center justify-content-between mb-4">
+      <div class="flex align-items-center">
+        <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
+        <h4 class="m-0 text-900">Visualizar Solicitação</h4>
+      </div>
+      <Button
+          label="Imprimir PDF"
+          icon="pi pi-file-pdf"
+          class="p-button-outlined p-button-info"
+          @click="imprimirPDF"
+          :loading="carregandoPDF"
+      />
+    </div>
+
+    <div v-if="carregando" class="flex justify-content-center align-items-center" style="min-height: 400px;">
+      <ProgressSpinner />
+    </div>
+
+    <div v-else class="card shadow-none bg-light p-4 mb-4">
+      <h5 class="mb-3 text-900">Identificação da Solicitação</h5>
+
+      <div class="grid text-sm">
+        <div class="col-12 md:col-2">
+          <label class="text-600 block mb-1">Número da solicitação</label>
+          <p class="text-900 font-semibold">{{ solicitacao.numero }}</p>
+        </div>
+
+        <div class="col-12 md:col-2">
+          <label class="text-600 block mb-1">Data da Solicitação</label>
+          <p class="text-900 font-semibold">{{ solicitacao.data }}</p>
+        </div>
+
+        <div class="col-12 md:col-3">
+          <label class="text-600 block mb-1">Empresa</label>
+          <p class="text-900 font-semibold">{{ solicitacao.empresa }}</p>
+        </div>
+
+        <div class="col-12 md:col-3">
+          <label class="text-600 block mb-1">Local</label>
+          <p class="text-900 font-semibold">{{ solicitacao.local || '-' }}</p>
+        </div>
+
+        <div class="col-12 md:col-2">
+          <label class="text-600 block mb-1">Solicitante</label>
+          <p class="text-900 font-semibold">{{ solicitacao.solicitante }}</p>
+        </div>
+
+        <div class="col-12 md:col-2">
+          <label class="text-600 block mb-1">Frente de Obra</label>
+          <p class="text-900 font-semibold">{{ solicitacao.frente_obra || '-' }}</p>
+        </div>
+
+        <div class="col-12 md:col-3">
+          <label class="text-600 block mb-1">Status</label>
+          <Tag
+              :value="solicitacao.status?.label || '-'"
+              :severity="getSeverityStatus(solicitacao.status?.slug)"
+              :style="getStyleStatus(solicitacao.status?.slug)"
+          />
+        </div>
+
+        <div class="col-12 md:col-4" v-if="solicitacao.centro_custo">
+          <label class="text-600 block mb-1">Centro de custo principal</label>
+          <p class="text-900 font-semibold">
+            {{ formatarCentroCusto(solicitacao.centro_custo) }}
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-600 mb-2">Itens da Solicitação</label>
+        <DataTable
+            :value="solicitacao.itens"
+            class="p-datatable-sm tabela-view"
+            responsiveLayout="scroll"
+        >
+          <Column field="codigo" header="Código" />
+          <Column field="referencia" header="Referência" />
+          <Column field="mercadoria" header="Mercadoria" />
+          <Column field="quantidade" header="Quant solicitada" />
+          <Column field="unidade" header="Medida" />
+          <Column field="aplicacao" header="Aplicação" />
+          <Column field="prioridade" header="Prioridade dias" />
+          <Column field="tag" header="TAG" />
+          <Column header="Centro de custo">
+            <template #body="{ data }">
+              {{ formatarCentroCusto(data.centro_custo) }}
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-600 mb-1">Observação</label>
+        <p class="text-900">{{ solicitacao.observacao || '-' }}</p>
+      </div>
+    </div>
+
+    <Toast />
+  </div>
+</template>
+
 <script>
-import { ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-
-import EmprestimoService from '@/service/EmprestimoService';
-import UtilService from '@/service/UtilService';
-import EmprestimoParcelas from '../parcelas/Parcelas.vue';
-import skeletonEmprestimos from '../skeleton/SkeletonEmprestimos.vue';
-// Componentes de empréstimos não implementados - comentados para não quebrar o build
-// import EmprestimoAdd from './/EmprestimosAdd.vue';
-// import EmprestimosRefin from './/EmprestimosRefin.vue';
-// import EmprestimoRecalc from './/EmprestimosRecalc.vue';
-import { ToastSeverity, PrimeIcons } from 'primevue/api';
-
-import LoadingComponent from '../../components/Loading.vue';
+import { reactive, ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
+import SolicitacaoService from '@/service/SolicitacaoService';
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Tag from 'primevue/tag';
+import ProgressSpinner from 'primevue/progressspinner';
+import Toast from 'primevue/toast';
 
 export default {
-    name: 'cicomForm',
-    setup() {
-        return {
-            route: useRoute(),
-            router: useRouter(),
-            emprestimoService: new EmprestimoService(),
-            icons: PrimeIcons,
-            toast: useToast()
-        };
-    },
-    components: {
-        EmprestimoParcelas,
-        skeletonEmprestimos,
-        // Componentes de empréstimos não implementados - comentados para não quebrar o build
-        // EmprestimoAdd,
-        // EmprestimoRecalc,
-        // EmprestimosRefin
-    },
-    data() {
-        return {
-            client: ref({}),
-            oldClient: ref(null),
-            errors: ref([]),
-            city: ref(null),
-            cities: ref([]),
-            bancos: ref([]),
-            banco: ref(null),
-            costcenters: ref([]),
-            costcenter: ref(null),
-            consultores: ref([]),
-            consultor: ref(null),
-            parcelas: ref([]),
-            address: ref({
-                id: 1,
-                name: 'ok',
-                geolocalizacao: '17.23213, 12.455345'
-            }),
-            loading: ref(false),
-            selectedTipoSexo: ref(''),
-            sexo: ref([
-                { name: 'Masculino', value: 'M' },
-                { name: 'Feminino', value: 'F' }
-            ]),
-            display: ref(false),
-            saldoTotal: ref(0),
-            valorDesconto: ref(0),
-            error: ref('')
-        };
-    },
-    methods: {
-        open() {
-            this.display.value = true;
-        },
-        async refinanciamento() {
-            try {
-                await this.emprestimoService.refinanciamento(this.route.params.id, this.saldoTotal);
+  name: 'SolicitacoesView',
+  components: {
+    Button,
+    DataTable,
+    Column,
+    Tag,
+    ProgressSpinner,
+    Toast,
+  },
+  setup() {
+    const router = useRouter();
+    const route = useRoute();
+    const toast = useToast();
 
-                this.toast.add({
-                    severity: ToastSeverity.SUCCESS,
-                    detail: this.client?.id ? 'Dados alterados com sucesso!' : 'Dados inseridos com sucesso!',
-                    life: 3000
-                });
+    const solicitacao = reactive({
+      id: null,
+      numero: '',
+      data: '',
+      empresa: '',
+      local: '',
+      solicitante: '',
+      frente_obra: '',
+      observacao: '',
+      centro_custo: null,
+      itens: [],
+      status: null,
+    });
 
-                setTimeout(() => {
-                    this.router.push({ name: 'emprestimosList' });
-                }, 1200);
-            } catch (e) {
-                console.log(e);
-            }
+    const carregando = ref(false);
+    const carregandoPDF = ref(false);
 
-            this.display = false;
-            this.valorDesconto = 0;
-        },
-        async renovacao() {
-            try {
-                await this.emprestimoService.renovacao(this.route.params.id, this.client.valor, this.client.valor_deposito);
-
-                this.toast.add({
-                    severity: ToastSeverity.SUCCESS,
-                    detail: this.client?.id ? 'Dados alterados com sucesso!' : 'Dados inseridos com sucesso!',
-                    life: 3000
-                });
-
-                setTimeout(() => {
-                    this.router.push({ name: 'emprestimosList' });
-                }, 1200);
-            } catch (e) {
-                console.log(e);
-            }
-
-            this.display = false;
-            this.valorDesconto = 0;
-        },
-        async close() {
-            if (this.saldoTotal < this.valorDesconto) {
-                this.error = `O valor de desconto de ${this.valorDesconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} não pode ultrapassar o valor a pagar ${this.saldoTotal.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                })}`;
-                setTimeout(() => {
-                    this.error = '';
-                }, 4000);
-                return false;
-            }
-
-            try {
-                await this.emprestimoService.baixaDesconto(this.route.params.id, this.saldoTotal - this.valorDesconto, this.saldoTotal);
-
-                this.toast.add({
-                    severity: ToastSeverity.SUCCESS,
-                    detail: this.client?.id ? 'Dados alterados com sucesso!' : 'Dados inseridos com sucesso!',
-                    life: 3000
-                });
-
-                setTimeout(() => {
-                    this.router.push({ name: 'emprestimosList' });
-                }, 1200);
-            } catch (e) {
-                console.log(e);
-            }
-
-            this.display = false;
-            this.valorDesconto = 0;
-        },
-        convertToNumber(valor) {
-            return parseFloat(valor.replace('R$', '').replace('.', '').replace(',', '.'));
-        },
-        changeLoading() {
-            this.loading = !this.loading;
-        },
-        async searchCliente(event) {
-            try {
-                let response = await this.emprestimoService.searchClient(event.query);
-                this.cities = response.data.data;
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        async searchBanco(event) {
-            try {
-                let response = await this.emprestimoService.searchbanco(event.query);
-                this.bancos = response.data.data;
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        async searchCostcenter(event) {
-            try {
-                let response = await this.emprestimoService.searchCostcenter(event.query);
-                this.costcenters = response.data.data;
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        async searchConsultor(event) {
-            try {
-                let response = await this.emprestimoService.searchConsultor(event.query);
-                this.consultores = response.data;
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        saveNewParcela(address) {
-            this.parcelas.push(address);
-        },
-        eliminarParcelasModal() {
-            this.parcelas = [];
-        },
-        async saveInfoDoEmprestimo(emprestimo) {
-            this.client.valor = emprestimo.valor;
-            this.client.lucro = emprestimo.lucro;
-            this.client.juros = emprestimo.juros;
-            this.client.liberar_minimo = emprestimo.liberar_minimo;
-
-            await this.refinanciamento();
-
-            this.save();
-        },
-		async saveInfoDaRenovacao(emprestimo) {
-            this.client.valor = emprestimo.valor;
-            this.client.lucro = emprestimo.lucro;
-            this.client.juros = emprestimo.juros;
-			this.client.valor_deposito = emprestimo.valor - emprestimo.pendente;
-
-            await this.renovacao();
-
-            this.saveRenovacao();
-        },
-        getemprestimo() {
-            if (this.route.params?.id) {
-                this.client = ref(null);
-                this.loading = true;
-                this.emprestimoService
-                    .get(this.route.params.id)
-                    .then((response) => {
-                        this.client = response.data?.data;
-                        this.city = response.data?.data.cliente;
-                        this.banco = response.data?.data.banco;
-                        this.costcenter = response.data?.data.costcenter;
-                        this.consultor = response.data?.data.consultor;
-                        this.parcelas = response.data?.data.parcelas;
-
-                        const parcelasNaoBaixadas = response.data?.data.parcelas.filter((parcela) => parcela.dt_baixa === '');
-
-                        console.log('parcelasNaoBaixadas', parcelasNaoBaixadas);
-
-                        this.saldoTotal = parcelasNaoBaixadas.reduce((total, parcela) => {
-                            return total + parcela.saldo;
-                        }, 0);
-                    })
-                    .catch((error) => {
-                        this.toast.add({
-                            severity: ToastSeverity.ERROR,
-                            detail: UtilService.message(e),
-                            life: 3000
-                        });
-                    })
-                    .finally(() => {
-                        this.loading = false;
-                    });
-            } else {
-                this.client = ref({});
-                this.client.address = [];
-            }
-        },
-        back() {
-            this.router.push(`/emprestimos`);
-        },
-        changeEnabled(enabled) {
-            this.client.enabled = enabled;
-        },
-		saveRenovacao() {
-            this.changeLoading();
-            this.errors = [];
-
-            this.client.cliente = this.city;
-            this.client.banco = this.banco;
-            this.client.costcenter = this.costcenter;
-            this.client.consultor = this.consultor;
-            this.client.parcelas = this.parcelas;
-
-			console.log('client', this.client);	
-
-            this.toast.add({
-                severity: ToastSeverity.SUCCESS,
-                detail: 'Gerando Chaves Pix, aguarde!',
-                life: 3000
-            });
-			//saveRenovacao
-            this.emprestimoService
-                .saveRenovacao(this.client)
-                .then((response) => {
-                    if (undefined != response.data.data) {
-                        this.client = response.data.data;
-                    }
-
-                    this.toast.add({
-                        severity: ToastSeverity.SUCCESS,
-                        detail: this.client?.id ? 'Dados alterados com sucesso!' : 'Dados inseridos com sucesso!',
-                        life: 3000
-                    });
-
-                    setTimeout(() => {
-                        this.router.push({ name: 'emprestimosList' });
-                    }, 1200);
-                })
-                .catch((error) => {
-                    this.changeLoading();
-                    this.errors = error?.response?.data?.errors;
-
-                    if (error?.response?.status != 422) {
-                        this.toast.add({
-                            severity: ToastSeverity.ERROR,
-                            detail: UtilService.message(error.response.data),
-                            life: 3000
-                        });
-                    }
-
-                    this.changeLoading();
-                })
-                .finally(() => {
-                    this.changeLoading();
-                });
-        },
-        save() {
-            this.changeLoading();
-            this.errors = [];
-
-            this.client.cliente = this.city;
-            this.client.banco = this.banco;
-            this.client.costcenter = this.costcenter;
-            this.client.consultor = this.consultor;
-            this.client.parcelas = this.parcelas;
-
-			console.log('client', this.client);	
-
-            this.toast.add({
-                severity: ToastSeverity.SUCCESS,
-                detail: 'Gerando Chaves Pix, aguarde!',
-                life: 3000
-            });
-			//saveRenovacao
-            this.emprestimoService
-                .saveRefinanciamento(this.client)
-                .then((response) => {
-                    if (undefined != response.data.data) {
-                        this.client = response.data.data;
-                    }
-
-                    this.toast.add({
-                        severity: ToastSeverity.SUCCESS,
-                        detail: this.client?.id ? 'Dados alterados com sucesso!' : 'Dados inseridos com sucesso!',
-                        life: 3000
-                    });
-
-                    setTimeout(() => {
-                        this.router.push({ name: 'emprestimosList' });
-                    }, 1200);
-                })
-                .catch((error) => {
-                    this.changeLoading();
-                    this.errors = error?.response?.data?.errors;
-
-                    if (error?.response?.status != 422) {
-                        this.toast.add({
-                            severity: ToastSeverity.ERROR,
-                            detail: UtilService.message(error.response.data),
-                            life: 3000
-                        });
-                    }
-
-                    this.changeLoading();
-                })
-                .finally(() => {
-                    this.changeLoading();
-                });
-        },
-
-        clearclient() {
-            this.loading = true;
-        },
-        addCityBeforeSave(city) {
-            // this.client.cities.push(city);
-            this.changeLoading();
-        },
-        clearCicom() {
-            this.getemprestimo();
+    const formatarCentroCusto = (centroCusto) => {
+      if (!centroCusto) return '-';
+      
+      // Se for string (formato antigo), retornar como está
+      if (typeof centroCusto === 'string') {
+        return centroCusto;
+      }
+      
+      // Se for objeto, formatar código - descrição
+      if (typeof centroCusto === 'object') {
+        const codigo = centroCusto?.codigo || centroCusto?.CTT_CUSTO || '';
+        const descricao = centroCusto?.descricao || centroCusto?.CTT_DESC01 || '';
+        
+        if (codigo && descricao) {
+          return `${codigo} - ${descricao}`;
         }
-    },
-    computed: {
-        title() {
-            return 'Visualizar Empréstimo';
-        }
-    },
-    mounted() {
-        this.getemprestimo();
-    }
+        
+        return codigo || descricao || '-';
+      }
+      
+      return '-';
+    };
+
+    const getSeverityStatus = (statusSlug) => {
+      const statusMap = {
+        aguardando: 'warning',
+        analisada: 'success',
+        analisada_aguardando: 'help',
+        analise_gerencia: 'info',
+        aprovado: 'success',
+        reprovado: 'danger',
+        compra_em_andamento: 'info',
+        cotacao: 'warning',
+        finalizada: 'info',
+      };
+      return statusMap[statusSlug] || 'secondary';
+    };
+
+    const getStyleStatus = (statusSlug) => {
+      const styleMap = {
+        aguardando: { backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7' },
+        analisada: { backgroundColor: '#d4edda', color: '#155724', border: '1px solid #c3e6cb' },
+        aprovado: { backgroundColor: '#d4edda', color: '#155724', border: '1px solid #c3e6cb' },
+        reprovado: { backgroundColor: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb' },
+      };
+      return styleMap[statusSlug] || {};
+    };
+
+    const carregarDados = async () => {
+      try {
+        carregando.value = true;
+        const solicitacaoId = route.params.id;
+        const { data } = await SolicitacaoService.show(solicitacaoId);
+
+        const detalhe = data?.data ?? {};
+
+        solicitacao.id = detalhe.id;
+        solicitacao.numero = detalhe.numero || '-';
+        solicitacao.data = detalhe.data || '-';
+        solicitacao.empresa = typeof detalhe.empresa === 'object' ? detalhe.empresa?.label || '-' : detalhe.empresa || '-';
+        solicitacao.local = detalhe.local || '-';
+        solicitacao.solicitante = typeof detalhe.solicitante === 'object' ? detalhe.solicitante?.label || '-' : detalhe.solicitante || '-';
+        solicitacao.frente_obra = detalhe.frente_obra || detalhe.work_front || '-';
+        solicitacao.observacao = detalhe.observacao || '-';
+        solicitacao.centro_custo = detalhe.centro_custo || null;
+        solicitacao.itens = (detalhe.itens || []).map((item) => ({
+          codigo: item.codigo || '-',
+          referencia: item.referencia || '-',
+          mercadoria: item.mercadoria || '-',
+          quantidade: item.quantidade || 0,
+          unidade: item.unidade || '-',
+          aplicacao: item.aplicacao || '-',
+          prioridade: item.prioridade || '-',
+          tag: item.tag || '-',
+          centro_custo: item.centro_custo || null,
+        }));
+        solicitacao.status = detalhe.status || null;
+      } catch (error) {
+        console.error('Erro ao carregar solicitação', error);
+        toast.add({
+          severity: 'error',
+          summary: 'Erro ao carregar',
+          detail: error?.response?.data?.message || 'Não foi possível carregar os dados da solicitação.',
+          life: 4000
+        });
+        router.push({ name: 'solicitacoesList' });
+      } finally {
+        carregando.value = false;
+      }
+    };
+
+    const imprimirPDF = async () => {
+      if (!route.params.id) {
+        toast.add({ severity: 'warn', summary: 'Aviso', detail: 'Não foi possível identificar a solicitação.', life: 3000 });
+        return;
+      }
+
+      try {
+        carregandoPDF.value = true;
+        const response = await SolicitacaoService.imprimir(route.params.id);
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Não foi possível imprimir a solicitação.';
+        toast.add({ severity: 'error', summary: 'Erro ao imprimir', detail, life: 4000 });
+      } finally {
+        carregandoPDF.value = false;
+      }
+    };
+
+    const voltar = () => router.push({ name: 'solicitacoesList' });
+
+    onMounted(() => {
+      carregarDados();
+    });
+
+    return {
+      solicitacao,
+      carregando,
+      carregandoPDF,
+      formatarCentroCusto,
+      getSeverityStatus,
+      getStyleStatus,
+      imprimirPDF,
+      voltar,
+    };
+  }
 };
 </script>
 
-<template>
-    <div class="grid flex flex-wrap mb-3 px-4 pt-2">
-        <div class="col-8 px-0 py-0">
-            <h5 class="px-0 py-0 align-self-center m-2"><i :class="icons.BUILDING"></i> {{ title }}</h5>
-        </div>
-        <div class="col-4 px-0 py-0 text-right">
-            <Button label="Voltar" class="p-button-outlined p-button-secondary p-button-sm" :icon="icons.ANGLE_LEFT" @click.prevent="back" />
-            <Button v-if="!this.route.params?.id" label="Salvar" class="p-button p-button-info p-button-sm ml-3" :icon="icons.SAVE" type="button" @click.prevent="save" />
-        </div>
-    </div>
-    <skeletonEmprestimos :loading="loading" />
-    <div v-if="!loading">
-        <Toast />
-        <Card>
-            <template #content>
-                <div class="col-12">
-                    <div class="p-fluid formgrid grid">
-                        <div class="field col-12 md:col-12">
-                            <label for="firstname2">Consultor</label>
-                            <Chip :label="consultor?.nome_completo" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                        <div class="field col-12 md:col-12">
-                            <label for="firstname2">Cliente</label>
-                            <Chip :label="city?.nome_completo_cpf" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                        <div class="field col-12 md:col-12">
-                            <label for="firstname2">Cadastrado por</label>
-                            <Chip :label="client?.cliente_cadastrado" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                        <div class="field col-12 md:col-12">
-                            <label for="firstname2">Banco</label>
-                            <Chip :label="banco?.name_agencia_conta" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                        <div class="field col-12 md:col-12">
-                            <label for="firstname2">Centro de Custo</label>
-                            <Chip :label="costcenter?.name" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                        <div class="field col-12 md:col-3">
-                            <label for="firstname2">Valor do Emprestimo</label>
-                            <Chip :label="client?.valor?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })" :mode="'currency'" :currency="'BRL'" :locale="'pt-BR'" :precision="2" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                        <div class="field col-12 md:col-3">
-                            <label for="firstname2">Lucro Previsto</label>
-                            <Chip :label="client?.lucro?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })" :mode="'currency'" :currency="'BRL'" :locale="'pt-BR'" :precision="2" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                        <div class="field col-12 md:col-3">
-                            <label for="firstname2">Parcelas</label>
-                            <Chip :label="`${parcelas?.length.toString().padStart(3, '0')}`" class="w-full p-inputtext-sm"> </Chip>
-                        </div>
-                        <div class="field col-12 md:col-3">
-                            <label for="firstname2">Juros</label>
-                            <Chip :label="`% ${client?.juros}`" class="w-full p-inputtext-sm"></Chip>
-                        </div>
-                    </div>
-                </div>
+<style scoped>
+.bg-page {
+  background: #f5f5f5;
+}
 
-                <div v-if="saldoTotal > 0" class="grid flex flex-wrap mb-3 px-4 pt-2">
-                    <div class="col-12 px-0 py-0 text-right">
-                        <Button label="Realizar Baixa com Desconto" class="p-button-sm p-button-info" :icon="icons.PLUS" @click="display = true" />
-                    </div>
-                </div>
+.tabela-view :deep(.p-datatable-thead > tr > th) {
+  background-color: #f5fcf6;
+  color: #333;
+  font-weight: 500;
+  border: 1px solid #eaeaea;
+}
 
-                <!-- Componentes de empréstimos não implementados - comentados para não quebrar o build -->
-                <!--
-                <EmprestimoRecalc
-                    :address="this.client"
-                    :oldCicom="this.oldClient"
-                    :loading="loading"
-                    :parcela="this.parcelas[0]"
-                    @updateCicom="clearCicom"
-                    @addCityBeforeSave="addCityBeforeSave"
-                    @changeLoading="changeLoading"
-                    @saveParcela="saveNewParcela"
-                    @eliminarParcelas="eliminarParcelasModal"
-                    @saveInfoEmprestimo="saveInfoDoEmprestimo"
-                    v-if="true"
-                />
-
-                <EmprestimosRefin
-                    :address="this.client"
-                    :oldCicom="this.oldClient"
-                    :loading="loading"
-                    :parcela="this.parcelas[0]"
-                    :emprestimoFront="this.emprestimo"
-                    @updateCicom="clearCicom"
-                    @addCityBeforeSave="addCityBeforeSave"
-                    @changeLoading="changeLoading"
-                    @saveParcela="saveNewParcela"
-                    @eliminarParcelas="eliminarParcelasModal"
-                    @saveInfoRenovacao="saveInfoDaRenovacao"
-                    v-if="this.client.saldoareceber > 0 && this.client.dt_envio_mensagem_renovacao != null"
-                />
-
-                <EmprestimoAdd
-                    :address="this.client"
-                    :oldCicom="this.oldClient"
-                    :loading="loading"
-                    @updateCicom="clearCicom"
-                    @addCityBeforeSave="addCityBeforeSave"
-                    @changeLoading="changeLoading"
-                    @saveParcela="saveNewParcela"
-                    @saveInfoEmprestimo="saveInfoDoEmprestimo"
-                    v-if="true"
-                />
-                -->
-
-                <EmprestimoParcelas
-                    :address="this.parcelas"
-                    :oldCicom="this.oldClient"
-                    :loading="loading"
-                    :viewCreated="false"
-                    :aprovacao="false"
-                    @updateCicom="clearCicom"
-                    @addCityBeforeSave="addCityBeforeSave"
-                    @changeLoading="changeLoading"
-                    v-if="true"
-                />
-
-                <Dialog header="Baixa com desconto" v-model:visible="display" :breakpoints="{ '960px': '75vw' }" :style="{ width: '30vw' }" :modal="true">
-                    <p class="line-height-3 mb-4">
-                        Para realizar a baixa com desconto atualmente o valor que falta receber é de
-                        <b style="color: red">{{
-                            saldoTotal.toLocaleString('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL'
-                            })
-                        }}</b>
-                        <br /><br />
-                        Digite abaixo o valor do desconto, automaticamente o sistema efetuara a baixa de todas as parcelas, em movimentação financeira vai conter exatamente o valor de
-                        <b style="color: red">{{ saldoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }} - o valor a ser descontado</b>.
-                    </p>
-                    <div class="p-fluid formgrid grid">
-                        <div class="field col-12 md:col-12">
-                            <label for="zip">Valor do Desconto</label>
-                            <InputNumber id="inputnumber" :modelValue="valorDesconto" v-model="valorDesconto" :mode="'currency'" :currency="'BRL'" :locale="'pt-BR'" :precision="2" class="w-full p-inputtext-sm"></InputNumber>
-                        </div>
-                    </div>
-                    <Message v-if="error" severity="error">{{ error }}</Message>
-                    <template #footer>
-                        <Button label="Realizar Baixa" @click="close" icon="pi pi-check" class="p-button-outlined" />
-                    </template>
-                </Dialog>
-            </template>
-        </Card>
-    </div>
-</template>
+.tabela-view :deep(.p-datatable-tbody > tr > td) {
+  background-color: #fbfefb;
+  border: 1px solid #f0f0f0;
+}
+</style>

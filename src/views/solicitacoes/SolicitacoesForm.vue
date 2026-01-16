@@ -1,9 +1,18 @@
 <template>
   <div class="card p-5">
     <!-- Cabeçalho -->
-    <div class="flex align-items-center mb-4">
-      <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
-      <h4 class="m-0">Cadastro de Solicitação</h4>
+    <div class="flex align-items-center justify-content-between mb-4">
+      <div class="flex align-items-center">
+        <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
+        <h4 class="m-0">Cadastro de Solicitação</h4>
+      </div>
+      <Button
+          v-if="isEditMode && route.params.id"
+          label="Visualizar"
+          icon="pi pi-eye"
+          class="p-button-outlined p-button-info"
+          @click="visualizar"
+      />
     </div>
 
     <!-- Identificação -->
@@ -1195,6 +1204,14 @@ export default {
 
     const isSaving = ref(false);
 
+    const visualizar = () => {
+      if (!route.params.id) {
+        toast.add({ severity: 'warn', summary: 'Aviso', detail: 'Salve a solicitação antes de visualizar.', life: 3000 });
+        return;
+      }
+      router.push({ name: 'solicitacoesView', params: { id: route.params.id } });
+    };
+
     const voltar = () => router.push('/solicitacoes');
     const salvar = async () => {
       if (isSaving.value) {
@@ -1320,7 +1337,9 @@ export default {
       abrirModalCadastroProduto,
       fecharModalCadastroProduto,
       cadastrarProduto,
-      validarFormProduto
+      validarFormProduto,
+      visualizar,
+      route
     };
   }
 };

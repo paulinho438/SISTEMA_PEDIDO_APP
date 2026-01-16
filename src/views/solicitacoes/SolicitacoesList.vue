@@ -53,7 +53,11 @@
       <Column field="numero" header="Nº da Solicitação" sortable></Column>
       <Column field="data" header="Data" sortable></Column>
       <Column field="solicitante" header="Solicitante" sortable></Column>
-      <Column field="centroCusto" header="Centro de Custo" sortable></Column>
+      <Column header="Centro de Custo" sortable>
+        <template #body="slotProps">
+          {{ formatarCentroCusto(slotProps.data.centroCusto) }}
+        </template>
+      </Column>
       <Column field="frenteObra" header="Frente de Obra" sortable></Column>
 
       <Column header="Status" sortable>
@@ -75,9 +79,11 @@
                 @click="visualizar(slotProps.data)"
             />
             <Button
+                v-if="podeEditar(slotProps.data.statusSlug)"
                 icon="pi pi-pencil"
                 class="p-button-rounded p-button-text p-button-success"
                 @click="editar(slotProps.data)"
+                v-tooltip.top="'Editar solicitação'"
             />
             <Button
                 icon="pi pi-trash"
@@ -88,6 +94,9 @@
         </template>
       </Column>
     </DataTable>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <ConfirmDialog />
 
     <!-- Rodapé -->
     <div class="flex justify-content-between align-items-center mt-3 text-sm text-500">
@@ -109,6 +118,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useRouter } from 'vue-router';
 import SolicitacaoService from '@/service/SolicitacaoService';
 
@@ -116,6 +126,7 @@ export default {
   name: 'CicomList',
   setup() {
     const toast = useToast();
+    const confirm = useConfirm();
     const router = useRouter();
 
     const solicitacoes = ref([]);
@@ -146,7 +157,7 @@ export default {
           numero: item.numero,
           data: item.data,
           solicitante: item.solicitante,
-          centroCusto: item.centro_custo,
+          centroCusto: typeof item.centro_custo === 'string' ? item.centro_custo : item.centro_custo,
           frenteObra: item.frente_obra,
           status: item.status?.label,
           statusSlug: item.status?.slug,
@@ -173,17 +184,112 @@ export default {
 
     const novaSolicitacao = () => router.push({ name: 'solicitacoesAdd' });
     const exportar = () => toast.add({ severity: 'info', summary: 'Exportar', detail: 'Exportação simulada...', life: 2000 });
-    const visualizar = (item) => toast.add({ severity: 'info', summary: 'Visualizar', detail: `Visualizando ${item.numero}`, life: 2000 });
+    const visualizar = (item) => {
+      router.push({ name: 'solicitacoesView', params: { id: item.id } });
+    };
     const editar = (item) => router.push({ name: 'solicitacoesEdit', params: { id: item.id } });
-    const excluir = (item) => toast.add({ severity: 'warn', summary: 'Excluir', detail: `Excluído ${item.numero}`, life: 2000 });
-    const deletarSelecionadas = () => {
-      toast.add({
-        severity: 'warn',
-        summary: 'Deletar Selecionadas',
-        detail: `${selecionadas.value.length} solicitações removidas.`,
-        life: 2000,
+    const excluir = async (item) => {
+      confirm.require({
+        message: `Tem certeza que deseja deletar a solicitação ${item.numero}?`,
+        header: 'Confirmar Exclusão',
+        icon: 'pi pi-exclamation-triangle',
+        acceptClass: 'p-button-danger',
+        acceptLabel: 'Sim, deletar',
+        rejectLabel: 'Cancelar',
+        accept: async () => {
+          try {
+            await SolicitacaoService.delete(item.id);
+            toast.add({
+              severity: 'success',
+              summary: 'Solicitação deletada',
+              detail: `${item.numero} foi deletada com sucesso.`,
+              life: 3000,
+            });
+            await carregarSolicitacoes();
+          } catch (error) {
+            const detail = error?.response?.data?.message || 'Não foi possível deletar a solicitação.';
+            toast.add({
+              severity: 'error',
+              summary: 'Erro ao deletar',
+              detail,
+              life: 4000,
+            });
+          }
+        },
       });
-      selecionadas.value = [];
+    };
+
+    const deletarSelecionadas = () => {
+      if (!selecionadas.value.length) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Nenhuma seleção',
+          detail: 'Selecione pelo menos uma solicitação para deletar.',
+          life: 3000,
+        });
+        return;
+      }
+
+      confirm.require({
+        message: `Tem certeza que deseja deletar ${selecionadas.value.length} solicitação(ões) selecionada(s)?`,
+        header: 'Confirmar Exclusão',
+        icon: 'pi pi-exclamation-triangle',
+        acceptClass: 'p-button-danger',
+        acceptLabel: 'Sim, deletar',
+        rejectLabel: 'Cancelar',
+        accept: async () => {
+          try {
+            const promises = selecionadas.value.map((item) => SolicitacaoService.delete(item.id));
+            await Promise.all(promises);
+            
+            toast.add({
+              severity: 'success',
+              summary: 'Solicitações deletadas',
+              detail: `${selecionadas.value.length} solicitação(ões) deletada(s) com sucesso.`,
+              life: 3000,
+            });
+            
+            selecionadas.value = [];
+            await carregarSolicitacoes();
+          } catch (error) {
+            const detail = error?.response?.data?.message || 'Não foi possível deletar as solicitações.';
+            toast.add({
+              severity: 'error',
+              summary: 'Erro ao deletar',
+              detail,
+              life: 4000,
+            });
+          }
+        },
+      });
+    };
+
+    const formatarCentroCusto = (centroCusto) => {
+      if (!centroCusto) return '-';
+      
+      // Se for string (formato antigo), retornar como está
+      if (typeof centroCusto === 'string') {
+        return centroCusto;
+      }
+      
+      // Se for objeto, formatar código - descrição
+      if (typeof centroCusto === 'object') {
+        const codigo = centroCusto?.codigo || centroCusto?.CTT_CUSTO || '';
+        const descricao = centroCusto?.descricao || centroCusto?.CTT_DESC01 || '';
+        
+        if (codigo && descricao) {
+          return `${codigo} - ${descricao}`;
+        }
+        
+        return codigo || descricao || '-';
+      }
+      
+      return '-';
+    };
+
+    const podeEditar = (statusSlug) => {
+      // Só pode editar solicitações com status "aguardando" ou "reprovado"
+      return statusSlug === 'aguardando' || statusSlug === 'reprovado';
     };
 
     const statusStyle = (slug) => {
@@ -218,6 +324,8 @@ export default {
       excluir,
       deletarSelecionadas,
       carregando,
+      formatarCentroCusto,
+      podeEditar,
     };
   },
 };

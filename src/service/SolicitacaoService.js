@@ -65,6 +65,10 @@ class SolicitacaoService {
   approveByLevel(id, level, payload) {
     return axios.post(`/cotacoes/${id}/aprovar-nivel/${level}`, payload);
   }
+
+  delete(id) {
+    return axios.delete(`/cotacoes/${id}`);
+  }
 }
 
 export default new SolicitacaoService();
