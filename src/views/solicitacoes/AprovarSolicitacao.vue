@@ -68,7 +68,7 @@
 
     <div class="card shadow-none bg-light p-4 mb-4">
       <label class="block text-600 mb-1">Observações da aprovação</label>
-      <Textarea v-model="observacao" rows="3" class="w-full" placeholder="Informe observações para aprovação ou reprovação" />
+      <Textarea v-model="observacao" rows="3" class="w-full" placeholder="Informe observações para aprovação" />
     </div>
 
     <!-- Botões -->
