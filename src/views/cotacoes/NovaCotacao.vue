@@ -1667,6 +1667,16 @@ const abrirSelecionarItens = () => {
     return
   }
 
+  // Garantir que todos os itens tenham uma seleção (usar menor preço se não houver seleção)
+  produtos.value.forEach((prod, p) => {
+    if (selecoes.value[p] === undefined || selecoes.value[p] === null) {
+      const menor = menorIndice(p)
+      if (menor !== null) {
+        selecoes.value[p] = menor
+      }
+    }
+  })
+
   showModalSelecionar.value = true
 }
 
