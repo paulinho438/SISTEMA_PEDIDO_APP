@@ -148,10 +148,17 @@
       </DataTable>
     </div>
 
-    <!-- Observação -->
+    <!-- Justificativa / Motivo -->
     <div class="mt-5">
-      <label class="block text-600 mb-2">Observação</label>
-      <Textarea v-model="form.observacao" rows="3" class="w-full" placeholder="Your Message" />
+      <label class="block text-600 mb-2">Justificativa / Motivo <span class="text-red-500">*</span></label>
+      <Textarea 
+        v-model="form.observacao" 
+        rows="3" 
+        class="w-full" 
+        :class="{ 'p-invalid': errors.observacao }"
+        placeholder="Informe a justificativa / motivo para a compra" 
+      />
+      <small v-if="errors.observacao" class="p-error block mt-1">{{ errors.observacao }}</small>
     </div>
 
     <!-- Botões -->
@@ -520,6 +527,7 @@ export default {
     const mensagensReprovacao = ref([]);
     const empresasLocais = ref([]);
     const carregandoEmpresas = ref(false);
+    const errors = ref({});
 
     // Carregar dados da solicitação se estiver editando
     const carregarSolicitacao = async () => {
@@ -793,14 +801,14 @@ export default {
       if (!p) return;
       const novoItem = {
         codigo: p.B1_COD || '',
-        referencia: 'NBK-2025',
+        referencia: null,
         mercadoria: p.B1_DESC || '',
         quantidade: 1,
         unidade: p.B1_UM || '',
-        aplicacao: 'Substituição e melhoria',
-        prioridade: 7,
-        tag: 'TAG-101',
-        centroCusto: ultimoCentroCustoSelecionado.value ? { ...ultimoCentroCustoSelecionado.value } : null
+        aplicacao: null,
+        prioridade: 0,
+        tag: null,
+        centroCusto: null
       };
 
       form.value.itens.push(novoItem);
@@ -977,13 +985,10 @@ export default {
         return;
       }
 
-      ultimoCentroCustoSelecionado.value = { ...modalCentro.selection };
-
-      form.value.itens.forEach((item, idx) => {
-        if (idx === modalCentro.itemIndex || item.centroCusto === null) {
-          item.centroCusto = { ...modalCentro.selection };
-        }
-      });
+      // Aplicar apenas no item selecionado
+      if (modalCentro.itemIndex !== null && form.value.itens[modalCentro.itemIndex]) {
+        form.value.itens[modalCentro.itemIndex].centroCusto = { ...modalCentro.selection };
+      }
 
       toast.add({
         severity: 'success',
@@ -1252,8 +1257,18 @@ export default {
         return;
       }
 
+      // Limpar erros anteriores
+      errors.value = {};
+
+      // Validações
       if (!form.value.itens.length) {
         toast.add({ severity: 'warn', summary: 'Itens obrigatórios', detail: 'Adicione ao menos um item antes de salvar.', life: 3000 });
+        return;
+      }
+
+      if (!form.value.observacao || !form.value.observacao.trim()) {
+        errors.value.observacao = 'Justificativa / Motivo é obrigatório.';
+        toast.add({ severity: 'warn', summary: 'Campo obrigatório', detail: 'Preencha a Justificativa / Motivo antes de salvar.', life: 3000 });
         return;
       }
 
@@ -1375,7 +1390,8 @@ export default {
       visualizar,
       route,
       empresasLocais,
-      carregandoEmpresas
+      carregandoEmpresas,
+      errors
     };
   }
 };
