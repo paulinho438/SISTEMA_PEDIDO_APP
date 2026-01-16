@@ -46,13 +46,7 @@
                 },
                 loading: false,
     
-                selectedTipoSexo: null,
                 selectedPermissao: null,
-    
-                sexo: [
-                    { name: 'Masculino', value: 'M' },
-                    { name: 'Feminino', value: 'F' }
-                ],
     
                 signatureFile: null,
                 signaturePreview: null
@@ -211,14 +205,7 @@
                         .then((response) => {
                             this.usuario = response?.data?.data || {};
                             this.multiselectValue = this.usuario.empresas || [];
-    
-                            this.selectedTipoSexo =
-                                this.usuario?.sexo === 'M'
-                                    ? { name: 'Masculino', value: 'M' }
-                                    : this.usuario?.sexo === 'F'
-                                    ? { name: 'Feminino', value: 'F' }
-                                    : null;
-    
+
                             // Usar o método auxiliar para definir a permissão selecionada
                             // Isso garante que funciona mesmo se as permissões ainda não foram carregadas
                             this.setSelectedPermissao();
@@ -247,7 +234,6 @@
                 } else {
                     this.usuario = { address: [] };
                     this.multiselectValue = [];
-                    this.selectedTipoSexo = null;
                     this.selectedPermissao = null;
                 }
             },
@@ -308,18 +294,7 @@
             save() {
                 this.setLoading(true);
                 this.errors = {};
-    
-                // valida sexo
-                if (!this.selectedTipoSexo || !this.selectedTipoSexo.value) {
-                    this.toast.add({
-                        severity: ToastSeverity.ERROR,
-                        detail: 'Selecione o Sexo',
-                        life: 3000
-                    });
-                    this.setLoading(false);
-                    return;
-                }
-    
+
                 // valida permissão
                 if (!this.selectedPermissao || !this.selectedPermissao.id) {
                     this.toast.add({
@@ -332,8 +307,7 @@
                 }
     
                 if (!this.usuario) this.usuario = {};
-    
-                this.usuario.sexo = this.selectedTipoSexo.value;
+
                 this.usuario.permissao = this.selectedPermissao;
                 this.usuario.empresas = this.multiselectValue;
     
@@ -345,10 +319,6 @@
     
                     // Campos obrigatórios
                     formData.append('nome_completo', this.usuario.nome_completo || '');
-                    formData.append('cpf', this.usuario.cpf || '');
-                    formData.append('rg', this.usuario.rg || '');
-                    formData.append('data_nascimento', this.usuario.data_nascimento || '');
-                    formData.append('sexo', this.usuario.sexo || '');
                     formData.append('telefone_celular', this.usuario.telefone_celular || '');
                     formData.append('email', this.usuario.email || '');
     
@@ -507,35 +477,15 @@
                             <label for="firstname2">E-mail</label>
                             <InputText id="firstname2" v-model="usuario.email" type="text" />
                         </div>
-    
-                        <div class="field col-12 md:col-3">
-                            <label for="lastname2">Sexo</label>
-                            <Dropdown v-model="selectedTipoSexo" :options="sexo" optionLabel="name" placeholder="Selecione" />
-                        </div>
-    
+
                         <div class="field col-12 md:col-3">
                             <label for="lastname2">Permissão</label>
                             <Dropdown v-model="selectedPermissao" :options="permissions" optionLabel="name" placeholder="Selecione" />
                         </div>
-    
-                        <div class="field col-12 md:col-3">
-                            <label for="lastname2">Dt. Nascimento</label>
-                            <InputMask id="inputmask" v-model="usuario.data_nascimento" mask="99/99/9999"></InputMask>
-                        </div>
-    
+
                         <div class="field col-12 md:col-3">
                             <label for="state">Telefone</label>
                             <InputMask id="inputmask" v-model="usuario.telefone_celular" mask="(99) 9999-9999"></InputMask>
-                        </div>
-    
-                        <div class="field col-12 md:col-3">
-                            <label for="state">CPF</label>
-                            <InputMask id="inputmask" v-model="usuario.cpf" mask="999.999.999-99"></InputMask>
-                        </div>
-    
-                        <div class="field col-12 md:col-3">
-                            <label for="zip">RG</label>
-                            <InputMask id="inputmask" v-model="usuario.rg" mask="9.999.999"></InputMask>
                         </div>
     
                         <div class="field col-12 md:col-6">
