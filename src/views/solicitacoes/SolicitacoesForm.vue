@@ -450,7 +450,7 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useStore } from 'vuex';
 import ProtheusService from '@/service/ProtheusService';
@@ -462,6 +462,7 @@ export default {
   name: 'CadastroSolicitacao',
   setup() {
     const router = useRouter();
+    const route = useRoute();
     const toast = useToast();
     const store = useStore();
     const protheusService = new ProtheusService();
@@ -480,20 +481,87 @@ export default {
       itens: []
     });
 
-    // Inicializar solicitante e empresa automaticamente com dados do usuário logado
+    const isEditMode = ref(false);
+    const loading = ref(false);
+
+    // Carregar dados da solicitação se estiver editando
+    const carregarSolicitacao = async () => {
+      const solicitacaoId = route.params.id;
+      
+      if (!solicitacaoId) {
+        // Modo de criação - apenas inicializar valores padrão
+        const usuario = store.state.usuario;
+        const company = store.state.company;
+        
+        if (usuario) {
+          form.value.solicitante = usuario.nome_completo || usuario.name || usuario.login;
+        }
+        
+        if (company) {
+          form.value.empresa = company.company || company.name || company.id;
+        }
+        
+        return;
+      }
+
+      // Modo de edição - carregar dados da solicitação
+      try {
+        loading.value = true;
+        isEditMode.value = true;
+        
+        const { data } = await SolicitacaoService.show(solicitacaoId);
+        const detalhe = data?.data ?? {};
+        
+        // Preencher formulário com os dados carregados
+        form.value.numero = detalhe.numero || null;
+        
+        // Converter data string para Date
+        if (detalhe.data) {
+          form.value.data = new Date(detalhe.data);
+        } else {
+          form.value.data = new Date();
+        }
+        
+        form.value.solicitante = detalhe.solicitante?.label || detalhe.solicitante || '';
+        form.value.empresa = detalhe.empresa?.label || detalhe.empresa || '';
+        form.value.local = detalhe.local || '';
+        form.value.workFront = detalhe.work_front || '';
+        form.value.observacao = detalhe.observacao || '';
+        
+        // Converter itens para o formato do formulário
+        form.value.itens = (detalhe.itens || []).map(item => ({
+          codigo: item.codigo || null,
+          referencia: item.referencia || null,
+          mercadoria: item.mercadoria || '',
+          quantidade: item.quantidade || 0,
+          unidade: item.unidade || null,
+          aplicacao: item.aplicacao || null,
+          prioridade: item.prioridade || null,
+          tag: item.tag || null,
+          centroCusto: item.centro_custo ? {
+            CTT_CUSTO: item.centro_custo.codigo,
+            CTT_DESC01: item.centro_custo.descricao,
+            CTT_CLASSE: item.centro_custo.classe
+          } : null
+        }));
+        
+      } catch (error) {
+        console.error('Erro ao carregar solicitação', error);
+        toast.add({
+          severity: 'error',
+          summary: 'Erro ao carregar',
+          detail: error?.response?.data?.message || 'Não foi possível carregar os dados da solicitação.',
+          life: 4000
+        });
+        router.push({ name: 'solicitacoesList' });
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    // Inicializar formulário
     onMounted(() => {
-      const usuario = store.state.usuario;
-      const company = store.state.company;
-      
-      if (usuario) {
-        // Associar automaticamente o solicitante (usuário logado)
-        form.value.solicitante = usuario.nome_completo || usuario.name || usuario.login;
-      }
-      
-      if (company) {
-        // Associar automaticamente a empresa (empresa selecionada do usuário)
-        form.value.empresa = company.company || company.name || company.id;
-      }
+      carregarSolicitacao();
     });
 
     const modalProdutos = reactive({
@@ -1088,6 +1156,8 @@ export default {
       }
     };
 
+    const isSaving = ref(false);
+
     const voltar = () => router.push('/solicitacoes');
     const salvar = async () => {
       if (isSaving.value) {
@@ -1148,12 +1218,22 @@ export default {
       };
 
       try {
-        const { data } = await SolicitacaoService.create(payload);
+        let response;
+        
+        if (isEditMode.value && route.params.id) {
+          // Atualizar solicitação existente usando saveDetails
+          response = await SolicitacaoService.saveDetails(route.params.id, payload);
+        } else {
+          // Criar nova solicitação
+          response = await SolicitacaoService.create(payload);
+        }
 
         toast.add({
           severity: 'success',
           summary: 'Solicitação salva!',
-          detail: `Cotação ${data?.data?.numero ?? ''} registrada com sucesso.`,
+          detail: isEditMode.value 
+            ? `Solicitação ${response?.data?.data?.numero ?? ''} atualizada com sucesso.`
+            : `Solicitação ${response?.data?.data?.numero ?? ''} registrada com sucesso.`,
           life: 3000,
         });
 
@@ -1165,8 +1245,6 @@ export default {
         isSaving.value = false;
       }
     };
-
-    const isSaving = ref(false);
 
     return {
       form,
@@ -1198,6 +1276,8 @@ export default {
       voltar,
       salvar,
       isSaving,
+      loading,
+      isEditMode,
       abrirModalCadastroProduto,
       fecharModalCadastroProduto,
       cadastrarProduto,
