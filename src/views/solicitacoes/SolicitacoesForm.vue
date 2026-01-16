@@ -1261,14 +1261,16 @@ export default {
       errors.value = {};
 
       // Validações
-      if (!form.value.itens.length) {
+      if (!form.value.itens || form.value.itens.length === 0) {
         toast.add({ severity: 'warn', summary: 'Itens obrigatórios', detail: 'Adicione ao menos um item antes de salvar.', life: 3000 });
+        isSaving.value = false;
         return;
       }
 
       if (!form.value.observacao || !form.value.observacao.trim()) {
         errors.value.observacao = 'Justificativa / Motivo é obrigatório.';
         toast.add({ severity: 'warn', summary: 'Campo obrigatório', detail: 'Preencha a Justificativa / Motivo antes de salvar.', life: 3000 });
+        isSaving.value = false;
         return;
       }
 

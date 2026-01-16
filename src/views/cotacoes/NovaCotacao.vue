@@ -137,7 +137,15 @@
                   </div>
                 </div>
                 <div class="col-12"><InputText v-model="cot.vendedor" placeholder="Vendedor" :disabled="isReadOnly" /></div>
-                <div class="col-12"><InputText v-model="cot.telefone" placeholder="Telefone" :disabled="isReadOnly" /></div>
+                <div class="col-12">
+                  <InputMask
+                      v-model="cot.telefone"
+                      mask="99 9 9999-9999"
+                      placeholder="61 9 9330-5267"
+                      :disabled="isReadOnly"
+                      class="w-full"
+                  />
+                </div>
                 <div class="col-12"><InputText v-model="cot.email" placeholder="Email" :disabled="isReadOnly" /></div>
                 <div class="col-12"><InputText v-model="cot.proposta" placeholder="N° Proposta" :disabled="isReadOnly" /></div>
                 <div class="col-12">
@@ -166,6 +174,28 @@
                       class="w-full"
                       :disabled="isReadOnly"
                       showClear
+                  />
+                </div>
+                <div class="col-12">
+                  <label class="font-medium text-700 mb-2 block">Valor do frete</label>
+                  <InputText
+                      v-model="cot.valorFrete"
+                      placeholder="R$ 0,00"
+                      class="w-full"
+                      :disabled="isReadOnly"
+                      @focus="prepararCampoMoedaFrete(i)"
+                      @blur="formatarCampoMoedaFrete(i)"
+                  />
+                </div>
+                <div class="col-12">
+                  <label class="font-medium text-700 mb-2 block">Desconto</label>
+                  <InputText
+                      v-model="cot.desconto"
+                      placeholder="R$ 0,00"
+                      class="w-full"
+                      :disabled="isReadOnly"
+                      @focus="prepararCampoMoedaDesconto(i)"
+                      @blur="formatarCampoMoedaDesconto(i)"
                   />
                 </div>
               </div>
@@ -199,6 +229,7 @@
                   placeholder="Marca"
                   class="w-full p-inputtext-sm"
                   :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
                   :disabled="isReadOnly"
               />
             </td>
@@ -220,6 +251,7 @@
                   placeholder="0%"
                   class="w-full p-inputtext-sm text-center"
                   :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
                   :disabled="isReadOnly"
               />
             </td>
@@ -229,6 +261,7 @@
                   placeholder="R$ 0,00"
                   class="w-full p-inputtext-sm text-right"
                   :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
                   @focus="prepararCampoMoeda(i, p, 'custoIPI')"
                   @blur="formatarCampoMoeda(i, p, 'custoIPI')"
                   :disabled="isReadOnly"
@@ -240,6 +273,7 @@
                   placeholder="0%"
                   class="w-full p-inputtext-sm text-center"
                   :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
                   :disabled="isReadOnly"
               />
             </td>
@@ -249,6 +283,7 @@
                   placeholder="R$ 0,00"
                   class="w-full p-inputtext-sm text-right"
                   :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
                   @focus="prepararCampoMoeda(i, p, 'icmsTotal')"
                   @blur="formatarCampoMoeda(i, p, 'icmsTotal')"
                   :disabled="isReadOnly"
@@ -260,6 +295,7 @@
                   placeholder="R$ 0,00"
                   class="w-full p-inputtext-sm text-right"
                   :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
                   @focus="prepararCampoMoeda(i, p, 'custoFinal')"
                   @blur="formatarCampoMoeda(i, p, 'custoFinal')"
                   :disabled="isReadOnly"
@@ -279,6 +315,7 @@
           <tr>
             <th>N°</th>
             <th>Descrição</th>
+            <th>Marca</th>
             <th>Fornecedor ganhador</th>
             <th>Valor Unitário</th>
             <th>Quantidade</th>
@@ -290,6 +327,7 @@
           <tr v-for="(r, index) in resumo" :key="'res-' + index">
             <td>{{ index + 1 }}</td>
             <td>{{ r.produto }}</td>
+            <td>{{ r.marca || '-' }}</td>
             <td>{{ r.fornecedor }}</td>
             <td>{{ formatCurrencyValue(r.valorUnit) }}</td>
             <td>{{ r.qtd }}</td>
@@ -297,7 +335,7 @@
             <td>{{ r.motivo || '-' }}</td>
           </tr>
           <tr class="bg-surface-100 font-semibold">
-            <td colspan="5" class="text-right">Total geral:</td>
+            <td colspan="6" class="text-right">Total geral:</td>
             <td>{{ formatCurrencyValue(totalGeral) }}</td>
             <td></td>
           </tr>
@@ -652,6 +690,7 @@ import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import RadioButton from 'primevue/radiobutton'
 import Toast from 'primevue/toast'
+import InputMask from 'primevue/inputmask'
 
 document.title = 'Nova Cotação'
 
@@ -1182,6 +1221,8 @@ const addCotacao = () => {
     proposta: '',
     condicaoPagamento: null,
     tipoFrete: null,
+    valorFrete: '',
+    desconto: '',
     itens: novosItens,
   })
   
@@ -1393,6 +1434,44 @@ const formatarCampoMoeda = (cotIndex, itemIndex, campo) => {
   item[campo] = numero === null ? '' : formatCurrencyValue(numero)
 }
 
+const prepararCampoMoedaFrete = (cotIndex) => {
+  if (isReadOnly.value) {
+    return
+  }
+  const cot = cotacoes.value[cotIndex]
+  if (!cot) return
+
+  const numero = parsePreco(cot.valorFrete)
+  cot.valorFrete = numero === null ? '' : formatNumberValue(numero)
+}
+
+const formatarCampoMoedaFrete = (cotIndex) => {
+  const cot = cotacoes.value[cotIndex]
+  if (!cot) return
+
+  const numero = parsePreco(cot.valorFrete)
+  cot.valorFrete = numero === null ? '' : formatCurrencyValue(numero)
+}
+
+const prepararCampoMoedaDesconto = (cotIndex) => {
+  if (isReadOnly.value) {
+    return
+  }
+  const cot = cotacoes.value[cotIndex]
+  if (!cot) return
+
+  const numero = parsePreco(cot.desconto)
+  cot.desconto = numero === null ? '' : formatNumberValue(numero)
+}
+
+const formatarCampoMoedaDesconto = (cotIndex) => {
+  const cot = cotacoes.value[cotIndex]
+  if (!cot) return
+
+  const numero = parsePreco(cot.desconto)
+  cot.desconto = numero === null ? '' : formatCurrencyValue(numero)
+}
+
 const menorIndice = (itemIndex) => {
   let menorValor = Number.POSITIVE_INFINITY
   let indiceMenor = null
@@ -1514,6 +1593,8 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
             }
           : null,
         tipoFrete: cot.tipo_frete ?? null,
+        valorFrete: formatCurrencyValue(cot.valor_frete),
+        desconto: formatCurrencyValue(cot.desconto),
         itens,
       }
     })
@@ -1614,7 +1695,7 @@ const salvarCotacao = async (options = {}) => {
       return
     }
 
-    const payloadFornecedor = {
+      const payloadFornecedor = {
       id: cot.id ?? null,
       codigo: cot.fornecedor?.A2_COD ?? cot.codigo ?? null,
       nome: nomeFornecedor,
@@ -1630,6 +1711,8 @@ const salvarCotacao = async (options = {}) => {
           }
         : null,
       tipo_frete: cot.tipoFrete || null,
+      valor_frete: parsePreco(cot.valorFrete),
+      desconto: parsePreco(cot.desconto),
       itens: cot.itens.map((item, idx) => {
         const itemOrigem = cotacao.itensOriginais[idx]
         return {
@@ -1958,8 +2041,12 @@ const resumo = computed(() => {
     const valorTotal =
       parsePreco(cot?.itens?.[p]?.custoFinal) ?? (valorUnitario ? valorUnitario * (quantidade || 0) : 0)
 
+    const itemCotacao = cot?.itens?.[p]
+    const marca = itemCotacao?.marca || null
+
     return {
       produto: prod.descricao || itemOrigem.mercadoria,
+      marca: marca,
       fornecedor: cot?.fornecedor?.A2_NOME || cot?.nome || 'Fornecedor não informado',
       valorUnit: Number(valorUnitario),
       qtd: quantidade,
