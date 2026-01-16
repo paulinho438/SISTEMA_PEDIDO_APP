@@ -47,11 +47,6 @@
           <p class="text-900 font-semibold">{{ solicitacao.solicitante }}</p>
         </div>
 
-        <div class="col-12 md:col-2">
-          <label class="text-600 block mb-1">Frente de Obra</label>
-          <p class="text-900 font-semibold">{{ solicitacao.frente_obra || '-' }}</p>
-        </div>
-
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Status</label>
           <Tag
@@ -136,7 +131,6 @@ export default {
       empresa: '',
       local: '',
       solicitante: '',
-      frente_obra: '',
       observacao: '',
       centro_custo: null,
       itens: [],
@@ -208,7 +202,6 @@ export default {
         solicitacao.empresa = typeof detalhe.empresa === 'object' ? detalhe.empresa?.label || '-' : detalhe.empresa || '-';
         solicitacao.local = detalhe.local || '-';
         solicitacao.solicitante = typeof detalhe.solicitante === 'object' ? detalhe.solicitante?.label || '-' : detalhe.solicitante || '-';
-        solicitacao.frente_obra = detalhe.frente_obra || detalhe.work_front || '-';
         solicitacao.observacao = detalhe.observacao || '-';
         solicitacao.centro_custo = detalhe.centro_custo || null;
         solicitacao.itens = (detalhe.itens || []).map((item) => ({
