@@ -17,7 +17,7 @@
 
       <div class="col-12 md:col-3">
         <label class="block text-600 mb-2">Data da Solicitação</label>
-        <Calendar v-model="form.data" dateFormat="dd/mm/yy" class="w-full" />
+        <Calendar v-model="form.data" dateFormat="dd/mm/yy" class="w-full" :disabled="true" />
       </div>
 
 
@@ -471,7 +471,7 @@ export default {
 
     const form = ref({
       numero: null,
-      data: new Date('2025-08-28'),
+      data: new Date(), // Data atual automaticamente
       solicitante: null,
       empresa: null,
       local: '',
