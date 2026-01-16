@@ -638,19 +638,36 @@ export default {
                     </div>
                 </div>
             </div>
+
+            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.empresas">
+                <h5 class="m-0">Empresas</h5>
+                <div>
+                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('empresas')" />
+                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('empresas')" />
+                </div>
+            </div>
+            <div class="grid" v-if="multiselectValues?.empresas">
+                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.empresas)" :key="`empresas-${option.slug}`">
+                    <div class="field-checkbox mb-0">
+                        <Checkbox :id="`empresas-${option.slug}`" name="option" :value="option.slug" v-model="checkboxValue" />
+                        <label :for="`empresas-${option.slug}`">{{ option.name }}</label>
+                    </div>
+                </div>
+            </div>
+
             <div v-if="permissionsService.hasPermissions('view_mastergeral')">
                 <div class="flex justify-content-between align-items-center mb-2 mt-4">
-                    <h5 class="m-0">Gestão de Empresas</h5>
+                    <h5 class="m-0">Gestão de Empresas (Legado)</h5>
                     <div>
                         <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('companies')" />
                         <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('companies')" />
                     </div>
                 </div>
                 <div class="grid">
-                    <div class="col-12 md:col-4" v-for="option of multiselectValues?.companies" :key="option.id">
+                    <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.companies)" :key="`companies-${option.slug}`">
                         <div class="field-checkbox mb-0">
-                            <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
-                            <label for="checkOption1">{{ option.name }}</label>
+                            <Checkbox :id="`companies-${option.slug}`" name="option" :value="option.slug" v-model="checkboxValue" />
+                            <label :for="`companies-${option.slug}`">{{ option.name }}</label>
                         </div>
                     </div>
                 </div>

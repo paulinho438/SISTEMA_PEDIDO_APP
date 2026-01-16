@@ -46,6 +46,11 @@ export default {
             ativo: ref([
                 { name: 'Ativada', value: 1 },
                 { name: 'Inativo', value: 0 }
+            ]),
+            regimesTributarios: ref([
+                { label: 'NORMAL', value: 'NORMAL' },
+                { label: 'SIMPLES NACIONAL', value: 'SIMPLES_NACIONAL' },
+                { label: 'SIMPLES NACIONAL - EXCESSO', value: 'SIMPLES_NACIONAL_EXCESSO' }
             ])
         };
     },
@@ -220,29 +225,124 @@ export default {
         <template #content>
             <div class="col-12">
                 <div class="p-fluid formgrid grid">
-                    <div class="field col-12 md:col-3">
-                        <label for="firstname2">Nome da Empresa</label>
-                        <InputText id="firstname2" :modelValue="empresas?.company" v-model="empresas.company" type="text" />
+                    <!-- Coluna Esquerda -->
+                    <div class="col-12 md:col-6">
+                        <h6 class="mb-3">Identificação</h6>
+                        <div class="field">
+                            <label for="company">Unidade *</label>
+                            <InputText id="company" v-model="empresas.company" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="fantasia">Fantasia</label>
+                            <InputText id="fantasia" v-model="empresas.fantasia" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="razao_social">Razão Social</label>
+                            <InputText id="razao_social" v-model="empresas.razao_social" type="text" />
+                        </div>
+                        
+                        <h6 class="mt-4 mb-3">Endereço</h6>
+                        <div class="grid">
+                            <div class="field col-10">
+                                <label for="endereco">Endereço</label>
+                                <InputText id="endereco" v-model="empresas.endereco" type="text" />
+                            </div>
+                            <div class="field col-2">
+                                <label for="endereco_numero">N°</label>
+                                <InputText id="endereco_numero" v-model="empresas.endereco_numero" type="text" />
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="bairro">Bairro</label>
+                            <InputText id="bairro" v-model="empresas.bairro" type="text" />
+                        </div>
+                        <div class="grid">
+                            <div class="field col-10">
+                                <label for="cidade">Cidade</label>
+                                <InputText id="cidade" v-model="empresas.cidade" type="text" />
+                            </div>
+                            <div class="field col-2">
+                                <label for="uf">UF</label>
+                                <InputText id="uf" v-model="empresas.uf" type="text" maxlength="2" />
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="fones">Fones *</label>
+                            <InputText id="fones" v-model="empresas.numero_contato" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="cep">CEP *</label>
+                            <InputText id="cep" v-model="empresas.cep" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="inscricao_estadual">Inscrição Estadual</label>
+                            <InputText id="inscricao_estadual" v-model="empresas.inscricao_estadual" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="cnpj">CNPJ *</label>
+                            <InputText id="cnpj" v-model="empresas.cnpj" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="email">E-mail</label>
+                            <InputText id="email" v-model="empresas.email" type="email" />
+                        </div>
+                        <div class="field">
+                            <label for="regime_tributario">Regime Tributário</label>
+                            <Dropdown 
+                                id="regime_tributario" 
+                                v-model="empresas.regime_tributario" 
+                                :options="regimesTributarios" 
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Selecione" 
+                            />
+                        </div>
                     </div>
-                    <div class="field col-12 md:col-3">
-                        <label for="firstname2">E-mail</label>
-                        <InputText id="firstname2" :modelValue="empresas?.email" v-model="empresas.email" type="text" />
-                    </div>
-                    <div class="field col-12 md:col-3">
-                        <label for="lastname2">Plano</label>
-                        <Dropdown v-model="selectedPlano" :options="planos" optionLabel="nome" placeholder="Selecione" />
-                    </div>
-					<div v-if="this.empresas?.id" class="field col-12 md:col-3">
-                        <label for="lastname2">Status da Empresa</label>
-                        <Dropdown v-model="selectedAtivo" :options="ativo" optionLabel="name" placeholder="Selecione" />
-                    </div>
-                    <div v-if="this.empresas?.id" class="field col-12 md:col-3">
-                        <label for="firstname2">Motivo Inativo</label>
-                        <InputText id="firstname2" :modelValue="empresas?.motivo_inativo" v-model="empresas.motivo_inativo" type="text" />
-                    </div>
-                    <div class="field col-12 md:col-3">
-                        <label for="firstname2">URL Integração WhatsApp</label>
-                        <InputText id="firstname2" :modelValue="empresas?.whatsapp" v-model="empresas.whatsapp" type="text" />
+
+                    <!-- Coluna Direita -->
+                    <div class="col-12 md:col-6">
+                        <h6 class="mb-3">&nbsp;</h6>
+                        <div class="field">
+                            <label for="inscricao_estadual_subst_tributario">Insc. Estadual Subst. Tributário</label>
+                            <InputText id="inscricao_estadual_subst_tributario" v-model="empresas.inscricao_estadual_subst_tributario" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="inscricao_municipal">Inscrição Municipal</label>
+                            <InputText id="inscricao_municipal" v-model="empresas.inscricao_municipal" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="credito_simples_nacional">Crédito Simples Nacional (%)</label>
+                            <InputNumber 
+                                id="credito_simples_nacional" 
+                                v-model="empresas.credito_simples_nacional" 
+                                :min="0" 
+                                :max="100" 
+                                :minFractionDigits="2"
+                                :maxFractionDigits="2"
+                                suffix="%"
+                                :showButtons="false"
+                                class="w-full"
+                            />
+                            <small class="text-500">(Alíquota)</small>
+                        </div>
+
+                        <h6 class="mt-4 mb-3">Configurações</h6>
+                        <div class="field">
+                            <label for="plano">Plano</label>
+                            <Dropdown v-model="selectedPlano" :options="planos" optionLabel="nome" placeholder="Selecione" />
+                        </div>
+                        <div v-if="this.empresas?.id" class="field">
+                            <label for="ativo">Status da Empresa</label>
+                            <Dropdown v-model="selectedAtivo" :options="ativo" optionLabel="name" placeholder="Selecione" />
+                        </div>
+                        <div v-if="this.empresas?.id" class="field">
+                            <label for="motivo_inativo">Motivo Inativo</label>
+                            <InputText id="motivo_inativo" v-model="empresas.motivo_inativo" type="text" />
+                        </div>
+                        <div class="field">
+                            <label for="whatsapp">URL Integração WhatsApp</label>
+                            <InputText id="whatsapp" v-model="empresas.whatsapp" type="text" />
+                        </div>
                     </div>
                 </div>
             </div>

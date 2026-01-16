@@ -32,7 +32,16 @@
 
       <div class="col-12 md:col-6">
         <label class="block text-600 mb-2">Local</label>
-        <InputText v-model="form.local" class="w-full" />
+        <Dropdown
+            v-model="form.local"
+            :options="empresasLocais"
+            optionLabel="company"
+            optionValue="company"
+            placeholder="Selecione o local"
+            class="w-full"
+            :filter="true"
+            :loading="carregandoEmpresas"
+        />
       </div>
     </div>
 
@@ -479,6 +488,8 @@ import ProtheusService from '@/service/ProtheusService';
 import SolicitacaoService from '@/service/SolicitacaoService';
 import StockProductService from '@/service/StockProductService';
 import StockService from '@/service/StockService';
+import EmpresaService from '@/service/EmpresaService';
+import Dropdown from 'primevue/dropdown';
 
 export default {
   name: 'CadastroSolicitacao',
@@ -507,6 +518,8 @@ export default {
     const loading = ref(false);
     const statusAtual = ref(null);
     const mensagensReprovacao = ref([]);
+    const empresasLocais = ref([]);
+    const carregandoEmpresas = ref(false);
 
     // Carregar dados da solicitação se estiver editando
     const carregarSolicitacao = async () => {
@@ -605,9 +618,30 @@ export default {
       }
     };
 
+    // Carregar empresas para dropdown de Local
+    const carregarEmpresas = async () => {
+      try {
+        carregandoEmpresas.value = true;
+        const empresaService = new EmpresaService();
+        const { data } = await empresaService.getAll();
+        empresasLocais.value = Array.isArray(data) ? data : (data?.data || []);
+      } catch (error) {
+        console.error('Erro ao carregar empresas', error);
+        toast.add({
+          severity: 'error',
+          summary: 'Erro ao carregar empresas',
+          detail: 'Não foi possível carregar a lista de empresas.',
+          life: 3000
+        });
+      } finally {
+        carregandoEmpresas.value = false;
+      }
+    };
+
     // Inicializar formulário
     onMounted(() => {
       carregarSolicitacao();
+      carregarEmpresas();
     });
 
     const modalProdutos = reactive({
@@ -1339,7 +1373,9 @@ export default {
       cadastrarProduto,
       validarFormProduto,
       visualizar,
-      route
+      route,
+      empresasLocais,
+      carregandoEmpresas
     };
   }
 };

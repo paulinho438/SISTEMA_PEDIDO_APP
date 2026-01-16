@@ -27,6 +27,12 @@ const model = ref([
                 icon: 'pi pi-fw pi-database',
                 items: [
                     {
+                        label: 'Empresas',
+                        icon: 'pi pi-fw pi-building',
+                        to: '/empresas',
+                        permission: 'view_empresas'
+                    },
+                    {
                         label: 'Permissões',
                         icon: 'pi pi-fw pi-database',
                         to: '/permissoes',
