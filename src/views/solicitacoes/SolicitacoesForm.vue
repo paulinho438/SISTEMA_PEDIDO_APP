@@ -27,6 +27,19 @@
       </div>
     </div>
 
+    <!-- Mensagem de Reprovação -->
+    <div v-if="isEditMode && statusReprovado && mensagensReprovacao.length > 0" class="mb-4">
+      <Message severity="error" :closable="false">
+        <div class="flex flex-column gap-2">
+          <strong class="block">Motivo da Reprovação:</strong>
+          <div v-for="(mensagem, index) in mensagensReprovacao" :key="mensagem.id || index" class="flex flex-column">
+            <div class="text-700">{{ mensagem.mensagem }}</div>
+            <small class="text-500">Por: {{ mensagem.autor }} em {{ mensagem.data }}</small>
+          </div>
+        </div>
+      </Message>
+    </div>
+
     <!-- Itens -->
     <div class="mt-4">
       <div class="flex justify-content-between align-items-center mb-2">
@@ -449,7 +462,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useStore } from 'vuex';
@@ -483,6 +496,8 @@ export default {
 
     const isEditMode = ref(false);
     const loading = ref(false);
+    const statusAtual = ref(null);
+    const mensagensReprovacao = ref([]);
 
     // Carregar dados da solicitação se estiver editando
     const carregarSolicitacao = async () => {
@@ -516,9 +531,24 @@ export default {
         form.value.numero = detalhe.numero || null;
         
         // Converter data string para Date
-        if (detalhe.data) {
-          form.value.data = new Date(detalhe.data);
+        // O backend retorna no formato "d/m/Y" (ex: "28/08/2025")
+        if (detalhe.data && typeof detalhe.data === 'string') {
+          // Converter "d/m/Y" para "Y-m-d" para criar Date
+          const partes = detalhe.data.split('/');
+          if (partes.length === 3) {
+            // Formato: dia/mês/ano -> ano-mês-dia
+            const [dia, mes, ano] = partes;
+            form.value.data = new Date(`${ano}-${mes}-${dia}`);
+          } else {
+            // Tentar parse direto se já estiver em formato ISO
+            form.value.data = new Date(detalhe.data);
+          }
         } else {
+          form.value.data = new Date();
+        }
+        
+        // Validar se a data é válida
+        if (isNaN(form.value.data.getTime())) {
           form.value.data = new Date();
         }
         
@@ -544,6 +574,13 @@ export default {
             CTT_CLASSE: item.centro_custo.classe
           } : null
         }));
+        
+        // Armazenar status atual
+        statusAtual.value = detalhe.status?.slug || null;
+        
+        // Filtrar mensagens de reprovação
+        const mensagens = detalhe.mensagens || [];
+        mensagensReprovacao.value = mensagens.filter(msg => msg.tipo === 'reprova');
         
       } catch (error) {
         console.error('Erro ao carregar solicitação', error);
@@ -1221,8 +1258,8 @@ export default {
         let response;
         
         if (isEditMode.value && route.params.id) {
-          // Atualizar solicitação existente usando saveDetails
-          response = await SolicitacaoService.saveDetails(route.params.id, payload);
+          // Atualizar solicitação existente usando update
+          response = await SolicitacaoService.update(route.params.id, payload);
         } else {
           // Criar nova solicitação
           response = await SolicitacaoService.create(payload);
@@ -1278,6 +1315,8 @@ export default {
       isSaving,
       loading,
       isEditMode,
+      statusReprovado: computed(() => statusAtual.value === 'reprovado'),
+      mensagensReprovacao,
       abrirModalCadastroProduto,
       fecharModalCadastroProduto,
       cadastrarProduto,

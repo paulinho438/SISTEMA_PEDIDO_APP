@@ -75,7 +75,7 @@
           class="p-button-danger"
           :loading="salvando"
           :disabled="salvando"
-          @click="reprovar"
+          @click="abrirModalReprovar"
       />
       <Button
           label="Aprovar"
@@ -88,6 +88,53 @@
     </div>
 
     <Toast />
+
+    <!-- Modal de Reprovação -->
+    <Dialog
+        v-model:visible="modalReprovar"
+        header="Confirmar Reprovação"
+        :style="{ width: '500px' }"
+        :modal="true"
+        :closable="true"
+    >
+      <div class="flex flex-column gap-3">
+        <p class="text-700 m-0">
+          Informe o motivo da reprovação. Esta mensagem será visível para o solicitante ao editar a solicitação.
+        </p>
+        
+        <div>
+          <label class="block text-600 mb-2 font-medium">Motivo da Reprovação *</label>
+          <Textarea
+              v-model="mensagemReprovacao"
+              rows="5"
+              class="w-full"
+              placeholder="Descreva o motivo da reprovação..."
+              :disabled="salvando"
+          />
+          <small v-if="!mensagemReprovacao.trim() && tentouConfirmar" class="text-red-500 block mt-1">
+            O motivo da reprovação é obrigatório.
+          </small>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button
+            label="Cancelar"
+            icon="pi pi-times"
+            class="p-button-text"
+            :disabled="salvando"
+            @click="fecharModalReprovar"
+        />
+        <Button
+            label="Confirmar Reprovação"
+            icon="pi pi-check"
+            class="p-button-danger"
+            :loading="salvando"
+            :disabled="salvando"
+            @click="confirmarReprovar"
+        />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -119,6 +166,9 @@ export default {
     const carregando = ref(false);
     const salvando = ref(false);
     const observacao = ref('');
+    const modalReprovar = ref(false);
+    const mensagemReprovacao = ref('');
+    const tentouConfirmar = ref(false);
 
     const tabelaItens = computed(() =>
       solicitacao.items.map((item) => ({
@@ -189,11 +239,45 @@ export default {
       }
     };
 
-    const reprovar = async () => {
+    const abrirModalReprovar = () => {
+      mensagemReprovacao.value = '';
+      tentouConfirmar.value = false;
+      modalReprovar.value = true;
+    };
+
+    const fecharModalReprovar = () => {
+      modalReprovar.value = false;
+      mensagemReprovacao.value = '';
+      tentouConfirmar.value = false;
+    };
+
+    const confirmarReprovar = async () => {
+      tentouConfirmar.value = true;
+
+      if (!mensagemReprovacao.value.trim()) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Campo obrigatório',
+          detail: 'Informe o motivo da reprovação.',
+          life: 3000,
+        });
+        return;
+      }
+
       try {
         salvando.value = true;
-        await SolicitacaoService.reject(solicitacao.id, { observacao: observacao.value });
-        toast.add({ severity: 'warn', summary: 'Solicitação reprovada', detail: `${solicitacao.numero} foi reprovada.`, life: 3000 });
+        // Enviar 'mensagem' como preferencial, mas também enviar 'observacao' para compatibilidade
+        await SolicitacaoService.reject(solicitacao.id, {
+          mensagem: mensagemReprovacao.value.trim(),
+          observacao: mensagemReprovacao.value.trim(),
+        });
+        toast.add({
+          severity: 'warn',
+          summary: 'Solicitação reprovada',
+          detail: `${solicitacao.numero} foi reprovada. O solicitante poderá editar a solicitação.`,
+          life: 4000,
+        });
+        fecharModalReprovar();
         router.push({ name: 'solicitacoesPendentes' });
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível reprovar a solicitação.';
@@ -205,7 +289,22 @@ export default {
 
     onMounted(carregarDados);
 
-    return { solicitacao, tabelaItens, voltar, aprovar, reprovar, carregando, salvando, observacao };
+    return {
+      solicitacao,
+      tabelaItens,
+      voltar,
+      aprovar,
+      reprovar: abrirModalReprovar,
+      abrirModalReprovar,
+      fecharModalReprovar,
+      confirmarReprovar,
+      carregando,
+      salvando,
+      observacao,
+      modalReprovar,
+      mensagemReprovacao,
+      tentouConfirmar,
+    };
   }
 };
 </script>

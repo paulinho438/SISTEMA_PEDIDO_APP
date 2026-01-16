@@ -13,6 +13,10 @@ class SolicitacaoService {
     return axios.post('/cotacoes', payload);
   }
 
+  update(id, payload) {
+    return axios.put(`/cotacoes/${id}`, payload);
+  }
+
   saveDetails(id, payload) {
     return axios.post(`/cotacoes/${id}/detalhes`, payload);
   }
