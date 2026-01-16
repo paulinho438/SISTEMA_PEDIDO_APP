@@ -73,22 +73,52 @@ const itemClick = (event, item) => {
 const checkActiveRoute = (item) => {
     return route.path === item.to;
 };
+
+/**
+ * Verifica se um item de menu ou qualquer um de seus subitens tem permissão
+ * Retorna true se o item ou pelo menos um subitem tiver permissão
+ */
+const hasAnyPermission = (item) => {
+    // Se o item tem subitens, verificar se pelo menos um subitem tem permissão
+    if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+        // Verificar recursivamente se pelo menos um subitem tem permissão
+        const hasVisibleChild = item.items.some(child => hasAnyPermission(child));
+        
+        // Se nenhum subitem tem permissão, o item pai não deve aparecer
+        if (!hasVisibleChild) {
+            return false;
+        }
+        
+        // Se pelo menos um subitem tem permissão, o item pai deve aparecer
+        // Não verificar a permissão do item pai se ele tem subitens,
+        // pois a visibilidade depende dos subitens
+        return true;
+    }
+    
+    // Se não tem subitens, verificar a permissão do próprio item
+    // Se não tiver permissão definida, considerar como visível (para compatibilidade)
+    if (!item.permission) {
+        return true;
+    }
+    
+    return permissionService.hasPermissions(item.permission);
+};
 </script>
 
 <template>
-    <li :class="{ 'layout-root-menuitem': root, 'active-menuitem': isActiveMenu }">
-        <div v-if="root && item.visible !== false && permissionService.hasPermissions(item.permission)" class="layout-menuitem-root-text">{{ item.label }}</div>
-        <a v-if="(!item.to || item.items) && item.visible !== false" :href="item.url" @click="itemClick($event, item, index)" :class="item.class" :target="item.target" tabindex="0">
+    <li v-if="item.visible !== false && hasAnyPermission(item)" :class="{ 'layout-root-menuitem': root, 'active-menuitem': isActiveMenu }">
+        <div v-if="root && permissionService.hasPermissions(item.permission)" class="layout-menuitem-root-text">{{ item.label }}</div>
+        <a v-if="(!item.to || item.items) && (!item.permission || permissionService.hasPermissions(item.permission))" :href="item.url" @click="itemClick($event, item, index)" :class="item.class" :target="item.target" tabindex="0">
             <i :class="item.icon" class="layout-menuitem-icon"></i>
             <span class="layout-menuitem-text">{{ item.label  }}</span>
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
         </a>
-        <router-link v-if="item.to && !item.items && item.visible !== false && permissionService.hasPermissions(item.permission)" @click="itemClick($event, item, index)" :class="[item.class, { 'active-route': checkActiveRoute(item) }]" tabindex="0" :to="item.to">
+        <router-link v-if="item.to && !item.items && (!item.permission || permissionService.hasPermissions(item.permission))" @click="itemClick($event, item, index)" :class="[item.class, { 'active-route': checkActiveRoute(item) }]" tabindex="0" :to="item.to">
             <i :class="item.icon" class="layout-menuitem-icon"></i>
             <span class="layout-menuitem-text">{{ item.label }}</span>
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
         </router-link>
-        <Transition v-if="item.items && item.visible !== false && permissionService.hasPermissions(item.permission)" name="layout-submenu">
+        <Transition v-if="item.items && (!item.permission || permissionService.hasPermissions(item.permission))" name="layout-submenu">
             <ul v-show="root ? true : isActiveMenu" class="layout-submenu">
                 <app-menu-item v-for="(child, i) in item.items" :key="child" :index="i" :item="child" :parentItemKey="itemKey" :root="false"></app-menu-item>
             </ul>
