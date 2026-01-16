@@ -42,31 +42,31 @@ const model = ref([
             },
             {
                 label: 'ESTOQUE',
-                permission: 'view_dashboard',
+                permission: 'view_estoque',
                 icon: 'pi pi-fw pi-box',
                 items: [
-                    { label: 'Produtos', icon: 'pi pi-fw pi-box', to: '/estoque/produtos', permission: 'view_dashboard' },
-                    { label: 'Locais', icon: 'pi pi-fw pi-map-marker', to: '/estoque/locais', permission: 'view_dashboard' },
-                    { label: 'Consulta de Estoque', icon: 'pi pi-fw pi-search', to: '/estoque/consulta', permission: 'view_dashboard' },
-                    { label: 'Movimentações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/estoque/movimentacoes', permission: 'view_dashboard' },
-                    { label: 'Gerenciar Almoxarifes', icon: 'pi pi-fw pi-users', to: '/estoque/almoxarifes', permission: 'view_dashboard' },
-                    { label: 'Análise de Reservas', icon: 'pi pi-fw pi-check-circle', to: '/estoque/reservas', permission: 'view_dashboard' },
-                    { label: 'Nota Fiscal e Entrada', icon: 'pi pi-fw pi-file', to: '/estoque/nota-fiscal/nova', permission: 'view_dashboard' }
+                    { label: 'Produtos', icon: 'pi pi-fw pi-box', to: '/estoque/produtos', permission: 'view_estoque_produtos' },
+                    { label: 'Locais', icon: 'pi pi-fw pi-map-marker', to: '/estoque/locais', permission: 'view_estoque_locais' },
+                    { label: 'Consulta de Estoque', icon: 'pi pi-fw pi-search', to: '/estoque/consulta', permission: 'view_estoque_consulta' },
+                    { label: 'Movimentações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/estoque/movimentacoes', permission: 'view_estoque_movimentacoes' },
+                    { label: 'Gerenciar Almoxarifes', icon: 'pi pi-fw pi-users', to: '/estoque/almoxarifes', permission: 'view_estoque_almoxarifes' },
+                    { label: 'Análise de Reservas', icon: 'pi pi-fw pi-check-circle', to: '/estoque/reservas', permission: 'view_estoque_reservas' },
+                    { label: 'Nota Fiscal e Entrada', icon: 'pi pi-fw pi-file', to: '/estoque/nota-fiscal/nova', permission: 'view_estoque_nota_fiscal' }
                 ]
             },
             {
                 label: 'ATIVOS',
-                permission: 'view_dashboard',
+                permission: 'view_ativos',
                 icon: 'pi pi-fw pi-briefcase',
                 items: [
-                    { label: 'Controle de Ativos', icon: 'pi pi-fw pi-list', to: '/ativos/controle', permission: 'view_dashboard' },
-                    { label: 'Consulta de Ativo', icon: 'pi pi-fw pi-search', to: '/ativos/consulta', permission: 'view_dashboard' },
+                    { label: 'Controle de Ativos', icon: 'pi pi-fw pi-list', to: '/ativos/controle', permission: 'view_ativos_controle' },
+                    { label: 'Consulta de Ativo', icon: 'pi pi-fw pi-search', to: '/ativos/consulta', permission: 'view_ativos_consulta' },
                     {
                         label: 'Cadastros Auxiliares',
                         icon: 'pi pi-fw pi-database',
-                        permission: 'view_dashboard',
+                        permission: 'view_ativos_filiais',
                         items: [
-                            { label: 'Filiais', icon: 'pi pi-fw pi-building', to: '/ativos/filiais', permission: 'view_dashboard' }
+                            { label: 'Filiais', icon: 'pi pi-fw pi-building', to: '/ativos/filiais', permission: 'view_ativos_filiais' }
                         ]
                     }
                 ]

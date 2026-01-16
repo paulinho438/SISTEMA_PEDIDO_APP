@@ -606,6 +606,38 @@ export default {
                     </div>
                 </div>
             </div>
+
+            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.estoque">
+                <h5 class="m-0">Estoque</h5>
+                <div>
+                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('estoque')" />
+                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('estoque')" />
+                </div>
+            </div>
+            <div class="grid" v-if="multiselectValues?.estoque">
+                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.estoque)" :key="`estoque-${option.slug}`">
+                    <div class="field-checkbox mb-0">
+                        <Checkbox :id="`estoque-${option.slug}`" name="option" :value="option.slug" v-model="checkboxValue" />
+                        <label :for="`estoque-${option.slug}`">{{ option.name }}</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.ativos">
+                <h5 class="m-0">Ativos</h5>
+                <div>
+                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('ativos')" />
+                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('ativos')" />
+                </div>
+            </div>
+            <div class="grid" v-if="multiselectValues?.ativos">
+                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.ativos)" :key="`ativos-${option.slug}`">
+                    <div class="field-checkbox mb-0">
+                        <Checkbox :id="`ativos-${option.slug}`" name="option" :value="option.slug" v-model="checkboxValue" />
+                        <label :for="`ativos-${option.slug}`">{{ option.name }}</label>
+                    </div>
+                </div>
+            </div>
             <div v-if="permissionsService.hasPermissions('view_mastergeral')">
                 <div class="flex justify-content-between align-items-center mb-2 mt-4">
                     <h5 class="m-0">Gestão de Empresas</h5>

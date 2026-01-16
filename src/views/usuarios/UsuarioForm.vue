@@ -78,7 +78,7 @@
     
             getPermissions() {
                 this.setLoading(true);
-    
+
                 this.permissionsService
                     .getAll()
                     .then((response) => {
@@ -87,6 +87,8 @@
                             name: group.name,
                             id: group.id
                         }));
+                        // Após carregar permissões, tentar selecionar a permissão do usuário se já estiver carregado
+                        this.setSelectedPermissao();
                     })
                     .catch((error) => {
                         this.toast.add({
@@ -98,6 +100,82 @@
                     .finally(() => {
                         this.setLoading(false);
                     });
+            },
+
+            setSelectedPermissao() {
+                // Só tenta selecionar se tiver usuário carregado
+                if (!this.usuario || !this.usuario.id) {
+                    return;
+                }
+
+                // Se não tiver permissões carregadas ainda, não tenta selecionar
+                if (this.permissions.length === 0) {
+                    return;
+                }
+
+                const companyId = this.$store?.getters?.isCompany?.id;
+                
+                // Converter permissao para array se necessário
+                let permissaoList = [];
+                if (Array.isArray(this.usuario?.permissao)) {
+                    permissaoList = this.usuario.permissao;
+                } else if (this.usuario?.permissao && typeof this.usuario.permissao === 'object') {
+                    // Se for um objeto único, converter para array
+                    permissaoList = [this.usuario.permissao];
+                }
+
+                // Se não tiver permissões, limpar seleção
+                if (permissaoList.length === 0) {
+                    this.selectedPermissao = null;
+                    return;
+                }
+
+                // Filtrar por company_id se fornecido (comparar como números)
+                let filteredData = permissaoList;
+                if (companyId) {
+                    filteredData = permissaoList.filter((item) => {
+                        const itemCompanyId = item.company_id ? Number(item.company_id) : null;
+                        const currentCompanyId = Number(companyId);
+                        return itemCompanyId === currentCompanyId;
+                    });
+                    
+                    // Se não encontrou nenhuma permissão para a empresa atual, usar a primeira disponível
+                    if (filteredData.length === 0 && permissaoList.length > 0) {
+                        filteredData = [permissaoList[0]];
+                    }
+                }
+
+                // Encontrar a permissão correspondente em this.permissions pelo ID
+                // Isso garante que usamos a mesma referência do objeto que está no array permissions
+                if (filteredData.length > 0) {
+                    const permissaoId = Number(filteredData[0].id);
+                    const permissaoName = filteredData[0].name || 'Permissão';
+                    let foundPermission = this.permissions.find(p => Number(p.id) === permissaoId);
+                    
+                    // Se não encontrou na lista, adicionar à lista para que apareça no dropdown
+                    if (!foundPermission) {
+                        const newPermission = {
+                            id: permissaoId,
+                            name: permissaoName
+                        };
+                        this.permissions.push(newPermission);
+                        foundPermission = newPermission;
+                        
+                        // Debug em desenvolvimento
+                        if (process.env.NODE_ENV === 'development') {
+                            console.warn('Permissão do usuário adicionada à lista:', {
+                                permissaoId,
+                                permissaoName,
+                                permissionsCount: this.permissions.length
+                            });
+                        }
+                    }
+                    
+                    // Usar a referência exata do objeto (agora garantidamente na lista)
+                    this.selectedPermissao = foundPermission;
+                } else {
+                    this.selectedPermissao = null;
+                }
             },
     
             getEmpresas() {
@@ -141,22 +219,9 @@
                                     ? { name: 'Feminino', value: 'F' }
                                     : null;
     
-                            const companyId = this.$store?.getters?.isCompany?.id;
-    
-                            const permissaoList = Array.isArray(this.usuario?.permissao)
-                                ? this.usuario.permissao
-                                : [];
-    
-                            const filteredData = companyId
-                                ? permissaoList.filter((item) => item.company_id === companyId)
-                                : permissaoList;
-    
-                            const filtered = filteredData.map((p) => ({
-                                name: p.name,
-                                id: p.id
-                            }));
-    
-                            this.selectedPermissao = filtered.length ? filtered[0] : null;
+                            // Usar o método auxiliar para definir a permissão selecionada
+                            // Isso garante que funciona mesmo se as permissões ainda não foram carregadas
+                            this.setSelectedPermissao();
     
                             // A URL da assinatura já vem do backend via UsuarioResource
                             // Se não vier, recalcular usando getSignatureUrl

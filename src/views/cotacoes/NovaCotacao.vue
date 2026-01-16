@@ -4,7 +4,7 @@
     <!-- Header -->
     <div class="flex justify-content-between align-items-center mb-3">
       <div class="flex align-items-center gap-2">
-        <Button icon="pi pi-arrow-left" class="p-button-text" />
+        <Button icon="pi pi-arrow-left" class="p-button-text" @click="voltar" />
         <h5 class="m-0">Nova Cotação</h5>
         <Button
             icon="pi pi-comments"
@@ -1428,7 +1428,7 @@ const isMelhorPreco = (cot, itemIndex, cotIndex) => {
 const fornecedorNome = (cot, index) =>
   cot?.fornecedor?.A2_NOME || cot?.nome || `Fornecedor ${index + 1}`
 
-const carregarCotacao = async () => {
+const carregarCotacao = async (abrirModalMensagens = false) => {
   try {
     if (!route.params.id) {
       toast.add({
@@ -1458,8 +1458,9 @@ const carregarCotacao = async () => {
     cotacao.buyer = detalhe.buyer ?? null
     mensagens.value = detalhe.mensagens ?? []
 
-    // Se houver mensagens, abrir o modal automaticamente
-    if (mensagens.value && mensagens.value.length > 0) {
+    // Se houver mensagens e o parâmetro indicar, abrir o modal automaticamente
+    // Por padrão, só abre no carregamento inicial (não após salvar/analisar)
+    if (abrirModalMensagens && mensagens.value && mensagens.value.length > 0) {
       modalMensagens.value = true
     }
 
@@ -1563,7 +1564,8 @@ const carregarCotacao = async () => {
 }
 
 const carregarTodosDados = async () => {
-  await carregarCotacao()
+  // No carregamento inicial, abrir modal de mensagens se houver
+  await carregarCotacao(true)
   if (route.params.id) {
     await buscarFornecedores()
   }
@@ -1932,6 +1934,10 @@ const confirmarReprovar = async () => {
   } finally {
     reprovandoCotacao.value = false
   }
+}
+
+const voltar = () => {
+  router.push({ name: 'cotacoesList' })
 }
 
 const abrirMensagens = () => {
