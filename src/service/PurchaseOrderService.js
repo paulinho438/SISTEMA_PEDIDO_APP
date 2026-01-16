@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '@/plugins/axios';
 const apiPath = import.meta.env.VITE_APP_BASE_URL;
 
 export default class PurchaseOrderService {
@@ -42,6 +42,13 @@ export default class PurchaseOrderService {
         }, 100);
         
         return response;
+    };
+
+    updateStatus = async (orderId, status, justification = null) => {
+        return await axios.put(`${apiPath}/pedidos-compra/${orderId}/status`, {
+            status,
+            justification
+        });
     };
 }
 

@@ -48,10 +48,17 @@
       </Column>
       <Column field="status" header="Status" sortable>
         <template #body="slotProps">
-          <Tag
-            :value="getLabelStatus(slotProps.data.status)"
-            :severity="getCorStatus(slotProps.data.status)"
-          />
+          <div class="flex align-items-center gap-2">
+            <Tag
+              :value="getLabelStatus(slotProps.data.status)"
+              :severity="getCorStatus(slotProps.data.status)"
+            />
+            <i
+              v-if="slotProps.data.status === 'link'"
+              class="pi pi-clock text-orange-500"
+              v-tooltip.top="'Aguardando aprovação/reprovação no Protheus'"
+            />
+          </div>
         </template>
       </Column>
       <Column header="Ações">
@@ -129,6 +136,15 @@ export default {
     const getLabelStatus = (status) => {
       const statusMap = {
         pendente: 'Pendente',
+        link: 'Aguardando LINK',
+        link_aprovado: 'LINK Aprovado',
+        link_reprovado: 'LINK Reprovado',
+        coleta: 'Coleta',
+        em_transito: 'Em Trânsito',
+        atendido: 'Atendido',
+        atendido_parcial: 'Atendido Parcial',
+        pagamento: 'Pagamento',
+        encerrado: 'Encerrado',
         recebido: 'Recebido',
         parcial: 'Parcial',
         cancelado: 'Cancelado',
@@ -139,6 +155,15 @@ export default {
     const getCorStatus = (status) => {
       const corMap = {
         pendente: 'warning',
+        link: 'warning',
+        link_aprovado: 'success',
+        link_reprovado: 'danger',
+        coleta: 'info',
+        em_transito: 'info',
+        atendido: 'success',
+        atendido_parcial: 'warning',
+        pagamento: 'info',
+        encerrado: 'success',
         recebido: 'success',
         parcial: 'info',
         cancelado: 'danger',

@@ -16,6 +16,20 @@
           v-if="pedido && pedido.purchase_quote_id"
         />
         <Button
+          v-if="pedido && pedido.status === 'pendente' && isBuyer"
+          label="Encaminhar para PROTHEUS"
+          icon="pi pi-send"
+          class="p-button-warning"
+          @click="abrirModalStatus"
+        />
+        <Button
+          v-else-if="pedido && isBuyer && pedido.status !== 'encerrado' && pedido.status !== 'cancelado'"
+          :label="isOldStatus(pedido.status) ? 'Migrar Status' : 'Alterar Status'"
+          :icon="isOldStatus(pedido.status) ? 'pi pi-arrow-right' : 'pi pi-sync'"
+          :class="isOldStatus(pedido.status) ? 'p-button-warning' : 'p-button-info'"
+          @click="abrirModalStatus"
+        />
+        <Button
           label="Imprimir"
           icon="pi pi-print"
           class="p-button-info"
@@ -39,6 +53,46 @@
     </div>
 
     <div v-else-if="pedido" class="grid">
+      <!-- Status e Histórico -->
+      <div class="col-12" v-if="pedido.status_history && pedido.status_history.length > 0">
+        <Panel header="Histórico de Status">
+          <Timeline :value="pedido.status_history" class="p-timeline-vertical">
+            <template #marker="slotProps">
+              <span class="flex w-2rem h-2rem align-items-center justify-content-center text-white border-circle z-1 shadow-1" :style="{ backgroundColor: getCorStatus(slotProps.item.new_status) === 'success' ? '#22c55e' : getCorStatus(slotProps.item.new_status) === 'danger' ? '#ef4444' : getCorStatus(slotProps.item.new_status) === 'warning' ? '#f59e0b' : '#6b7280' }">
+                <i class="pi pi-check" v-if="slotProps.item.new_status !== 'link_reprovado'"></i>
+                <i class="pi pi-times" v-else></i>
+              </span>
+            </template>
+            <template #content="slotProps">
+              <div class="flex flex-column">
+                <div class="flex align-items-center gap-2 mb-1">
+                  <Tag :value="getLabelStatus(slotProps.item.new_status)" :severity="getCorStatus(slotProps.item.new_status)" />
+                  <span class="text-500 text-sm">{{ formatarData(slotProps.item.created_at) }}</span>
+                </div>
+                <div class="text-600 text-sm" v-if="slotProps.item.changed_by">
+                  Alterado por: {{ slotProps.item.changed_by?.nome_completo || 'Sistema' }}
+                </div>
+                <div class="text-600 text-sm mt-1" v-if="slotProps.item.justification">
+                  <strong>Justificativa:</strong> {{ slotProps.item.justification }}
+                </div>
+              </div>
+            </template>
+          </Timeline>
+        </Panel>
+      </div>
+
+      <!-- Alerta para link_reprovado -->
+      <div class="col-12" v-if="pedido.status === 'link_reprovado'">
+        <Message severity="warn" :closable="false">
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-exclamation-triangle"></i>
+            <div>
+              <strong>LINK Reprovado:</strong> A cotação foi retornada para "Compra em Andamento" para correções.
+            </div>
+          </div>
+        </Message>
+      </div>
+
       <!-- Informações Gerais -->
       <div class="col-12">
         <Panel header="Informações Gerais">
@@ -207,23 +261,42 @@
       </div>
     </div>
 
+    <!-- Modal de Alteração de Status -->
+    <PedidoCompraStatusChange
+      v-if="pedido"
+      :pedido="pedido"
+      :visible="modalStatusVisible"
+      @update:visible="modalStatusVisible = $event"
+      @status-updated="onStatusUpdated"
+    />
+
     <Toast />
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
+import { useStore } from 'vuex';
 import PurchaseOrderService from '@/service/PurchaseOrderService';
 import SolicitacaoService from '@/service/SolicitacaoService';
+import PedidoCompraStatusChange from '@/components/PedidoCompraStatusChange.vue';
+import Timeline from 'primevue/timeline';
+import Message from 'primevue/message';
 
 export default {
   name: 'PedidoCompraDetalhes',
+  components: {
+    PedidoCompraStatusChange,
+    Timeline,
+    Message,
+  },
   setup() {
     const route = useRoute();
     const router = useRouter();
     const toast = useToast();
+    const store = useStore();
     const service = new PurchaseOrderService();
     const solicitacaoService = SolicitacaoService;
 
@@ -231,6 +304,26 @@ export default {
     const carregando = ref(false);
     const imprimindo = ref(false);
     const imprimindoCotacao = ref(false);
+    const modalStatusVisible = ref(false);
+
+    // Verificar se o usuário é comprador
+    const isBuyer = computed(() => {
+      const usuario = store.state.usuario;
+      if (!usuario || !usuario.permissions || !Array.isArray(usuario.permissions)) {
+        return false;
+      }
+      
+      // Verificar se o usuário tem grupo/permissão de Comprador
+      for (const perm of usuario.permissions) {
+        if (perm && perm.name) {
+          const groupName = perm.name.toLowerCase();
+          if (groupName.includes('comprador') || groupName.includes('buyer')) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
 
     const carregar = async () => {
       const id = route.params.id;
@@ -244,6 +337,13 @@ export default {
         carregando.value = true;
         const { data } = await service.get(id);
         pedido.value = data?.data || data;
+        // O histórico já vem no relacionamento statusHistory do backend
+        if (pedido.value && pedido.value.status_history) {
+          // Ordenar por data mais recente primeiro
+          pedido.value.status_history.sort((a, b) => {
+            return new Date(b.created_at) - new Date(a.created_at);
+          });
+        }
       } catch (error) {
         const detail = error?.response?.data?.message || 'Erro ao carregar pedido de compra';
         toast.add({ severity: 'error', summary: 'Erro', detail, life: 3000 });
@@ -272,8 +372,18 @@ export default {
     const getLabelStatus = (status) => {
       const statusMap = {
         pendente: 'Pendente',
-        recebido: 'Recebido',
-        parcial: 'Parcial',
+        link: 'Aguardando LINK',
+        link_aprovado: 'LINK Aprovado',
+        link_reprovado: 'LINK Reprovado',
+        coleta: 'Coleta',
+        em_transito: 'Em Trânsito',
+        atendido: 'Atendido',
+        atendido_parcial: 'Atendido Parcial',
+        pagamento: 'Pagamento',
+        encerrado: 'Encerrado',
+        recebido: 'Recebido (Antigo)',
+        parcial: 'Parcial (Antigo)',
+        parcialmente_recebido: 'Parcialmente Recebido (Antigo)',
         cancelado: 'Cancelado',
       };
       return statusMap[status] || status || '-';
@@ -282,11 +392,26 @@ export default {
     const getCorStatus = (status) => {
       const corMap = {
         pendente: 'warning',
+        link: 'warning',
+        link_aprovado: 'success',
+        link_reprovado: 'danger',
+        coleta: 'info',
+        em_transito: 'info',
+        atendido: 'success',
+        atendido_parcial: 'warning',
+        pagamento: 'info',
+        encerrado: 'success',
         recebido: 'success',
         parcial: 'info',
+        parcialmente_recebido: 'info',
         cancelado: 'danger',
       };
       return corMap[status] || 'secondary';
+    };
+
+    const isOldStatus = (status) => {
+      const oldStatuses = ['recebido', 'parcial', 'parcialmente_recebido'];
+      return oldStatuses.includes(status);
     };
 
     const criarNotaFiscal = () => {
@@ -361,6 +486,25 @@ export default {
       }
     };
 
+    const abrirModalStatus = () => {
+      modalStatusVisible.value = true;
+    };
+
+    const fecharModalStatus = () => {
+      modalStatusVisible.value = false;
+    };
+
+    const onStatusUpdated = async () => {
+      modalStatusVisible.value = false;
+      await carregar();
+      toast.add({
+        severity: 'success',
+        summary: 'Sucesso',
+        detail: 'Status atualizado com sucesso!',
+        life: 3000,
+      });
+    };
+
     const imprimirCotacao = async () => {
       try {
         imprimindoCotacao.value = true;
@@ -417,11 +561,14 @@ export default {
       carregando,
       imprimindo,
       imprimindoCotacao,
+      modalStatusVisible,
+      isBuyer,
       formatarValor,
       formatarData,
       formatarQuantidade,
       getLabelStatus,
       getCorStatus,
+      isOldStatus,
       criarNotaFiscal,
       visualizarNotaFiscal,
       calcularPercentualRecebido,
@@ -429,6 +576,9 @@ export default {
       getSeverityRecebimento,
       imprimirPedido,
       imprimirCotacao,
+      abrirModalStatus,
+      fecharModalStatus,
+      onStatusUpdated,
     };
   },
 };
