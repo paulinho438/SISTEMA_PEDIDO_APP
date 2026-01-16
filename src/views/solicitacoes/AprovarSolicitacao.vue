@@ -52,7 +52,11 @@
         <Column field="aplicacao" header="Aplicação" />
         <Column field="prioridade" header="Prioridade dias" />
         <Column field="tag" header="TAG" />
-        <Column field="centroCusto" header="Centro de custo" />
+        <Column header="Centro de custo">
+          <template #body="{ data }">
+            {{ formatarCentroCusto(data.centroCusto) }}
+          </template>
+        </Column>
       </DataTable>
 
       <!-- Observação -->
@@ -170,6 +174,29 @@ export default {
     const mensagemReprovacao = ref('');
     const tentouConfirmar = ref(false);
 
+    const formatarCentroCusto = (centroCusto) => {
+      if (!centroCusto) return '-';
+      
+      // Se for string (formato antigo), retornar como está
+      if (typeof centroCusto === 'string') {
+        return centroCusto;
+      }
+      
+      // Se for objeto, formatar código - descrição
+      if (typeof centroCusto === 'object') {
+        const codigo = centroCusto?.codigo || centroCusto?.CTT_CUSTO || '';
+        const descricao = centroCusto?.descricao || centroCusto?.CTT_DESC01 || '';
+        
+        if (codigo && descricao) {
+          return `${codigo} - ${descricao}`;
+        }
+        
+        return codigo || descricao || '-';
+      }
+      
+      return '-';
+    };
+
     const tabelaItens = computed(() =>
       solicitacao.items.map((item) => ({
         codigo: item.codigo,
@@ -193,7 +220,8 @@ export default {
         solicitacao.id = detalhe.id;
         solicitacao.numero = detalhe.numero;
         solicitacao.data = detalhe.data;
-        solicitacao.empresa = detalhe.empresa;
+        // Garantir que a empresa mostra a razão social se disponível
+        solicitacao.empresa = typeof detalhe.empresa === 'object' ? detalhe.empresa?.label || '-' : detalhe.empresa || '-';
         solicitacao.local = detalhe.local;
         solicitacao.solicitante = detalhe.solicitante || detalhe.requester;
         solicitacao.observacao = detalhe.observacao;
@@ -292,6 +320,7 @@ export default {
     return {
       solicitacao,
       tabelaItens,
+      formatarCentroCusto,
       voltar,
       aprovar,
       reprovar: abrirModalReprovar,
