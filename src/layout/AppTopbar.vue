@@ -172,7 +172,9 @@ const userProfile = computed(() => {
 <template>
     <div class="layout-topbar">
         <router-link to="/" class="layout-topbar-logo">
-            <span>{{ $store?.getters?.isCompany?.company }}</span>
+            <div class="logo-rialma">
+                <img src="https://www.gruporialma.com.br/assets/logo_sem_fundo-Dbkuj9iO.png" alt="Logo Rialma" />
+            </div>
         </router-link>
 
         <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle()">
@@ -239,6 +241,24 @@ const userProfile = computed(() => {
 
 .user-info {
     display: flex;
+}
+
+.logo-rialma {
+    width: 120px;
+    height: 50px;
+    background-color: rgb(30, 58, 138);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.logo-rialma img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 
 @media (max-width: 991px) {

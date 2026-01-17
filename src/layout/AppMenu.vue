@@ -11,7 +11,7 @@ const usuarioService = new UsuarioService();
 
 const model = ref([
     {
-        label: 'Home',
+        label: 'HOME',
         permission: 'view_dashboard',
         items: [{label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/', permission: 'view_dashboard'}]
     },
@@ -22,7 +22,7 @@ const model = ref([
         to: '/pages',
         items: [
             {
-                label: 'Cadastros',
+                label: 'CADASTROS',
                 permission: 'view_dashboard',
                 icon: 'pi pi-fw pi-database',
                 items: [
@@ -66,7 +66,6 @@ const model = ref([
                 icon: 'pi pi-fw pi-briefcase',
                 items: [
                     { label: 'Controle de Ativos', icon: 'pi pi-fw pi-list', to: '/ativos/controle', permission: 'view_ativos_controle' },
-                    { label: 'Consulta de Ativo', icon: 'pi pi-fw pi-search', to: '/ativos/consulta', permission: 'view_ativos_consulta' },
                     {
                         label: 'Cadastros Auxiliares',
                         icon: 'pi pi-fw pi-database',
@@ -104,7 +103,7 @@ const model = ref([
         ]
     },
     {
-        label: 'Gestão de Empresas',
+        label: 'GESTÃO DE EMPRESAS',
         permission: 'view_criacao_empresas',
         items: [{label: 'Empresas', icon: 'pi pi-fw pi-building', to: '/empresas', permission: 'view_criacao_empresas'}]
     }
