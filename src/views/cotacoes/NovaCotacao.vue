@@ -381,26 +381,26 @@
         <table class="tabela-cotacao">
           <thead>
           <tr>
-            <th>N°</th>
-            <th>Descrição</th>
-            <th>Marca</th>
-            <th>Fornecedor ganhador</th>
-            <th>Valor Unitário</th>
-            <th>Quantidade</th>
-            <th>Total</th>
-            <th>Motivo</th>
+            <th style="width: 50px;">N°</th>
+            <th style="min-width: 300px; max-width: 400px;">Descrição</th>
+            <th style="width: 100px;">Marca</th>
+            <th style="width: 180px; max-width: 200px;">Fornecedor ganhador</th>
+            <th style="width: 120px;">Valor Unitário</th>
+            <th style="width: 80px;">Quantidade</th>
+            <th style="width: 120px;">Total</th>
+            <th style="width: 150px;">Motivo</th>
           </tr>
           </thead>
           <tbody>
           <tr v-for="(r, index) in resumo" :key="'res-' + index">
-            <td>{{ index + 1 }}</td>
-            <td>{{ r.produto }}</td>
-            <td>{{ r.marca || '-' }}</td>
-            <td>{{ r.fornecedor }}</td>
-            <td>{{ formatCurrencyValue(r.valorUnit) }}</td>
-            <td>{{ r.qtd }}</td>
-            <td>{{ formatCurrencyValue(r.total) }}</td>
-            <td>{{ r.motivo || '-' }}</td>
+            <td style="width: 50px;">{{ index + 1 }}</td>
+            <td style="min-width: 300px; max-width: 400px; word-wrap: break-word;">{{ r.produto }}</td>
+            <td style="width: 100px;">{{ r.marca || '-' }}</td>
+            <td style="width: 180px; max-width: 200px; word-wrap: break-word;">{{ r.fornecedor }}</td>
+            <td style="width: 120px;">{{ formatCurrencyValue(r.valorUnit) }}</td>
+            <td style="width: 80px;">{{ r.qtd }}</td>
+            <td style="width: 120px;">{{ formatCurrencyValue(r.total) }}</td>
+            <td style="width: 150px;">{{ r.motivo || '-' }}</td>
           </tr>
           <tr class="bg-surface-100 font-semibold">
             <td colspan="6" class="text-right">Total geral:</td>
@@ -1659,8 +1659,9 @@ const menorIndice = (itemIndex) => {
   let indiceMenor = null
 
   cotacoes.value.forEach((cot, idx) => {
-    const valor = parsePreco(cot?.itens?.[itemIndex]?.custoUnit)
-    if (valor !== null && valor < menorValor) {
+    const valor = parsePreco(cot?.itens?.[itemIndex]?.custoFinal)
+    // Ignora valores zero ou nulos (fornecedor sem produto)
+    if (valor !== null && valor > 0 && valor < menorValor) {
       menorValor = valor
       indiceMenor = idx
     }
@@ -1677,10 +1678,6 @@ const isMelhorPreco = (cot, itemIndex, cotIndex) => {
 
   if (menor === cotIndex) {
     return 'melhor-preco'
-  }
-
-  if (selecoes.value[itemIndex] === cotIndex && menor !== cotIndex) {
-    return 'selecionado-manual'
   }
 
   return ''
@@ -2232,17 +2229,14 @@ const abrirMensagens = () => {
 
 const resumo = computed(() => {
   return produtos.value.map((prod, p) => {
-    let indice = selecoes.value[p]
-    if (indice === undefined || indice === null) {
-      indice = menorIndice(p)
-    }
+    // Sempre usa o menor valor em "Custo C/ IPI /C Difal" (custoFinal)
+    const indice = menorIndice(p)
 
     const cot = indice !== undefined && indice !== null ? cotacoes.value[indice] : null
     const itemOrigem = cotacao.itensOriginais[p] || {}
     const quantidade = parsePreco(prod.qtd) ?? parsePreco(itemOrigem.quantidade) ?? 0
-    const valorUnitario = parsePreco(cot?.itens?.[p]?.custoUnit ?? cot?.itens?.[p]?.custoFinal) ?? 0
-    const valorTotal =
-      parsePreco(cot?.itens?.[p]?.custoFinal) ?? (valorUnitario ? valorUnitario * (quantidade || 0) : 0)
+    const valorUnitario = parsePreco(cot?.itens?.[p]?.custoFinal) ?? 0
+    const valorTotal = valorUnitario ? valorUnitario * (quantidade || 0) : 0
 
     const itemCotacao = cot?.itens?.[p]
     const marca = itemCotacao?.marca || null
@@ -2457,12 +2451,6 @@ onMounted(async () => {
   width: 100%;
 }
 
-.selecionado-manual {
-  border: 2px dashed #dc2626 !important; /* vermelho */
-  background-color: #fef2f2 !important;
-  font-weight: 600;
-  color: #991b1b;
-}
 
 .produto-card {
   background-color: #ffffff;
