@@ -219,11 +219,11 @@
           <template v-for="(cot, i) in cotacoes" :key="'sub-' + i">
             <th :class="{ 'separador-cotacao': i > 0 }">Marca</th>
             <th :class="{ 'separador-cotacao': i > 0 }">Custo Unit.</th>
-            <th :class="{ 'separador-cotacao': i > 0 }">IPI</th>
-            <th :class="{ 'separador-cotacao': i > 0 }">Custo C/ IPI /S Difal</th>
-            <th :class="{ 'separador-cotacao': i > 0 }">Difal</th>
+            <th :class="{ 'separador-cotacao': i > 0 }" style="width: 65px !important; max-width: 65px !important; min-width: 65px !important;">IPI</th>
+            <th :class="{ 'separador-cotacao': i > 0 }" style="width: 75px !important; max-width: 75px !important; min-width: 75px !important;">Difal</th>
             <th :class="{ 'separador-cotacao': i > 0 }">ICMS</th>
             <th :class="{ 'separador-cotacao': i > 0 }">ICMS Custo total</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">Custo C/ IPI /S Difal</th>
             <th :class="{ 'separador-cotacao': i > 0 }">Custo C/ IPI /C Difal</th>
           </template>
         </tr>
@@ -259,36 +259,24 @@
                   :disabled="isReadOnly"
               />
             </td>
-            <td :class="{ 'separador-cotacao': i > 0 }">
+            <td :class="{ 'separador-cotacao': i > 0 }" style="width: 65px !important; max-width: 65px !important; min-width: 65px !important;">
               <InputText
                   v-model="cot.itens[p].ipi"
                   placeholder="0%"
-                  class="w-full p-inputtext-sm text-center"
+                  class="p-inputtext-sm text-center"
                   :class="isMelhorPreco(cot, p, i)"
-                  style="min-width: 120px !important;"
+                  style="width: 100%; padding: 0.25rem;"
                   @blur="calcularDifalAutomatico(i)"
                   :disabled="isReadOnly"
               />
             </td>
-            <td :class="{ 'separador-cotacao': i > 0 }">
-              <InputText
-                  v-model="cot.itens[p].custoIPI"
-                  placeholder="R$ 0,00"
-                  class="w-full p-inputtext-sm text-right"
-                  :class="isMelhorPreco(cot, p, i)"
-                  style="min-width: 120px !important;"
-                  @focus="prepararCampoMoeda(i, p, 'custoIPI')"
-                  @blur="formatarCampoMoeda(i, p, 'custoIPI')"
-                  :disabled="isReadOnly"
-              />
-            </td>
-            <td :class="{ 'separador-cotacao': i > 0 }">
+            <td :class="{ 'separador-cotacao': i > 0 }" style="width: 75px !important; max-width: 75px !important; min-width: 75px !important;">
               <InputText
                   v-model="cot.itens[p].difal"
                   placeholder="R$ 0,00"
-                  class="w-full p-inputtext-sm text-right"
+                  class="p-inputtext-sm text-right"
                   :class="isMelhorPreco(cot, p, i)"
-                  style="min-width: 120px !important;"
+                  style="width: 100%; padding: 0.25rem;"
                   readonly
               />
             </td>
@@ -311,6 +299,18 @@
                   style="min-width: 120px !important;"
                   @focus="prepararCampoMoeda(i, p, 'icmsTotal')"
                   @blur="formatarCampoMoeda(i, p, 'icmsTotal')"
+                  :disabled="isReadOnly"
+              />
+            </td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
+              <InputText
+                  v-model="cot.itens[p].custoIPI"
+                  placeholder="R$ 0,00"
+                  class="w-full p-inputtext-sm text-right"
+                  :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
+                  @focus="prepararCampoMoeda(i, p, 'custoIPI')"
+                  @blur="formatarCampoMoeda(i, p, 'custoIPI')"
                   :disabled="isReadOnly"
               />
             </td>
