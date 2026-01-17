@@ -6,17 +6,21 @@
     </div>
 
     <div class="grid mb-3">
-      <div class="col-12 md:col-4">
+      <div class="col-12 md:col-3">
         <label>Buscar</label>
         <InputText v-model="filtros.search" placeholder="Número, descrição, TAG..." class="w-full" />
       </div>
-      <div class="col-12 md:col-3">
+      <div class="col-12 md:col-2">
         <label>Filial</label>
         <Dropdown v-model="filtros.branch_id" :options="filiais" optionLabel="name" optionValue="id" placeholder="Todas" class="w-full" showClear />
       </div>
-      <div class="col-12 md:col-3">
+      <div class="col-12 md:col-2">
         <label>Status</label>
         <Dropdown v-model="filtros.status" :options="statusOptions" optionLabel="label" optionValue="value" placeholder="Todos" class="w-full" showClear />
+      </div>
+      <div class="col-12 md:col-3">
+        <label>Responsável</label>
+        <Dropdown v-model="filtros.responsible_id" :options="responsaveis" optionLabel="nome_completo" optionValue="id" placeholder="Todos" class="w-full" showClear :filter="true" filterPlaceholder="Buscar responsável" />
       </div>
       <div class="col-12 md:col-2">
         <label>&nbsp;</label>
@@ -108,6 +112,7 @@ import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
+import UserService from '@/service/UserService';
 
 export default {
   name: 'AtivosList',
@@ -115,6 +120,7 @@ export default {
     const toast = useToast();
     const ativos = ref([]);
     const filiais = ref([]);
+    const responsaveis = ref([]);
     const carregando = ref(false);
     const processando = ref(false);
     const modalBaixar = ref(false);
@@ -122,6 +128,7 @@ export default {
 
     const service = new AssetService();
     const branchService = new AssetAuxiliaryService('filiais');
+    const userService = new UserService();
 
     const statusOptions = [
       { label: 'Incluído', value: 'incluido' },
@@ -133,6 +140,7 @@ export default {
       search: '',
       branch_id: null,
       status: null,
+      responsible_id: null,
     });
 
     const formBaixar = ref({
@@ -175,6 +183,15 @@ export default {
       }
     };
 
+    const carregarResponsaveis = async () => {
+      try {
+        const { data } = await userService.getAll();
+        responsaveis.value = data.data || data || [];
+      } catch (error) {
+        console.error('Erro ao carregar responsáveis:', error);
+      }
+    };
+
     const abrirModalBaixar = (ativo) => {
       ativoSelecionado.value = ativo;
       formBaixar.value = { reason: '', observation: '' };
@@ -203,11 +220,13 @@ export default {
     onMounted(() => {
       carregar();
       carregarFiliais();
+      carregarResponsaveis();
     });
 
     return {
       ativos,
       filiais,
+      responsaveis,
       carregando,
       processando,
       modalBaixar,

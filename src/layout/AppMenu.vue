@@ -85,20 +85,20 @@ const model = ref([
                     { label: 'Solicitações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes', permission: 'create_cotacoes' },
                     { label: 'Solicitações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes_pendentes', permission: 'view_cotacoes' },
                     { label: 'Cotações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/cotacoes', permission: 'view_cotacoes' },
-                    { label: 'Pedidos de Compra', icon: 'pi pi-fw pi-shopping-cart', to: '/compras/pedidos', permission: 'view_cotacoes' }
-                ]
-            },
-            {
-                label: 'RELATÓRIOS',
-                permission: 'view_dashboard',
-                icon: 'pi pi-fw pi-chart-bar',
-                items: [
-                    { label: 'Acompanhamento de Cotações', icon: 'pi pi-fw pi-table', to: '/cotacoes/acompanhamento', permission: 'view_cotacoes' },
-                    { label: 'Custos por Centro de Custo', icon: 'pi pi-fw pi-chart-bar', to: '/relatorios/custos-centro-custo', permission: 'view_cotacoes' },
-                    { label: 'Relatório de cotação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/cotacoes', permission: 'cotacoes_imprimir' },
-                    { label: 'Custos por Fornecedor', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-fornecedor', permission: 'view_cotacoes' },
-                    { label: 'Custos por Solicitação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-solicitacao', permission: 'view_cotacoes' },
-                    { label: 'Histórico por Período', icon: 'pi pi-fw pi-calendar-plus', to: '/relatorios/historico-periodo', permission: 'view_cotacoes' }
+                    { label: 'Pedidos de Compra', icon: 'pi pi-fw pi-shopping-cart', to: '/compras/pedidos', permission: 'view_cotacoes' },
+                    {
+                        label: 'Relatórios',
+                        icon: 'pi pi-fw pi-chart-bar',
+                        permission: 'view_cotacoes',
+                        items: [
+                            { label: 'Acompanhamento de Cotações', icon: 'pi pi-fw pi-table', to: '/cotacoes/acompanhamento', permission: 'view_cotacoes' },
+                            { label: 'Custos por Centro de Custo', icon: 'pi pi-fw pi-chart-bar', to: '/relatorios/custos-centro-custo', permission: 'view_cotacoes' },
+                            { label: 'Relatório de cotação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/cotacoes', permission: 'cotacoes_imprimir' },
+                            { label: 'Custos por Fornecedor', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-fornecedor', permission: 'view_cotacoes' },
+                            { label: 'Custos por Solicitação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-solicitacao', permission: 'view_cotacoes' },
+                            { label: 'Histórico por Período', icon: 'pi pi-fw pi-calendar-plus', to: '/relatorios/historico-periodo', permission: 'view_cotacoes' }
+                        ]
+                    }
                 ]
             }
         ]
