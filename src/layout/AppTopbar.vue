@@ -153,6 +153,19 @@ const changeCompany = async () => {
     }
 };
 
+const userName = computed(() => {
+    return store.getters?.usuario?.nome_completo || store.getters?.usuario?.login || 'Usuário';
+});
+
+const userProfile = computed(() => {
+    const companyId = store.getters?.isCompany?.id;
+    if (!companyId || !store.getters?.allPermissions) return '';
+    
+    const companyIdNum = Number(companyId);
+    const permission = store.getters.allPermissions.find(item => Number(item.company_id) === companyIdNum);
+    return permission?.name || '';
+});
+
 
 </script>
 
@@ -176,7 +189,11 @@ const changeCompany = async () => {
 
 		<ConfirmPopup></ConfirmPopup>
 
-        <div style="display: flex; flex: 1; gap: 20px; flex-direction: row; justify-content: end">
+        <div style="display: flex; flex: 1; gap: 20px; flex-direction: row; justify-content: end; align-items: center">
+            <div class="hidden-on-small user-info" style="display: flex; flex-direction: column; align-items: flex-end; margin-right: 10px">
+                <span style="font-weight: 600; color: var(--text-color); font-size: 0.9rem">{{ userName }}</span>
+                <span v-if="userProfile" style="font-size: 0.75rem; color: var(--text-color-secondary)">{{ userProfile }}</span>
+            </div>
             <button  v-if="store?.getters?.companies.length > 1" @click="() => {changed = true}" class="p-link hidden-on-small">
                 <i class="pi pi-link" style="margin-right: 10px"></i>
                 <span>Alterar Empresa</span>
@@ -220,8 +237,16 @@ const changeCompany = async () => {
     display: block;
 }
 
+.user-info {
+    display: flex;
+}
+
 @media (max-width: 991px) {
     .hidden-on-small {
+        display: none;
+    }
+    
+    .user-info {
         display: none;
     }
 }

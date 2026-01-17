@@ -201,7 +201,9 @@ export default {
             <div style="border-radius: 56px; padding: 0.3rem; background: linear-gradient(180deg, var(--primary-color) 10%, rgba(33, 150, 243, 0) 30%)">
                 <div class="z-1 w-full surface-card py-8 px-5 sm:px-8" style="border-radius: 53px">
                     <div class="text-center mb-5">
-                        <img src="/images/AGELOGO.png" alt="logo" width="50%" />
+                        <div class="logo-container">
+                            <img src="https://www.gruporialma.com.br/assets/logo_sem_fundo-Dbkuj9iO.png" alt="Logo Rialma" />
+                        </div>
                     </div>
                     <div class="text-center mb-5">
                         <span class="text-600 font-medium">Faça login para continuar</span>
@@ -232,5 +234,23 @@ export default {
 .pi-eye-slash {
     transform: scale(1.6);
     margin-right: 1rem;
+}
+
+.logo-container {
+    width: 200px;
+    height: 80px;
+    background-color: rgb(30, 58, 138);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.logo-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 </style>
