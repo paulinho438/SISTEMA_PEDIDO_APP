@@ -100,9 +100,10 @@
         <tr>
           <th rowspan="2">N°</th>
           <th rowspan="2">Qtd</th>
-          <th rowspan="2">Descrição do Produto</th>
+          <th rowspan="2">Medida</th>
+          <th rowspan="2" style="min-width: 250px;">Descrição do Produto</th>
           <template v-for="(cot, i) in cotacoes" :key="'cab-' + i">
-            <th colspan="7" class="text-center bg-fornecedor" :class="{ 'separador-cotacao': i > 0 }">
+            <th colspan="8" class="text-center bg-fornecedor" :class="{ 'separador-cotacao': i > 0 }">
               <div class="flex justify-content-between align-items-center mb-2">
                 <strong>Cotação {{ i + 1 }}</strong>
                 <Button
@@ -220,6 +221,7 @@
             <th :class="{ 'separador-cotacao': i > 0 }">Custo Unit.</th>
             <th :class="{ 'separador-cotacao': i > 0 }">IPI</th>
             <th :class="{ 'separador-cotacao': i > 0 }">Custo C/ IPI /S Difal</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">Difal</th>
             <th :class="{ 'separador-cotacao': i > 0 }">ICMS</th>
             <th :class="{ 'separador-cotacao': i > 0 }">ICMS Custo total</th>
             <th :class="{ 'separador-cotacao': i > 0 }">Custo C/ IPI /C Difal</th>
@@ -231,7 +233,8 @@
         <tr v-for="(prod, p) in produtos" :key="'row-' + p">
           <td>{{ prod.id }}</td>
           <td>{{ prod.qtd }}</td>
-          <td>{{ prod.descricao }}</td>
+          <td>{{ prod.medida || '-' }}</td>
+          <td style="min-width: 250px;">{{ prod.descricao }}</td>
 
           <template v-for="(cot, i) in cotacoes" :key="'linha-' + i + '-' + p">
             <td :class="{ 'separador-cotacao': i > 0 }">
@@ -281,6 +284,16 @@
             </td>
             <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
+                  v-model="cot.itens[p].difal"
+                  placeholder="R$ 0,00"
+                  class="w-full p-inputtext-sm text-right"
+                  :class="isMelhorPreco(cot, p, i)"
+                  style="min-width: 120px !important;"
+                  readonly
+              />
+            </td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
+              <InputText
                   v-model="cot.itens[p].icms"
                   placeholder="0%"
                   class="w-full p-inputtext-sm text-center"
@@ -318,9 +331,9 @@
         
         <!-- Linha de resumo por fornecedor -->
         <tr class="resumo-fornecedor">
-          <td colspan="3" class="font-semibold text-right pr-3">Resumo:</td>
+          <td colspan="4" class="font-semibold text-right pr-3">Resumo:</td>
           <template v-for="(cot, i) in cotacoes" :key="'resumo-' + i">
-            <td colspan="7" :class="{ 'separador-cotacao': i > 0 }" class="bg-surface-50">
+            <td colspan="8" :class="{ 'separador-cotacao': i > 0 }" class="bg-surface-50">
               <div class="grid p-fluid text-sm p-2">
                 <div class="col-12 md:col-6">
                   <div class="flex justify-content-between mb-2">
@@ -1259,6 +1272,7 @@ const criarItensCotacao = () => {
     custoUnit: null,
     ipi: null,
     custoIPI: null,
+    difal: null,
     icms: null,
     icmsTotal: null,
     custoFinal: null,
@@ -1628,6 +1642,9 @@ const calcularDifalAutomatico = (cotIndex) => {
     // Calcular DIFAL
     const difalValue = (custoUnit * difalPercent) / 100
     
+    // Salvar o valor do DIFAL
+    item.difal = formatCurrencyValue(difalValue)
+    
     // Custo com IPI sem Difal
     item.custoIPI = formatCurrencyValue(custoComIPI)
     
@@ -1711,6 +1728,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
     produtos.value = cotacao.itensOriginais.map((item, index) => ({
       id: item.id || index + 1,
       qtd: item.quantidade,
+      medida: item.unidade || item.unit || '-',
       descricao: item.mercadoria,
     }))
 
@@ -1732,6 +1750,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
           custoUnit: formatCurrencyValue(itemSalvo.custo_unit),
           ipi: formatNumberValue(itemSalvo.ipi),
           custoIPI: formatCurrencyValue(itemSalvo.custo_ipi),
+          difal: formatCurrencyValue(itemSalvo.difal),
           icms: formatNumberValue(itemSalvo.icms),
           icmsTotal: formatCurrencyValue(itemSalvo.icms_total),
           custoFinal: formatCurrencyValue(itemSalvo.custo_final),
@@ -1889,6 +1908,13 @@ const salvarCotacao = async (options = {}) => {
       tipo_frete: cot.tipoFrete || null,
       valor_frete: parsePreco(cot.valorFrete),
       desconto: parsePreco(cot.desconto),
+      difal_percent: (() => {
+        let valor = cot.difalPercent
+        if (valor && typeof valor === 'string') {
+          valor = valor.replace('%', '').trim()
+        }
+        return parseFloat(valor) || null
+      })(),
       itens: cot.itens.map((item, idx) => {
         const itemOrigem = cotacao.itensOriginais[idx]
         return {
@@ -1898,6 +1924,7 @@ const salvarCotacao = async (options = {}) => {
           custo_unit: parsePreco(item.custoUnit),
           ipi: parsePreco(item.ipi),
           custo_ipi: parsePreco(item.custoIPI),
+          difal: parsePreco(item.difal),
           icms: parsePreco(item.icms),
           icms_total: parsePreco(item.icmsTotal),
           custo_final: parsePreco(item.custoFinal),
@@ -2344,7 +2371,8 @@ onMounted(async () => {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
-  min-width: 1400px;
+  min-width: 1600px;
+  table-layout: auto;
 }
 
 .tabela-cotacao th,
@@ -2353,6 +2381,31 @@ onMounted(async () => {
   padding: 0.5rem;
   text-align: left;
   vertical-align: middle;
+}
+
+.tabela-cotacao th:first-child,
+.tabela-cotacao td:first-child {
+  text-align: center;
+  width: 50px;
+}
+
+.tabela-cotacao th:nth-child(2),
+.tabela-cotacao td:nth-child(2) {
+  text-align: center;
+  width: 60px;
+}
+
+.tabela-cotacao th:nth-child(3),
+.tabela-cotacao td:nth-child(3) {
+  text-align: center;
+  width: 80px;
+}
+
+.tabela-cotacao th:nth-child(4),
+.tabela-cotacao td:nth-child(4) {
+  min-width: 250px;
+  max-width: 350px;
+  word-wrap: break-word;
 }
 
 .bg-fornecedor {
