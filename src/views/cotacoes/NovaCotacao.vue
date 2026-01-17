@@ -102,7 +102,7 @@
           <th rowspan="2">Qtd</th>
           <th rowspan="2">Descrição do Produto</th>
           <template v-for="(cot, i) in cotacoes" :key="'cab-' + i">
-            <th colspan="7" class="text-center bg-fornecedor">
+            <th colspan="7" class="text-center bg-fornecedor" :class="{ 'separador-cotacao': i > 0 }">
               <div class="flex justify-content-between align-items-center mb-2">
                 <strong>Cotação {{ i + 1 }}</strong>
                 <Button
@@ -205,13 +205,13 @@
 
         <tr>
           <template v-for="(cot, i) in cotacoes" :key="'sub-' + i">
-            <th>Marca</th>
-            <th>Custo Unit.</th>
-            <th>IPI</th>
-            <th>Custo C/ IPI /S Difal</th>
-            <th>ICMS</th>
-            <th>ICMS Custo total</th>
-            <th>Custo C/ IPI /C Difal</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">Marca</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">Custo Unit.</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">IPI</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">Custo C/ IPI /S Difal</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">ICMS</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">ICMS Custo total</th>
+            <th :class="{ 'separador-cotacao': i > 0 }">Custo C/ IPI /C Difal</th>
           </template>
         </tr>
         </thead>
@@ -223,7 +223,7 @@
           <td>{{ prod.descricao }}</td>
 
           <template v-for="(cot, i) in cotacoes" :key="'linha-' + i + '-' + p">
-            <td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
                   v-model="cot.itens[p].marca"
                   placeholder="Marca"
@@ -233,7 +233,7 @@
                   :disabled="isReadOnly"
               />
             </td>
-            <td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
                   v-model="cot.itens[p].custoUnit"
                   placeholder="R$ 0,00"
@@ -245,7 +245,7 @@
                   :disabled="isReadOnly"
               />
             </td>
-            <td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
                   v-model="cot.itens[p].ipi"
                   placeholder="0%"
@@ -255,7 +255,7 @@
                   :disabled="isReadOnly"
               />
             </td>
-            <td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
                   v-model="cot.itens[p].custoIPI"
                   placeholder="R$ 0,00"
@@ -267,7 +267,7 @@
                   :disabled="isReadOnly"
               />
             </td>
-            <td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
                   v-model="cot.itens[p].icms"
                   placeholder="0%"
@@ -277,7 +277,7 @@
                   :disabled="isReadOnly"
               />
             </td>
-            <td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
                   v-model="cot.itens[p].icmsTotal"
                   placeholder="R$ 0,00"
@@ -289,7 +289,7 @@
                   :disabled="isReadOnly"
               />
             </td>
-            <td>
+            <td :class="{ 'separador-cotacao': i > 0 }">
               <InputText
                   v-model="cot.itens[p].custoFinal"
                   placeholder="R$ 0,00"
@@ -300,6 +300,49 @@
                   @blur="formatarCampoMoeda(i, p, 'custoFinal')"
                   :disabled="isReadOnly"
               />
+            </td>
+          </template>
+        </tr>
+        
+        <!-- Linha de resumo por fornecedor -->
+        <tr class="resumo-fornecedor">
+          <td colspan="3" class="font-semibold text-right pr-3">Resumo:</td>
+          <template v-for="(cot, i) in cotacoes" :key="'resumo-' + i">
+            <td colspan="7" :class="{ 'separador-cotacao': i > 0 }" class="bg-surface-50">
+              <div class="grid p-fluid text-sm p-2">
+                <div class="col-12 md:col-6">
+                  <div class="flex justify-content-between mb-2">
+                    <span class="font-medium text-700">Tipo de frete:</span>
+                    <span>{{ cot.tipoFrete === 'F' ? 'FOB' : (cot.tipoFrete === 'C' ? 'CIF' : '-') }}</span>
+                  </div>
+                  <div class="flex justify-content-between mb-2">
+                    <span class="font-medium text-700">Valor do Frete:</span>
+                    <span>{{ formatCurrencyValue(cot.valorFrete) || 'R$ 0,00' }}</span>
+                  </div>
+                  <div class="flex justify-content-between mb-2">
+                    <span class="font-medium text-700">Desconto:</span>
+                    <span>{{ formatCurrencyValue(cot.desconto) || 'R$ 0,00' }}</span>
+                  </div>
+                  <div class="flex justify-content-between mb-2">
+                    <span class="font-medium text-700">Condição de Pgto:</span>
+                    <span>{{ cot.condicaoPagamento?.label || '-' }}</span>
+                  </div>
+                  <div class="flex justify-content-between">
+                    <span class="font-medium text-700">Prazo de Entrega:</span>
+                    <span>-</span>
+                  </div>
+                </div>
+                <div class="col-12 md:col-6">
+                  <div class="flex justify-content-between mb-2">
+                    <span class="font-medium text-700">Total S/ Difal C/IPI + Frete - Desconto:</span>
+                    <span class="font-semibold">{{ formatCurrencyValue(calcularTotalSemDifal(i)) }}</span>
+                  </div>
+                  <div class="flex justify-content-between">
+                    <span class="font-medium text-700">Total C/ Difal C/IPI + Frete - Desconto:</span>
+                    <span class="font-semibold">{{ formatCurrencyValue(calcularTotalComDifal(i)) }}</span>
+                  </div>
+                </div>
+              </div>
             </td>
           </template>
         </tr>
@@ -1148,6 +1191,50 @@ const formatNumberValue = (valor) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
+}
+
+const calcularTotalSemDifal = (indexCotacao) => {
+  if (!cotacoes.value[indexCotacao] || !produtos.value.length) {
+    return 0
+  }
+  
+  let total = 0
+  const cot = cotacoes.value[indexCotacao]
+  
+  produtos.value.forEach((prod, p) => {
+    if (cot.itens && cot.itens[p]) {
+      // Total S/ Difal = Custo C/ IPI (custoIPI) * quantidade
+      const custoIPI = parsePreco(cot.itens[p].custoIPI) || 0
+      const qtd = parseFloat(prod.qtd) || 0
+      total += custoIPI * qtd
+    }
+  })
+  
+  const valorFrete = parsePreco(cot.valorFrete) || 0
+  const desconto = parsePreco(cot.desconto) || 0
+  return total + valorFrete - desconto
+}
+
+const calcularTotalComDifal = (indexCotacao) => {
+  if (!cotacoes.value[indexCotacao] || !produtos.value.length) {
+    return 0
+  }
+  
+  let total = 0
+  const cot = cotacoes.value[indexCotacao]
+  
+  produtos.value.forEach((prod, p) => {
+    if (cot.itens && cot.itens[p]) {
+      // Total C/ Difal = Custo Final (custoFinal) * quantidade
+      const custoFinal = parsePreco(cot.itens[p].custoFinal) || 0
+      const qtd = parseFloat(prod.qtd) || 0
+      total += custoFinal * qtd
+    }
+  })
+  
+  const valorFrete = parsePreco(cot.valorFrete) || 0
+  const desconto = parsePreco(cot.desconto) || 0
+  return total + valorFrete - desconto
 }
 
 const criarItensCotacao = () => {
@@ -2191,6 +2278,20 @@ onMounted(async () => {
 
 .bg-fornecedor {
   background-color: #f6fff6;
+}
+
+.separador-cotacao {
+  border-left: 2px solid #e2e8f0 !important;
+  padding-left: 0.75rem !important;
+  margin-left: 0.25rem;
+}
+
+.resumo-fornecedor {
+  background-color: #f8fafb;
+}
+
+.resumo-fornecedor td {
+  border-top: 2px solid #cbd5e1 !important;
 }
 
 .bg-surface-100 {
