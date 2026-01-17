@@ -2132,7 +2132,7 @@ const imprimirCotacao = async () => {
       return
     }
 
-    const response = await SolicitacaoService.imprimir(id)
+    const response = await SolicitacaoService.imprimir(id, 'cotacao')
     
     // Criar blob do PDF
     const blob = new Blob([response.data], { type: 'application/pdf' })

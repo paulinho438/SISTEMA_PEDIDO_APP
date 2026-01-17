@@ -45,8 +45,10 @@ class SolicitacaoService {
     return axios.post(`/cotacoes/${id}/reject`, payload);
   }
 
-  imprimir(id) {
+  imprimir(id, tipo = null) {
+    const params = tipo ? { tipo } : {};
     return axios.get(`/cotacoes/${id}/imprimir`, {
+      params,
       responseType: 'blob',
       headers: {
         'Accept': 'application/pdf'

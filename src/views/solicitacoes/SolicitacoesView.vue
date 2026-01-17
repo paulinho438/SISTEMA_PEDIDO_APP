@@ -238,7 +238,7 @@ export default {
 
       try {
         carregandoPDF.value = true;
-        const response = await SolicitacaoService.imprimir(route.params.id);
+        const response = await SolicitacaoService.imprimir(route.params.id, 'solicitacao');
         const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
