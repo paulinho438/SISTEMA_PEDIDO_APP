@@ -198,6 +198,17 @@
                       @blur="formatarCampoMoedaDesconto(i)"
                   />
                 </div>
+                <div class="col-12">
+                  <label class="font-medium text-700 mb-2 block">Difal (%)</label>
+                  <InputText
+                      v-model="cot.difalPercent"
+                      placeholder="0%"
+                      class="w-full"
+                      :disabled="isReadOnly"
+                      @focus="prepararCampoPercentual(i)"
+                      @blur="formatarCampoPercentual(i)"
+                  />
+                </div>
               </div>
             </th>
           </template>
@@ -241,7 +252,7 @@
                   :class="isMelhorPreco(cot, p, i)"
                   style="min-width: 120px !important;"
                   @focus="prepararCampoMoeda(i, p, 'custoUnit')"
-                  @blur="formatarCampoMoeda(i, p, 'custoUnit')"
+                  @blur="() => { formatarCampoMoeda(i, p, 'custoUnit'); calcularDifalAutomatico(i); }"
                   :disabled="isReadOnly"
               />
             </td>
@@ -252,6 +263,7 @@
                   class="w-full p-inputtext-sm text-center"
                   :class="isMelhorPreco(cot, p, i)"
                   style="min-width: 120px !important;"
+                  @blur="calcularDifalAutomatico(i)"
                   :disabled="isReadOnly"
               />
             </td>
@@ -1310,6 +1322,7 @@ const addCotacao = () => {
     tipoFrete: null,
     valorFrete: '',
     desconto: '',
+    difalPercent: null,
     itens: novosItens,
   })
   
@@ -1559,6 +1572,71 @@ const formatarCampoMoedaDesconto = (cotIndex) => {
   cot.desconto = numero === null ? '' : formatCurrencyValue(numero)
 }
 
+const prepararCampoPercentual = (cotIndex) => {
+  if (isReadOnly.value) {
+    return
+  }
+  const cot = cotacoes.value[cotIndex]
+  if (!cot) return
+
+  // Remove o % se existir e deixa apenas o número
+  if (cot.difalPercent && typeof cot.difalPercent === 'string') {
+    cot.difalPercent = cot.difalPercent.replace('%', '').trim()
+  }
+}
+
+const formatarCampoPercentual = (cotIndex) => {
+  const cot = cotacoes.value[cotIndex]
+  if (!cot) return
+
+  // Remove o % se existir, converte para número e adiciona o %
+  let valor = cot.difalPercent
+  if (valor && typeof valor === 'string') {
+    valor = valor.replace('%', '').trim()
+  }
+  
+  const numero = parseFloat(valor)
+  if (isNaN(numero)) {
+    cot.difalPercent = ''
+  } else {
+    cot.difalPercent = `${numero}%`
+  }
+  
+  // Recalcular DIFAL após formatar
+  calcularDifalAutomatico(cotIndex)
+}
+
+const calcularDifalAutomatico = (cotIndex) => {
+  const cot = cotacoes.value[cotIndex]
+  if (!cot || !cot.itens) return
+
+  // Extrair o número do difalPercent (remover % se existir)
+  let difalPercentValue = cot.difalPercent
+  if (difalPercentValue && typeof difalPercentValue === 'string') {
+    difalPercentValue = difalPercentValue.replace('%', '').trim()
+  }
+  const difalPercent = parseFloat(difalPercentValue) || 0
+  
+  cot.itens.forEach((item, itemIndex) => {
+    const custoUnit = parsePreco(item.custoUnit) || 0
+    const ipiPercent = parseFloat(item.ipi?.replace('%', '')) || 0
+    
+    // Calcular IPI
+    const ipiValue = (custoUnit * ipiPercent) / 100
+    const custoComIPI = custoUnit + ipiValue
+    
+    // Calcular DIFAL
+    const difalValue = (custoUnit * difalPercent) / 100
+    
+    // Custo com IPI sem Difal
+    item.custoIPI = formatCurrencyValue(custoComIPI)
+    
+    // Custo com IPI com Difal
+    const custoComIPIComDifal = custoComIPI + difalValue
+    item.custoFinal = formatCurrencyValue(custoComIPIComDifal)
+  })
+}
+
 const menorIndice = (itemIndex) => {
   let menorValor = Number.POSITIVE_INFINITY
   let indiceMenor = null
@@ -1682,6 +1760,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
         tipoFrete: cot.tipo_frete ?? null,
         valorFrete: formatCurrencyValue(cot.valor_frete),
         desconto: formatCurrencyValue(cot.desconto),
+        difalPercent: cot.difal_percent ?? null,
         itens,
       }
     })
