@@ -82,7 +82,7 @@ const model = ref([
                 icon: 'pi pi-fw pi-arrow-right-arrow-left',
                 items: [
                     { label: 'Solicitações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes', permission: 'create_cotacoes' },
-                    { label: 'Solicitações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes_pendentes', permission: 'view_cotacoes' },
+                    { label: 'Solicitações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes_pendentes', permission: 'view_cotacoes', hideForBuyers: true },
                     { label: 'Cotações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/cotacoes', permission: 'view_cotacoes' },
                     { label: 'Pedidos de Compra', icon: 'pi pi-fw pi-shopping-cart', to: '/compras/pedidos', permission: 'view_cotacoes' },
                     {
@@ -113,6 +113,38 @@ const allCompanies = computed(() => store.getters.allCompanies || []);
 const currentCompany = computed(() => store.getters.company || null);
 const allPermissions = computed(() => store.getters.allPermissions || []);
 const permissions = computed(() => store.getters.permissions || []);
+
+// Verificar se o usuário é apenas comprador (não pode ver solicitações pendentes)
+const isOnlyBuyer = computed(() => {
+    const usuario = store.state.usuario;
+    if (!usuario || !usuario.permissions || !Array.isArray(usuario.permissions)) {
+        return false;
+    }
+    
+    // Verificar se o usuário tem apenas o grupo/perfil de Comprador
+    let hasComprador = false;
+    let hasOtherLevels = false;
+    
+    for (const perm of usuario.permissions) {
+        if (perm && perm.name) {
+            const groupName = perm.name.toLowerCase();
+            // Verificar se é comprador
+            if (groupName.includes('comprador') || groupName.includes('buyer')) {
+                hasComprador = true;
+            }
+            // Verificar se tem outros níveis de aprovação
+            if (groupName.includes('gerente') || 
+                groupName.includes('engenheiro') || 
+                groupName.includes('diretor') || 
+                groupName.includes('presidente')) {
+                hasOtherLevels = true;
+            }
+        }
+    }
+    
+    // É apenas comprador se tem comprador mas não tem outros níveis
+    return hasComprador && !hasOtherLevels;
+});
 
 const changeCompany = async (companyId) => {
     try {

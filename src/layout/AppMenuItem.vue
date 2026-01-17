@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onBeforeMount, watch } from 'vue';
+import { ref, onBeforeMount, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { useStore } from 'vuex';
 import { useLayout } from '@/layout/composables/layout';
 
 import PermissionsService from '@/service/PermissionsService';
 
 const permissionService = new PermissionsService();
+const store = useStore();
 
 const route = useRoute();
 
@@ -74,11 +76,48 @@ const checkActiveRoute = (item) => {
     return route.path === item.to;
 };
 
+// Verificar se o usuário é apenas comprador
+const isOnlyBuyer = computed(() => {
+    const usuario = store.state.usuario;
+    if (!usuario || !usuario.permissions || !Array.isArray(usuario.permissions)) {
+        return false;
+    }
+    
+    // Verificar se o usuário tem apenas o grupo/perfil de Comprador
+    let hasComprador = false;
+    let hasOtherLevels = false;
+    
+    for (const perm of usuario.permissions) {
+        if (perm && perm.name) {
+            const groupName = perm.name.toLowerCase();
+            // Verificar se é comprador
+            if (groupName.includes('comprador') || groupName.includes('buyer')) {
+                hasComprador = true;
+            }
+            // Verificar se tem outros níveis de aprovação
+            if (groupName.includes('gerente') || 
+                groupName.includes('engenheiro') || 
+                groupName.includes('diretor') || 
+                groupName.includes('presidente')) {
+                hasOtherLevels = true;
+            }
+        }
+    }
+    
+    // É apenas comprador se tem comprador mas não tem outros níveis
+    return hasComprador && !hasOtherLevels;
+});
+
 /**
  * Verifica se um item de menu ou qualquer um de seus subitens tem permissão
  * Retorna true se o item ou pelo menos um subitem tiver permissão
  */
 const hasAnyPermission = (item) => {
+    // Se o item deve ser ocultado para compradores e o usuário é apenas comprador, ocultar
+    if (item.hideForBuyers && isOnlyBuyer.value) {
+        return false;
+    }
+    
     // Se o item tem subitens, verificar se pelo menos um subitem tem permissão
     if (item.items && Array.isArray(item.items) && item.items.length > 0) {
         // Verificar recursivamente se pelo menos um subitem tem permissão
