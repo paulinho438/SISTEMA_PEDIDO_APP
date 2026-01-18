@@ -84,6 +84,7 @@ const model = ref([
                     { label: 'Solicitações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes', permission: 'create_cotacoes' },
                     { label: 'Solicitações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes_pendentes', permission: 'view_solicitacoes_pendentes' },
                     { label: 'Cotações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/cotacoes', permission: 'view_cotacoes' },
+                    { label: 'Pendentes de Análise', icon: 'pi pi-fw pi-check-square', to: '/cotacoes/pendentes_analise', permission: 'cotacoes_analisar' },
                     { label: 'Pedidos de Compra', icon: 'pi pi-fw pi-shopping-cart', to: '/compras/pedidos', permission: 'view_cotacoes' },
                     {
                         label: 'Relatórios',

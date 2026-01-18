@@ -22,6 +22,11 @@ const cotacoesRoutes = [
 				path: 'acompanhamento',
 				name: 'cotacoesAcompanhamento',
 				component: () => import('@/views/cotacoes/CotacoesAcompanhamento.vue')
+			},
+			{
+				path: 'pendentes_analise',
+				name: 'pendentesAnalise',
+				component: () => import('@/views/cotacoes/PendentesAnalise.vue')
 			}
 		]
 	}
