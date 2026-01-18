@@ -82,7 +82,7 @@ const model = ref([
                 icon: 'pi pi-fw pi-arrow-right-arrow-left',
                 items: [
                     { label: 'Solicitações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes', permission: 'create_cotacoes' },
-                    { label: 'Solicitações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes_pendentes', permission: 'view_cotacoes', hideForBuyers: true },
+                    { label: 'Solicitações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes_pendentes', permission: 'view_solicitacoes_pendentes', hideForBuyers: true },
                     { label: 'Cotações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/cotacoes', permission: 'view_cotacoes' },
                     { label: 'Pedidos de Compra', icon: 'pi pi-fw pi-shopping-cart', to: '/compras/pedidos', permission: 'view_cotacoes' },
                     {
