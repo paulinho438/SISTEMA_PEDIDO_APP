@@ -136,6 +136,9 @@
                         @click="limparFornecedor(i)"
                     />
                   </div>
+                  <div v-if="cot.fornecedor?.A2_MUN || cot.fornecedor?.A2_EST" class="text-sm text-600 mt-1" style="margin-top: -0.5rem !important; padding-left: 0.5rem;">
+                    {{ [cot.fornecedor?.A2_MUN?.trim(), cot.fornecedor?.A2_EST?.trim()].filter(Boolean).join(' - ') }}
+                  </div>
                 </div>
                 <div class="col-12"><InputText v-model="cot.vendedor" placeholder="Vendedor" :disabled="isReadOnly" /></div>
                 <div class="col-12">
