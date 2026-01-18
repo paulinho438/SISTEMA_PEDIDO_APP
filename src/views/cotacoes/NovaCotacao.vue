@@ -934,14 +934,18 @@ const isReadOnly = computed(() => {
   return !(isBuyer && statusPermitidos.includes(statusAtual))
 })
 const availableTransitions = computed(() => approvalTransitions[cotacao.status?.slug] ?? [])
-// canReprove: só pode reprovar se pode aprovar (tem permissão para aprovar)
+// canReprove: sempre que o usuário pode aprovar ou analisar, ele também pode reprovar
 const canReprove = computed(() => {
-  // Se não pode aprovar, não pode reprovar
-  if (cotacao.permissions && !cotacao.permissions.can_approve) {
-    return false
+  // Verificar se o usuário pode aprovar/analisar (se approvalAction.type !== 'none')
+  const podeAprovarOuAnalisar = approvalAction.value.type !== 'none'
+  
+  // Se pode aprovar/analisar, também pode reprovar
+  if (podeAprovarOuAnalisar) {
+    // Só pode reprovar em status específicos
+    return ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado'].includes(cotacao.status?.slug)
   }
-  // Só pode reprovar em status específicos
-  return ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado'].includes(cotacao.status?.slug)
+  
+  return false
 })
 
 const singleActionMetadata = {
