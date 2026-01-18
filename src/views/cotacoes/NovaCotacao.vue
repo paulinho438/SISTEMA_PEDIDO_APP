@@ -941,10 +941,10 @@ const canReprove = computed(() => {
 
 const singleActionMetadata = {
   analise_gerencia: {
-    buttonLabel: 'Encaminhar para Gerência',
+    buttonLabel: 'Encaminhar para Diretor',
     buttonClass: 'p-button-info',
     icon: 'pi pi-arrow-right',
-    description: 'Encaminhar a cotação para análise da gerência.',
+    description: 'Encaminhar a cotação para análise do diretor.',
   },
   aprovado: {
     buttonLabel: 'Aprovar Cotação',
@@ -1108,10 +1108,10 @@ const approvalAction = computed(() => {
         return {
           type: 'single',
           targetStatus: 'analise_gerencia',
-          buttonLabel: 'Encaminhar para Gerência',
+          buttonLabel: 'Encaminhar para Diretor',
           buttonClass: 'p-button-info',
           icon: 'pi pi-arrow-right',
-          description: 'Encaminhar a cotação para análise da gerência.',
+          description: 'Encaminhar a cotação para análise do diretor.',
         }
       }
       // Para outros perfis, verificar can_approve
