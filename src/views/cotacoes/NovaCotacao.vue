@@ -1523,6 +1523,7 @@ const confirmarFornecedorSelecionado = () => {
     cotacoes.value[index].codigo = fornecedor?.A2_COD ?? null
     cotacoes.value[index].nome = fornecedor?.A2_NOME ?? null
     cotacoes.value[index].cnpj = fornecedor?.A2_CGC ?? null
+    cotacoes.value[index].municipioEstado = [fornecedor?.A2_MUN?.trim(), fornecedor?.A2_EST?.trim()].filter(Boolean).join(' - ') || null
   }
 
   modalFornecedores.visible = false
@@ -1749,6 +1750,8 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
         A2_COD: cot.codigo ?? null,
         A2_NOME: cot.nome ?? '',
         A2_CGC: cot.cnpj ?? null,
+        A2_MUN: cot.municipio ?? null,
+        A2_EST: cot.estado ?? null,
       }
 
       const itens = cotacao.itensOriginais.map((itemOrigem) => {
@@ -1756,7 +1759,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
         return {
           id: itemSalvo.id ?? null,
           itemId: itemOrigem.id,
-          marca: itemSalvo.marca ?? null,
+          marca: (itemSalvo.marca && itemSalvo.marca.trim() !== '') ? itemSalvo.marca.trim() : null,
           custoUnit: formatCurrencyValue(itemSalvo.custo_unit),
           ipi: formatNumberValue(itemSalvo.ipi),
           custoIPI: formatCurrencyValue(itemSalvo.custo_ipi),
@@ -1790,6 +1793,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
         valorFrete: formatCurrencyValue(cot.valor_frete),
         desconto: formatCurrencyValue(cot.desconto),
         difalPercent: cot.difal_percent ?? null,
+        municipioEstado: cot.municipio_estado ?? (fornecedorInfo.A2_MUN || fornecedorInfo.A2_EST ? [fornecedorInfo.A2_MUN?.trim(), fornecedorInfo.A2_EST?.trim()].filter(Boolean).join(' - ') || null : null),
         itens,
       }
     })
@@ -1930,7 +1934,7 @@ const salvarCotacao = async (options = {}) => {
         return {
           id: item.id ?? null,
           item_id: item.itemId ?? itemOrigem?.id ?? null,
-          marca: item.marca || null,
+          marca: (item.marca && item.marca.trim() !== '') ? item.marca.trim() : null,
           custo_unit: parsePreco(item.custoUnit),
           ipi: parsePreco(item.ipi),
           custo_ipi: parsePreco(item.custoIPI),
