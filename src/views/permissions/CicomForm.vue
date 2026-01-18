@@ -355,7 +355,7 @@ export default {
             </div>
 
             <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_solicitacao">
-                <h5 class="m-0">Cotações - Solicitação</h5>
+                <h5 class="m-0">Solicitação</h5>
                 <div>
                     <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('cotacoes_solicitacao')" />
                     <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('cotacoes_solicitacao')" />
