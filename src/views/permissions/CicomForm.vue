@@ -403,7 +403,7 @@ export default {
             </div>
 
             <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_autorizacao">
-                <h5 class="m-0">Cotações - Autorização</h5>
+                <h5 class="m-0">Solicitação - Autorização</h5>
                 <div>
                     <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('cotacoes_autorizacao')" />
                     <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('cotacoes_autorizacao')" />
@@ -450,63 +450,15 @@ export default {
                 </div>
             </div>
 
-            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_reprovar">
-                <h5 class="m-0">Cotações - Reprovar</h5>
+            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_selecao_niveis">
+                <h5 class="m-0">Cotações – Seleção Níveis</h5>
                 <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('cotacoes_reprovar')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('cotacoes_reprovar')" />
+                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('cotacoes_selecao_niveis')" />
+                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('cotacoes_selecao_niveis')" />
                 </div>
             </div>
-            <div class="grid" v-if="multiselectValues?.cotacoes_reprovar">
-                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.cotacoes_reprovar)" :key="option.id">
-                    <div class="field-checkbox mb-0">
-                        <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
-                        <label for="checkOption1">{{ option.name }}</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_impressao">
-                <h5 class="m-0">Cotações - Impressão</h5>
-                <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('cotacoes_impressao')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('cotacoes_impressao')" />
-                </div>
-            </div>
-            <div class="grid" v-if="multiselectValues?.cotacoes_impressao">
-                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.cotacoes_impressao)" :key="`impressao-${option.slug}`">
-                    <div class="field-checkbox mb-0">
-                        <Checkbox :id="`impressao-${option.slug}`" name="option" :value="option.slug" v-model="checkboxValue" />
-                        <label :for="`impressao-${option.slug}`">{{ option.name }}</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_admin">
-                <h5 class="m-0">Cotações - Admin</h5>
-                <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('cotacoes_admin')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('cotacoes_admin')" />
-                </div>
-            </div>
-            <div class="grid" v-if="multiselectValues?.cotacoes_admin">
-                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.cotacoes_admin)" :key="option.id">
-                    <div class="field-checkbox mb-0">
-                        <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
-                        <label for="checkOption1">{{ option.name }}</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_selecao">
-                <h5 class="m-0">Cotações - Seleção</h5>
-                <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('cotacoes_selecao')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('cotacoes_selecao')" />
-                </div>
-            </div>
-            <div class="grid" v-if="multiselectValues?.cotacoes_selecao">
-                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.cotacoes_selecao)" :key="option.id">
+            <div class="grid" v-if="multiselectValues?.cotacoes_selecao_niveis">
+                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.cotacoes_selecao_niveis)" :key="option.id">
                     <div class="field-checkbox mb-0">
                         <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
                         <label for="checkOption1">{{ option.name }}</label>
