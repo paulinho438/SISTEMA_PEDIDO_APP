@@ -1904,11 +1904,25 @@ const salvarCotacao = async (options = {}) => {
       return
     }
 
+      // Extrair município e estado de municipioEstado ou do fornecedor
+      let municipality = null
+      let state = null
+      if (cot.municipioEstado) {
+        const parts = cot.municipioEstado.split(' - ')
+        municipality = parts[0]?.trim() || null
+        state = parts[1]?.trim() || null
+      } else if (cot.fornecedor?.A2_MUN || cot.fornecedor?.A2_EST) {
+        municipality = cot.fornecedor?.A2_MUN?.trim() || null
+        state = cot.fornecedor?.A2_EST?.trim() || null
+      }
+
       const payloadFornecedor = {
       id: cot.id ?? null,
       codigo: cot.fornecedor?.A2_COD ?? cot.codigo ?? null,
       nome: nomeFornecedor,
       cnpj: cot.fornecedor?.A2_CGC ?? cot.cnpj ?? null,
+      municipality: municipality,
+      state: state,
       vendedor: cot.vendedor || null,
       telefone: cot.telefone || null,
       email: cot.email || null,
