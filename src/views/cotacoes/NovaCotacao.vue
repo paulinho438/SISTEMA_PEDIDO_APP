@@ -1627,7 +1627,7 @@ const formatarCampoPercentual = (cotIndex) => {
   if (isNaN(numero)) {
     cot.difalPercent = ''
   } else {
-    cot.difalPercent = `${numero}%`
+    cot.difalPercent = `${numero.toFixed(2)}%`
   }
   
   // Recalcular DIFAL após formatar
@@ -1792,7 +1792,17 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
         tipoFrete: cot.tipo_frete ?? null,
         valorFrete: formatCurrencyValue(cot.valor_frete),
         desconto: formatCurrencyValue(cot.desconto),
-        difalPercent: cot.difal_percent ?? null,
+        difalPercent: (() => {
+          const valor = cot.difal_percent
+          if (valor === null || valor === undefined || valor === '') {
+            return null
+          }
+          const numero = parseFloat(valor)
+          if (isNaN(numero)) {
+            return null
+          }
+          return `${numero.toFixed(2)}%`
+        })(),
         municipioEstado: cot.municipio_estado ?? (fornecedorInfo.A2_MUN || fornecedorInfo.A2_EST ? [fornecedorInfo.A2_MUN?.trim(), fornecedorInfo.A2_EST?.trim()].filter(Boolean).join(' - ') || null : null),
         itens,
       }
