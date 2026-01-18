@@ -78,7 +78,12 @@
           :disabled="reprovandoCotacao"
           @click="abrirModalReprovar"
       />
-      <Button label="Cancelar" icon="pi pi-times" class="p-button-danger" />
+      <Button 
+          label="Cancelar" 
+          icon="pi pi-times" 
+          class="p-button-danger" 
+          @click="router.push({ name: 'cotacoesList' })"
+      />
     </div>
       </div>
     </div>
