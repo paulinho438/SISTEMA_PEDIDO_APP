@@ -481,6 +481,11 @@
         <Column field="A2_COD" header="Código" sortable></Column>
         <Column field="A2_NOME" header="Fornecedor" sortable></Column>
         <Column field="A2_CGC" header="CNPJ" sortable></Column>
+        <Column header="Município - Estado" sortable>
+          <template #body="{ data }">
+            {{ [data?.A2_MUN?.trim(), data?.A2_EST?.trim()].filter(Boolean).join(' - ') || '-' }}
+          </template>
+        </Column>
       </DataTable>
 
       <template #footer>
