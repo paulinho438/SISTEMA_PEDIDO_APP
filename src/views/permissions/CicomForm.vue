@@ -353,67 +353,6 @@ export default {
                     </div>
                 </div>
             </div>
-            <div class="flex justify-content-between align-items-center mb-2 mt-4">
-                <h5 class="m-0">Categorias</h5>
-                <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('categorias')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('categorias')" />
-                </div>
-            </div>
-            <div class="grid">
-                <div class="col-12 md:col-4" v-for="option of multiselectValues?.categorias" :key="option.id">
-                    <div class="field-checkbox mb-0">
-                        <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
-                        <label for="checkOption1">{{ option.name }}</label>
-                    </div>
-                </div>
-            </div>
-            <div class="flex justify-content-between align-items-center mb-2 mt-4">
-                <h5 class="m-0">Centro de Custo</h5>
-                <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('centrodecusto')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('centrodecusto')" />
-                </div>
-            </div>
-            <div class="grid">
-                <div class="col-12 md:col-4" v-for="option of multiselectValues?.centrodecusto" :key="option.id">
-                    <div class="field-checkbox mb-0">
-                        <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
-                        <label for="checkOption1">{{ option.name }}</label>
-                    </div>
-                </div>
-            </div>
-            <div class="flex justify-content-between align-items-center mb-2 mt-4">
-                <h5 class="m-0">Bancos</h5>
-                <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('bancos')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('bancos')" />
-                </div>
-            </div>
-            <div class="grid">
-                <div class="col-12 md:col-4" v-for="option of multiselectValues?.bancos" :key="option.id">
-                    <div class="field-checkbox mb-0">
-                        <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
-                        <label for="checkOption1">{{ option.name }}</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-content-between align-items-center mb-2 mt-4">
-                <h5 class="m-0">Clientes</h5>
-                <div>
-                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('clientes')" />
-                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('clientes')" />
-                </div>
-            </div>
-            <div class="grid">
-                <div class="col-12 md:col-4" v-for="option of multiselectValues?.clientes" :key="option.id">
-                    <div class="field-checkbox mb-0">
-                        <Checkbox id="checkOption1" name="option" :value="option.slug" v-model="checkboxValue" />
-                        <label for="checkOption1">{{ option.name }}</label>
-                    </div>
-                </div>
-            </div>
 
             <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.cotacoes_solicitacao">
                 <h5 class="m-0">Cotações - Solicitação</h5>
