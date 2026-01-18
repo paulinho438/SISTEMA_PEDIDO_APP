@@ -113,7 +113,11 @@
         <Column field="aplicacao" header="Aplicação" />
         <Column field="prioridade" header="Prioridade dias" />
         <Column field="tag" header="TAG" />
-        <Column field="centroCusto" header="Centro de custo" />
+        <Column header="Centro de custo">
+          <template #body="{ data }">
+            {{ formatarCentroCusto(data.centroCusto) }}
+          </template>
+        </Column>
       </DataTable>
 
       <div class="mt-4">
@@ -304,6 +308,33 @@ export default {
 
     const voltar = () => router.push({ name: 'solicitacoesPendentes' });
 
+    const formatarCentroCusto = (centroCusto) => {
+      if (!centroCusto) return '-';
+      
+      // Se for string, retornar como está
+      if (typeof centroCusto === 'string') {
+        return centroCusto;
+      }
+      
+      // Se for objeto, formatar como "codigo - descricao"
+      if (typeof centroCusto === 'object') {
+        const codigo = centroCusto?.codigo || centroCusto?.CTT_CUSTO || '';
+        const descricao = centroCusto?.descricao || centroCusto?.CTT_DESC01 || '';
+        
+        if (codigo && descricao) {
+          return `${codigo} - ${descricao}`;
+        }
+        if (codigo) {
+          return codigo;
+        }
+        if (descricao) {
+          return descricao;
+        }
+      }
+      
+      return '-';
+    };
+
     onMounted(carregarDados);
 
     return {
@@ -319,6 +350,7 @@ export default {
       carregando,
       salvando,
       tabelaItens,
+      formatarCentroCusto,
     };
   },
 };

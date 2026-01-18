@@ -1,10 +1,20 @@
 <template>
   <div class="card p-5 bg-page">
     <!-- Cabeçalho -->
-    <div class="flex align-items-center mb-4">
-      <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
-      <h4 class="m-0 text-900">Aprovar solicitação</h4>
-      <span v-if="carregando" class="ml-3 text-600 text-sm">Carregando...</span>
+    <div class="flex justify-content-between align-items-center mb-4">
+      <div class="flex align-items-center">
+        <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
+        <h4 class="m-0 text-900">Aprovar solicitação</h4>
+        <span v-if="carregando" class="ml-3 text-600 text-sm">Carregando...</span>
+      </div>
+      <Button
+          label="Imprimir PDF"
+          icon="pi pi-print"
+          class="p-button-info"
+          :loading="imprimindo"
+          :disabled="imprimindo || !solicitacao.id"
+          @click="imprimirPDF"
+      />
     </div>
 
     <!-- Bloco Identificação -->
@@ -67,8 +77,8 @@
     </div>
 
     <div class="card shadow-none bg-light p-4 mb-4">
-      <label class="block text-600 mb-1">Observações da aprovação</label>
-      <Textarea v-model="observacao" rows="3" class="w-full" placeholder="Informe observações para aprovação" />
+      <label class="block text-600 mb-1">Justificativa / Motivo</label>
+      <Textarea v-model="observacao" rows="3" class="w-full" placeholder="Informe a justificativa ou motivo da aprovação" />
     </div>
 
     <!-- Botões -->
@@ -173,6 +183,7 @@ export default {
     const modalReprovar = ref(false);
     const mensagemReprovacao = ref('');
     const tentouConfirmar = ref(false);
+    const imprimindo = ref(false);
 
     const formatarCentroCusto = (centroCusto) => {
       if (!centroCusto) return '-';
@@ -279,6 +290,25 @@ export default {
       tentouConfirmar.value = false;
     };
 
+    const imprimirPDF = async () => {
+      try {
+        imprimindo.value = true;
+        const response = await SolicitacaoService.imprimir(route.params.id, 'solicitacao');
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Não foi possível imprimir a solicitação.';
+        toast.add({ severity: 'error', summary: 'Erro ao imprimir', detail, life: 4000 });
+      } finally {
+        imprimindo.value = false;
+      }
+    };
+
     const confirmarReprovar = async () => {
       tentouConfirmar.value = true;
 
@@ -333,6 +363,8 @@ export default {
       modalReprovar,
       mensagemReprovacao,
       tentouConfirmar,
+      imprimirPDF,
+      imprimindo,
     };
   }
 };
