@@ -216,11 +216,34 @@
                   <label class="font-medium text-700 mb-2 block">Difal (%)</label>
                   <InputText
                       v-model="cot.difalPercent"
-                      placeholder="0%"
+                      placeholder="0.00%"
                       class="w-full"
                       :disabled="isReadOnly"
                       @focus="prepararCampoPercentual(i)"
                       @blur="formatarCampoPercentual(i)"
+                      @keypress="(e) => {
+                        // Permite apenas números, ponto e vírgula
+                        const char = String.fromCharCode(e.which);
+                        if (!/[0-9.,]/.test(char)) {
+                          e.preventDefault();
+                        }
+                      }"
+                      @input="(e) => { 
+                        // Permite apenas números, ponto e vírgula durante a digitação
+                        let valor = e.target.value.replace(/[^\d.,]/g, '');
+                        // Substitui vírgula por ponto
+                        valor = valor.replace(/,/g, '.');
+                        // Permite apenas um ponto decimal
+                        const partes = valor.split('.');
+                        if (partes.length > 2) {
+                          valor = partes[0] + '.' + partes.slice(1).join('');
+                        }
+                        // Limita a 2 casas decimais após o ponto
+                        if (partes.length === 2 && partes[1].length > 2) {
+                          valor = partes[0] + '.' + partes[1].substring(0, 2);
+                        }
+                        cot.difalPercent = valor;
+                      }"
                   />
                 </div>
               </div>
