@@ -135,7 +135,8 @@ export default {
         this.initFilters();
     },
     mounted() {
-        this.permissionsService.hasPermissionsView('view_clientes');
+        // Verificar permissão para visualizar usuários (mesma permissão usada no menu)
+        this.permissionsService.hasPermissionsView('criar_usuarios');
         this.getUsuario();
     }
 };

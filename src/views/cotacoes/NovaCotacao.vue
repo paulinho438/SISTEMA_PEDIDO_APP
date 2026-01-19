@@ -1129,35 +1129,21 @@ const approvalAction = computed(() => {
     }
   }
 
-  // Status "analisada" e "analisada_aguardando": gerentes podem encaminhar para análise da gerência
-  // mesmo sem aprovações pendentes, pois faz parte do fluxo de análise
+  // Status "analisada" e "analisada_aguardando": todos os níveis intermediários devem mostrar "Analisar"
+  // O backend vai identificar se é o último nível e mudar o status automaticamente
   if (slug === 'analisada' || slug === 'analisada_aguardando') {
-    // Verificar se há transição disponível para "analise_gerencia"
-    const transitions = availableTransitions.value
-    if (transitions.includes('analise_gerencia')) {
-      // Gerentes podem encaminhar para análise da gerência
-      if (isManager.value) {
-        return {
-          type: 'single',
-          targetStatus: 'analise_gerencia',
-          buttonLabel: 'Encaminhar para Diretor',
-          buttonClass: 'p-button-info',
-          icon: 'pi pi-arrow-right',
-          description: 'Encaminhar a cotação para análise do diretor.',
-        }
-      }
-      // Para outros perfis, verificar can_approve
-      if (cotacao.permissions && !cotacao.permissions.can_approve) {
-        return { type: 'none' }
-      }
-      return {
-        type: 'single',
-        targetStatus: 'analise_gerencia',
-        buttonLabel: 'Encaminhar para Gerência',
-        buttonClass: 'p-button-info',
-        icon: 'pi pi-arrow-right',
-        description: 'Encaminhar a cotação para análise da gerência.',
-      }
+    // Verificar se o usuário pode aprovar
+    if (cotacao.permissions && !cotacao.permissions.can_approve) {
+      return { type: 'none' }
+    }
+    // Todos os níveis mostram "Analisar" - o backend decide se muda status ou não
+    return {
+      type: 'single',
+      targetStatus: 'analisada', // O backend vai decidir se muda para analise_gerencia
+      buttonLabel: 'Analisar',
+      buttonClass: 'p-button-success',
+      icon: 'pi pi-check',
+      description: 'Analisar a cotação. O sistema enviará para o diretor automaticamente quando todas as assinaturas intermediárias estiverem completas.',
     }
   }
 
@@ -2167,8 +2153,43 @@ const abrirModalAnalise = (status) => {
   modalAnalise.value = true
 }
 
-const abrirAnaliseDireta = (action) => {
+const abrirAnaliseDireta = async (action) => {
   if (!action?.targetStatus) {
+    return
+  }
+
+  // Se o status atual é "analisada" ou "analisada_aguardando" e o targetStatus é "analisada",
+  // usar o método approve ao invés de analyze, pois o backend gerencia a mudança de status automaticamente
+  const currentStatus = cotacao.status?.slug
+  if ((currentStatus === 'analisada' || currentStatus === 'analisada_aguardando') && action.targetStatus === 'analisada') {
+    // Chamar approve diretamente sem modal
+    try {
+      analisandoCotacao.value = true
+      await SolicitacaoService.approve(cotacao.id, {
+        observacao: '',
+      })
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Análise realizada',
+        detail: 'Assinatura registrada com sucesso. O sistema enviará para o diretor automaticamente quando todas as assinaturas intermediárias estiverem completas.',
+        life: 4000,
+      })
+      
+      await carregarCotacao()
+      await carregarAssinaturas()
+      router.push({ name: 'cotacoesList' })
+    } catch (error) {
+      const detail = error?.response?.data?.message || 'Não foi possível realizar a análise.'
+      toast.add({
+        severity: 'error',
+        summary: 'Erro ao analisar',
+        detail,
+        life: 4000,
+      })
+    } finally {
+      analisandoCotacao.value = false
+    }
     return
   }
 
@@ -2192,6 +2213,43 @@ const fecharModalAnalise = () => {
 }
 
 const confirmarAnalise = async () => {
+  const currentStatus = cotacao.status?.slug
+  const targetStatus = statusAnaliseSelecionado.value
+  
+  // Se o status atual é "finalizada", "analisada" ou "analisada_aguardando" e o targetStatus é "analisada",
+  // usar o método approve ao invés de analyze, pois o backend gerencia a mudança de status automaticamente
+  if ((currentStatus === 'finalizada' || currentStatus === 'analisada' || currentStatus === 'analisada_aguardando') && targetStatus === 'analisada') {
+    try {
+      analisandoCotacao.value = true
+      await SolicitacaoService.approve(cotacao.id, {
+        observacao: observacaoAnalise.value?.trim() || undefined,
+      })
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Análise realizada',
+        detail: 'Assinatura registrada com sucesso. O sistema enviará para o diretor automaticamente quando todas as assinaturas intermediárias estiverem completas.',
+        life: 4000,
+      })
+      
+      await carregarCotacao()
+      await carregarAssinaturas()
+      fecharModalAnalise()
+      router.push({ name: 'cotacoesList' })
+    } catch (error) {
+      const detail = error?.response?.data?.message || 'Não foi possível realizar a análise.'
+      toast.add({
+        severity: 'error',
+        summary: 'Erro ao analisar',
+        detail,
+        life: 4000,
+      })
+    } finally {
+      analisandoCotacao.value = false
+    }
+    return
+  }
+  
   const sucesso = await analisarCotacao(statusAnaliseSelecionado.value, observacaoAnalise.value)
   if (sucesso) {
     fecharModalAnalise()
