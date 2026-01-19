@@ -444,23 +444,31 @@ onMounted(() => {
   background-color: #f9fafb;
 }
 
-/* Estilo para linha selecionada */
+/* Estilo para linha selecionada - mais visível */
 :deep(.p-datatable .p-datatable-tbody > tr.p-highlight) {
-  background-color: #e3f2fd !important;
-  border-left: 4px solid #2196f3;
+  background-color: #bbdefb !important;
+  border-left: 5px solid #1976d2 !important;
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2) !important;
+  font-weight: 500;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr.p-highlight td) {
+  background-color: #bbdefb !important;
+  color: #0d47a1;
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr.p-highlight:hover) {
-  background-color: #bbdefb !important;
+  background-color: #90caf9 !important;
+  box-shadow: 0 3px 6px rgba(25, 118, 210, 0.3) !important;
 }
 
-:deep(.p-datatable .p-datatable-tbody > tr:hover) {
+:deep(.p-datatable .p-datatable-tbody > tr.p-highlight:hover td) {
+  background-color: #90caf9 !important;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr:hover:not(.p-highlight)) {
   background-color: #f5f5f5;
   cursor: pointer;
-}
-
-:deep(.p-datatable .p-datatable-tbody > tr.p-highlight:hover) {
-  background-color: #bbdefb !important;
 }
 </style>
 
