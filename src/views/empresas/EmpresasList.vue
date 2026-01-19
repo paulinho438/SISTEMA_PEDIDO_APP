@@ -87,7 +87,7 @@ export default {
 		this.initFilters();
 	},
 	mounted() {
-		this.permissionsService.hasPermissionsView('view_clientes');
+		this.permissionsService.hasPermissionsView('view_empresas');
 		this.getEmpresas();
 	}
 };
