@@ -70,6 +70,14 @@
                 v-tooltip.top="'Visualizar cotação'"
             />
             <Button
+                v-if="podeAprovarDireto(slotProps.data)"
+                icon="pi pi-check"
+                class="p-button-rounded p-button-text p-button-success"
+                @click="aprovarDireto(slotProps.data)"
+                :loading="aprovandoDireto[slotProps.data.id]"
+                v-tooltip.top="'Aprovar diretamente como Diretor'"
+            />
+            <Button
                 v-if="podeAnalisarAprovacoes(slotProps.data.statusSlug)"
                 icon="pi pi-check-square"
                 class="p-button-rounded p-button-text p-button-warning"
@@ -114,6 +122,7 @@ export default {
     const filtrarMinhasCotacoes = ref(true); // Por padrão, mostrar apenas minhas cotações
     const carregando = ref(false);
     const gerandoPedidos = ref({});
+    const aprovandoDireto = ref({});
     const orderService = new PurchaseOrderService();
 
     // Verificar se o usuário é comprador ou tem outro perfil de aprovação
@@ -177,6 +186,7 @@ export default {
           status: item.status?.label || '-',
           statusSlug: item.status?.slug,
           temPedidos: (item.orders_count || 0) > 0,
+          temComprador: !!(item.buyer?.id || item.buyer?.name),
         }));
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar as cotações.';
@@ -292,6 +302,90 @@ export default {
       router.push({ name: 'cotacao-analisar-aprovacoes', params: { id: String(cotacao.id) } });
     };
 
+    // Verificar se o usuário tem permissão para aprovar como Diretor
+    const temPermissaoAprovarDiretor = computed(() => {
+      const usuario = store.state.usuario;
+      if (!usuario || !usuario.permissions || !Array.isArray(usuario.permissions)) {
+        return false;
+      }
+      
+      // Verificar se o usuário tem a permissão "cotacoes_aprovar_diretor"
+      // As permissões podem estar em usuario.permissions (array de grupos) ou em store.state.permissions (array direto)
+      const permissions = store.state.permissions || [];
+      
+      // Verificar nas permissões diretas do store
+      for (const permission of permissions) {
+        if (permission && permission.slug === 'cotacoes_aprovar_diretor') {
+          return true;
+        }
+      }
+      
+      // Verificar nas permissões dos grupos do usuário
+      for (const perm of usuario.permissions) {
+        if (perm.permissions && Array.isArray(perm.permissions)) {
+          for (const permission of perm.permissions) {
+            if (permission && permission.slug === 'cotacoes_aprovar_diretor') {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    });
+
+    // Verificar se pode aprovar diretamente uma cotação
+    const podeAprovarDireto = (cotacao) => {
+      // Só pode aprovar se tem a permissão
+      if (!temPermissaoAprovarDiretor.value) {
+        return false;
+      }
+      
+      // Só pode aprovar se a cotação tem comprador associado
+      if (!cotacao.temComprador) {
+        return false;
+      }
+      
+      // Só pode aprovar se o status permite (finalizada, analisada, analisada_aguardando, analise_gerencia)
+      const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia'];
+      return statusPermitidos.includes(cotacao.statusSlug);
+    };
+
+    // Aprovar diretamente como Diretor
+    const aprovarDireto = async (cotacao) => {
+      if (aprovandoDireto.value[cotacao.id]) {
+        return;
+      }
+
+      try {
+        aprovandoDireto.value[cotacao.id] = true;
+
+        // Chamar o endpoint de aprovação diretamente
+        const { data } = await SolicitacaoService.approve(cotacao.id, {
+          status: 'aprovado',
+        });
+
+        toast.add({
+          severity: 'success',
+          summary: 'Cotação aprovada',
+          detail: data.message || 'Cotação aprovada com sucesso!',
+          life: 4000,
+        });
+
+        // Recarregar lista para atualizar status
+        await carregar();
+      } catch (error) {
+        const detail = error?.response?.data?.message || error?.response?.data?.error || 'Erro ao aprovar cotação';
+        toast.add({
+          severity: 'error',
+          summary: 'Erro ao aprovar',
+          detail,
+          life: 4000,
+        });
+      } finally {
+        aprovandoDireto.value[cotacao.id] = false;
+      }
+    };
+
     const onFilterChange = () => {
       console.log('Filtro mudou:', filtrarMinhasCotacoes.value);
       carregar();
@@ -314,6 +408,10 @@ export default {
       analisarAprovacoes,
       onFilterChange,
       carregar,
+      temPermissaoAprovarDiretor,
+      podeAprovarDireto,
+      aprovarDireto,
+      aprovandoDireto,
     };
   },
 };
