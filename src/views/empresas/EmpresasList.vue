@@ -102,7 +102,7 @@ export default {
 					<h5 class="px-0 py-0 align-self-center m-2"><i class="pi pi-building"></i> Empresas</h5>
 				</div>
 				<div class="col-4 px-0 py-0 text-right">
-					<Button label="Nova Empresa" class="p-button-outlined p-button-secondary p-button-sm" icon="pi pi-plus" @click.prevent="editCategory()" />
+					<Button v-if="permissionsService.hasPermissions('criar_empresas')" label="Nova Empresa" class="p-button-outlined p-button-secondary p-button-sm" icon="pi pi-plus" @click.prevent="editCategory()" />
 				</div>
 			</div>
 			<div class="card">
@@ -143,7 +143,7 @@ export default {
 						</template>
 					</Column>
 
-					<Column field="edit" header="Ações" :sortable="false" class="w-1">
+					<Column v-if="permissionsService.hasPermissions('edit_empresas')" field="edit" header="Ações" :sortable="false" class="w-1">
 						<template #body="slotProps">
 							<Button v-if="!slotProps.data.standard" class="p-button p-button-icon-only p-button-text p-button-secondary m-0 p-0" type="button" :icon="icons.FILE_EDIT" v-tooltip.top="'Editar'" @click.prevent="editCategory(slotProps.data.id)" />
 						</template>
