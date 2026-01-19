@@ -34,52 +34,27 @@
       <div class="grid text-sm">
         <div class="col-12 md:col-2">
           <label class="text-600 block mb-1">Número da solicitação</label>
-          <InputText v-if="modoEdicaoHabilitado" v-model="formEdit.numero" class="w-full" />
-          <p v-else class="text-900 font-semibold">{{ solicitacao.numero }}</p>
+          <p class="text-900 font-semibold">{{ solicitacao.numero }}</p>
         </div>
 
         <div class="col-12 md:col-2">
           <label class="text-600 block mb-1">Data da Solicitação</label>
-          <Calendar v-if="modoEdicaoHabilitado" v-model="formEdit.data" dateFormat="dd/mm/yy" class="w-full" />
-          <p v-else class="text-900 font-semibold">{{ solicitacao.data }}</p>
+          <p class="text-900 font-semibold">{{ solicitacao.data }}</p>
         </div>
 
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Empresa</label>
-          <Dropdown
-              v-if="modoEdicaoHabilitado"
-              v-model="formEdit.empresa"
-              :options="empresas"
-              optionLabel="company"
-              optionValue="id"
-              placeholder="Selecione a empresa"
-              class="w-full"
-              :filter="true"
-              :loading="carregandoEmpresas"
-          />
-          <p v-else class="text-900 font-semibold">{{ solicitacao.empresa }}</p>
+          <p class="text-900 font-semibold">{{ solicitacao.empresa }}</p>
         </div>
 
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Local</label>
-          <InputText v-if="modoEdicaoHabilitado" v-model="formEdit.local" class="w-full" />
-          <p v-else class="text-900 font-semibold">{{ solicitacao.local }}</p>
+          <p class="text-900 font-semibold">{{ solicitacao.local }}</p>
         </div>
 
         <div class="col-12 md:col-2">
           <label class="text-600 block mb-1">Solicitante</label>
-          <Dropdown
-              v-if="modoEdicaoHabilitado"
-              v-model="formEdit.solicitante"
-              :options="usuarios"
-              optionLabel="nome_completo"
-              optionValue="id"
-              placeholder="Selecione o solicitante"
-              class="w-full"
-              :filter="true"
-              :loading="carregandoUsuarios"
-          />
-          <p v-else class="text-900 font-semibold">{{ solicitacao.solicitante }}</p>
+          <p class="text-900 font-semibold">{{ solicitacao.solicitante }}</p>
         </div>
       </div>
 
@@ -156,14 +131,14 @@
 
       <!-- Observação -->
       <div class="mt-4">
-        <label class="block text-600 mb-1">Observação</label>
-        <Textarea v-if="modoEdicaoHabilitado" v-model="formEdit.observacao" rows="3" class="w-full" />
+        <label class="block text-600 mb-1">Justificativa / Motivo</label>
+        <Textarea v-if="modoEdicaoHabilitado" v-model="formEdit.observacao" rows="3" class="w-full" placeholder="Informe a justificativa ou motivo" />
         <p v-else class="text-900">{{ solicitacao.observacao || '-' }}</p>
       </div>
     </div>
 
     <div class="card shadow-none bg-light p-4 mb-4">
-      <label class="block text-600 mb-1">Justificativa / Motivo</label>
+      <label class="block text-600 mb-1">Justificativa / Motivo da Aprovação</label>
       <Textarea v-model="observacao" rows="3" class="w-full" placeholder="Informe a justificativa ou motivo da aprovação" />
     </div>
 
@@ -315,31 +290,8 @@ export default {
     const habilitarModoEdicao = async () => {
       modoEdicaoHabilitado.value = true;
       
-      // Carregar dados necessários para edição se ainda não foram carregados
-      if (empresas.value.length === 0 || usuarios.value.length === 0) {
-        await Promise.all([carregarEmpresas(), carregarUsuarios()]);
-      }
-      
-      // Inicializar formEdit se ainda não foi inicializado
-      if (!formEdit.numero) {
-        formEdit.numero = solicitacao.numero || '';
-        
-        // Converter data
-        if (solicitacao.data && typeof solicitacao.data === 'string') {
-          const partes = solicitacao.data.split('/');
-          if (partes.length === 3) {
-            const [dia, mes, ano] = partes;
-            formEdit.data = new Date(`${ano}-${mes}-${dia}`);
-          } else {
-            formEdit.data = new Date(solicitacao.data);
-          }
-        } else {
-          formEdit.data = new Date();
-        }
-        
-        formEdit.empresa = solicitacao.empresaObj?.id || null;
-        formEdit.local = solicitacao.local || '';
-        formEdit.solicitante = solicitacao.solicitanteObj?.id || null;
+      // Inicializar formEdit apenas com observação (não precisa de empresas/usuários)
+      if (!formEdit.observacao) {
         formEdit.observacao = solicitacao.observacao || '';
         
         // Carregar itens editáveis
@@ -495,44 +447,27 @@ export default {
           observacao: observacao.value,
         };
         
-        // Se modo de edição está habilitado, incluir dados de edição
+        // Se modo de edição está habilitado, incluir dados de edição (apenas itens e observação)
         if (modoEdicaoHabilitado.value) {
-          // Formatar data
-          let dataFormatada = null;
-          if (formEdit.data) {
-            const data = new Date(formEdit.data);
-            const dia = String(data.getDate()).padStart(2, '0');
-            const mes = String(data.getMonth() + 1).padStart(2, '0');
-            const ano = data.getFullYear();
-            dataFormatada = `${dia}/${mes}/${ano}`;
-          }
-          
-          payload.numero = formEdit.numero || null;
-          payload.data_solicitacao = dataFormatada;
-          
-          // Buscar empresa e solicitante selecionados para enviar id e label
-          if (formEdit.empresa) {
-            const empresaSelecionada = empresas.value.find(e => e.id === formEdit.empresa);
-            payload.empresa = empresaSelecionada ? {
-              id: empresaSelecionada.id,
-              label: empresaSelecionada.company || empresaSelecionada.name || ''
-            } : null;
-          } else {
-            payload.empresa = null;
-          }
-          
-          if (formEdit.solicitante) {
-            const usuarioSelecionado = usuarios.value.find(u => u.id === formEdit.solicitante);
-            payload.solicitante = usuarioSelecionado ? {
-              id: usuarioSelecionado.id,
-              label: usuarioSelecionado.nome_completo || usuarioSelecionado.name || ''
-            } : null;
-          } else {
-            payload.solicitante = null;
-          }
-          
-          payload.local = formEdit.local || null;
           payload.observacao = formEdit.observacao || null;
+          
+          // Formatar itens
+          payload.itens = itensEdit.value.map(item => ({
+            id: item.id || null,
+            codigo: item.codigo || null,
+            referencia: item.referencia || null,
+            mercadoria: item.mercadoria || '',
+            quantidade: item.quantidade || 0,
+            unidade: item.unidade || null,
+            aplicacao: item.aplicacao || null,
+            prioridade: item.prioridade || null,
+            tag: item.tag || null,
+            centro_custo: item.centroCusto ? {
+              codigo: item.centroCusto.codigo || item.centroCusto.CTT_CUSTO,
+              descricao: item.centroCusto.descricao || item.centroCusto.CTT_DESC01,
+              classe: item.centroCusto.classe || item.centroCusto.CTT_CLASSE,
+            } : null,
+          }));
           
           // Formatar itens
           payload.itens = itensEdit.value.map(item => ({
