@@ -986,6 +986,41 @@ const singleActionMetadata = {
   },
 }
 
+// Verificar se o usuário é Engenheiro, Gerente Local ou Gerente Geral (podem aprovar simultaneamente)
+const isEngineerOrManager = computed(() => {
+  const usuario = store.state.usuario
+  if (!usuario || !usuario.permissions || !Array.isArray(usuario.permissions)) {
+    return false
+  }
+  
+  // Verificar se o usuário tem grupo/permissão de Engenheiro, Gerente Local ou Gerente Geral
+  for (const perm of usuario.permissions) {
+    if (perm && perm.name) {
+      // Normalizar o nome do grupo: remover espaços extras, converter para minúsculas, remover underscores
+      const groupName = perm.name.toLowerCase().replace(/_/g, ' ').trim()
+      
+      // Debug temporário (remover depois)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Verificando grupo:', { original: perm.name, normalized: groupName })
+      }
+      
+      // Verificar variações possíveis do nome
+      // Verifica se contém "engenheiro"
+      const hasEngenheiro = groupName.includes('engenheiro')
+      
+      // Verifica se contém "gerente" e ("local" ou "geral")
+      const hasGerente = groupName.includes('gerente')
+      const hasLocal = groupName.includes('local')
+      const hasGeral = groupName.includes('geral')
+      
+      if (hasEngenheiro || (hasGerente && (hasLocal || hasGeral))) {
+        return true
+      }
+    }
+  }
+  return false
+})
+
 // Verificar se o usuário é Gerente Local ou Gerente Geral (podem escolher status)
 const isManager = computed(() => {
   const usuario = store.state.usuario
@@ -998,11 +1033,6 @@ const isManager = computed(() => {
     if (perm && perm.name) {
       // Normalizar o nome do grupo: remover espaços extras, converter para minúsculas, remover underscores
       const groupName = perm.name.toLowerCase().replace(/_/g, ' ').trim()
-      
-      // Debug temporário (remover depois)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Verificando grupo:', { original: perm.name, normalized: groupName })
-      }
       
       // Verificar variações possíveis do nome
       // Verifica se contém "gerente" e ("local" ou "geral")
@@ -1128,13 +1158,26 @@ const approvalAction = computed(() => {
     }
   }
 
-  // Status "finalizada" é um caso especial: gerentes podem analisar mesmo sem aprovações pendentes
-  // Isso permite que gerentes locais/gerais analisem cotações finalizadas independentemente de can_approve
+  // Status "finalizada" é um caso especial: Engenheiros, Gerentes Locais e Gerentes Gerais podem analisar
+  // mesmo sem aprovações pendentes (podem aprovar simultaneamente)
+  // Isso permite que esses perfis analisem cotações finalizadas independentemente de can_approve
   if (slug === 'finalizada') {
-    // Apenas Gerente Local ou Gerente Geral podem escolher entre "Analisada" e "Analisada / Aguardando"
-    // Outros perfis (como Engenheiro) devem aprovar diretamente
-    if (isManager.value) {
-      return { type: 'options' }
+    // Engenheiros, Gerentes Locais e Gerentes Gerais podem aprovar simultaneamente
+    if (isEngineerOrManager.value) {
+      // Gerente Local ou Gerente Geral podem escolher entre "Analisada" e "Analisada / Aguardando"
+      if (isManager.value) {
+        return { type: 'options' }
+      } else {
+        // Engenheiro aprova diretamente para "analisada"
+        return {
+          type: 'single',
+          targetStatus: 'analisada',
+          buttonLabel: 'Analisar',
+          buttonClass: 'p-button-success',
+          icon: 'pi pi-check',
+          description: 'Analisar a cotação.',
+        }
+      }
     } else {
       // Para outros perfis, aprovar diretamente para "analisada"
       // Mas só se tiver permissão can_approve
