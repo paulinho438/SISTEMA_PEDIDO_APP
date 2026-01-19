@@ -6,16 +6,25 @@
         <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
         <h4 class="m-0 text-900">Aprovar solicitação</h4>
         <span v-if="carregando" class="ml-3 text-600 text-sm">Carregando...</span>
-        <Tag v-if="podeEditar" value="Modo Edição" severity="info" class="ml-3" />
+        <Tag v-if="modoEdicaoHabilitado" value="Modo Edição" severity="info" class="ml-3" />
       </div>
-      <Button
-          label="Imprimir PDF"
-          icon="pi pi-print"
-          class="p-button-info"
-          :loading="imprimindo"
-          :disabled="imprimindo || !solicitacao.id"
-          @click="imprimirPDF"
-      />
+      <div class="flex gap-2">
+        <Button
+            v-if="podeEditar && !modoEdicaoHabilitado"
+            label="Habilitar modo de edição"
+            icon="pi pi-pencil"
+            class="p-button-outlined p-button-info"
+            @click="habilitarModoEdicao"
+        />
+        <Button
+            label="Imprimir PDF"
+            icon="pi pi-print"
+            class="p-button-info"
+            :loading="imprimindo"
+            :disabled="imprimindo || !solicitacao.id"
+            @click="imprimirPDF"
+        />
+      </div>
     </div>
 
     <!-- Bloco Identificação -->
@@ -25,20 +34,20 @@
       <div class="grid text-sm">
         <div class="col-12 md:col-2">
           <label class="text-600 block mb-1">Número da solicitação</label>
-          <InputText v-if="podeEditar" v-model="formEdit.numero" class="w-full" />
+          <InputText v-if="modoEdicaoHabilitado" v-model="formEdit.numero" class="w-full" />
           <p v-else class="text-900 font-semibold">{{ solicitacao.numero }}</p>
         </div>
 
         <div class="col-12 md:col-2">
           <label class="text-600 block mb-1">Data da Solicitação</label>
-          <Calendar v-if="podeEditar" v-model="formEdit.data" dateFormat="dd/mm/yy" class="w-full" />
+          <Calendar v-if="modoEdicaoHabilitado" v-model="formEdit.data" dateFormat="dd/mm/yy" class="w-full" />
           <p v-else class="text-900 font-semibold">{{ solicitacao.data }}</p>
         </div>
 
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Empresa</label>
           <Dropdown
-              v-if="podeEditar"
+              v-if="modoEdicaoHabilitado"
               v-model="formEdit.empresa"
               :options="empresas"
               optionLabel="company"
@@ -53,14 +62,14 @@
 
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Local</label>
-          <InputText v-if="podeEditar" v-model="formEdit.local" class="w-full" />
+          <InputText v-if="modoEdicaoHabilitado" v-model="formEdit.local" class="w-full" />
           <p v-else class="text-900 font-semibold">{{ solicitacao.local }}</p>
         </div>
 
         <div class="col-12 md:col-2">
           <label class="text-600 block mb-1">Solicitante</label>
           <Dropdown
-              v-if="podeEditar"
+              v-if="modoEdicaoHabilitado"
               v-model="formEdit.solicitante"
               :options="usuarios"
               optionLabel="nome_completo"
@@ -76,7 +85,7 @@
 
       <!-- Tabela de Itens -->
       <div class="mt-4">
-        <div v-if="podeEditar" class="flex justify-content-between align-items-center mb-2">
+        <div v-if="modoEdicaoHabilitado" class="flex justify-content-between align-items-center mb-2">
           <Button label="Adicionar item" icon="pi pi-plus" class="p-button-text p-button-success" @click="adicionarItem" />
         </div>
         <DataTable
@@ -86,49 +95,49 @@
         >
           <Column field="codigo" header="Código">
             <template #body="{ data }">
-              <InputText v-if="podeEditar" v-model="data.codigo" class="w-full p-inputtext-sm" />
+              <InputText v-if="modoEdicaoHabilitado" v-model="data.codigo" class="w-full p-inputtext-sm" />
               <span v-else>{{ data.codigo || '-' }}</span>
             </template>
           </Column>
           <Column field="referencia" header="Referência">
             <template #body="{ data }">
-              <InputText v-if="podeEditar" v-model="data.referencia" class="w-full p-inputtext-sm" />
+              <InputText v-if="modoEdicaoHabilitado" v-model="data.referencia" class="w-full p-inputtext-sm" />
               <span v-else>{{ data.referencia || '-' }}</span>
             </template>
           </Column>
           <Column field="mercadoria" header="Mercadoria">
             <template #body="{ data }">
-              <InputText v-if="podeEditar" v-model="data.mercadoria" class="w-full p-inputtext-sm" />
+              <InputText v-if="modoEdicaoHabilitado" v-model="data.mercadoria" class="w-full p-inputtext-sm" />
               <span v-else>{{ data.mercadoria || '-' }}</span>
             </template>
           </Column>
           <Column field="quantidade" header="Quant solicitada">
             <template #body="{ data }">
-              <InputNumber v-if="podeEditar" v-model="data.quantidade" class="w-full p-inputtext-sm" :min="0.0001" />
+              <InputNumber v-if="modoEdicaoHabilitado" v-model="data.quantidade" class="w-full p-inputtext-sm" :min="0.0001" />
               <span v-else>{{ data.quantidade || '-' }}</span>
             </template>
           </Column>
           <Column field="unidade" header="Medida">
             <template #body="{ data }">
-              <InputText v-if="podeEditar" v-model="data.unidade" class="w-full p-inputtext-sm" />
+              <InputText v-if="modoEdicaoHabilitado" v-model="data.unidade" class="w-full p-inputtext-sm" />
               <span v-else>{{ data.unidade || '-' }}</span>
             </template>
           </Column>
           <Column field="aplicacao" header="Aplicação">
             <template #body="{ data }">
-              <InputText v-if="podeEditar" v-model="data.aplicacao" class="w-full p-inputtext-sm" />
+              <InputText v-if="modoEdicaoHabilitado" v-model="data.aplicacao" class="w-full p-inputtext-sm" />
               <span v-else>{{ data.aplicacao || '-' }}</span>
             </template>
           </Column>
           <Column field="prioridade" header="Prioridade dias">
             <template #body="{ data }">
-              <InputNumber v-if="podeEditar" v-model="data.prioridade" class="w-full p-inputtext-sm" :min="0" />
+              <InputNumber v-if="modoEdicaoHabilitado" v-model="data.prioridade" class="w-full p-inputtext-sm" :min="0" />
               <span v-else>{{ data.prioridade || '-' }}</span>
             </template>
           </Column>
           <Column field="tag" header="TAG">
             <template #body="{ data }">
-              <InputText v-if="podeEditar" v-model="data.tag" class="w-full p-inputtext-sm" />
+              <InputText v-if="modoEdicaoHabilitado" v-model="data.tag" class="w-full p-inputtext-sm" />
               <span v-else>{{ data.tag || '-' }}</span>
             </template>
           </Column>
@@ -137,7 +146,7 @@
               <span>{{ formatarCentroCusto(data.centroCusto) }}</span>
             </template>
           </Column>
-          <Column v-if="podeEditar" header="" style="width:4rem; text-align:center">
+          <Column v-if="modoEdicaoHabilitado" header="" style="width:4rem; text-align:center">
             <template #body="{ data, index }">
               <Button icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger" @click="removerItem(index)" />
             </template>
@@ -148,7 +157,7 @@
       <!-- Observação -->
       <div class="mt-4">
         <label class="block text-600 mb-1">Observação</label>
-        <Textarea v-if="podeEditar" v-model="formEdit.observacao" rows="3" class="w-full" />
+        <Textarea v-if="modoEdicaoHabilitado" v-model="formEdit.observacao" rows="3" class="w-full" />
         <p v-else class="text-900">{{ solicitacao.observacao || '-' }}</p>
       </div>
     </div>
@@ -295,12 +304,59 @@ export default {
     const carregandoEmpresas = ref(false);
     const carregandoUsuarios = ref(false);
     const itensEdit = ref([]);
+    const modoEdicaoHabilitado = ref(false);
 
     // Verificar permissão de edição
     const podeEditar = computed(() => {
       const permissions = store.getters?.permissions || [];
       return permissions.includes('edit_cotacoes_aprovacao');
     });
+
+    const habilitarModoEdicao = async () => {
+      modoEdicaoHabilitado.value = true;
+      
+      // Carregar dados necessários para edição se ainda não foram carregados
+      if (empresas.value.length === 0 || usuarios.value.length === 0) {
+        await Promise.all([carregarEmpresas(), carregarUsuarios()]);
+      }
+      
+      // Inicializar formEdit se ainda não foi inicializado
+      if (!formEdit.numero) {
+        formEdit.numero = solicitacao.numero || '';
+        
+        // Converter data
+        if (solicitacao.data && typeof solicitacao.data === 'string') {
+          const partes = solicitacao.data.split('/');
+          if (partes.length === 3) {
+            const [dia, mes, ano] = partes;
+            formEdit.data = new Date(`${ano}-${mes}-${dia}`);
+          } else {
+            formEdit.data = new Date(solicitacao.data);
+          }
+        } else {
+          formEdit.data = new Date();
+        }
+        
+        formEdit.empresa = solicitacao.empresaObj?.id || null;
+        formEdit.local = solicitacao.local || '';
+        formEdit.solicitante = solicitacao.solicitanteObj?.id || null;
+        formEdit.observacao = solicitacao.observacao || '';
+        
+        // Carregar itens editáveis
+        itensEdit.value = solicitacao.items.map(item => ({
+          id: item.id,
+          codigo: item.codigo || '',
+          referencia: item.referencia || '',
+          mercadoria: item.mercadoria || '',
+          quantidade: item.quantidade || 0,
+          unidade: item.unidade || '',
+          aplicacao: item.aplicacao || '',
+          prioridade: item.prioridade || null,
+          tag: item.tag || '',
+          centroCusto: item.centro_custo,
+        }));
+      }
+    };
 
     const formatarCentroCusto = (centroCusto) => {
       if (!centroCusto) return '-';
@@ -324,7 +380,7 @@ export default {
     };
 
     const tabelaItensEdit = computed(() => {
-      if (podeEditar.value) {
+      if (modoEdicaoHabilitado.value) {
         return itensEdit.value;
       }
       return solicitacao.items.map((item) => ({
@@ -385,42 +441,7 @@ export default {
         solicitacao.items = detalhe.itens || [];
         solicitacao.status = detalhe.status;
 
-        // Preencher formEdit se pode editar
-        if (podeEditar.value) {
-          formEdit.numero = detalhe.numero || '';
-          
-          // Converter data
-          if (detalhe.data && typeof detalhe.data === 'string') {
-            const partes = detalhe.data.split('/');
-            if (partes.length === 3) {
-              const [dia, mes, ano] = partes;
-              formEdit.data = new Date(`${ano}-${mes}-${dia}`);
-            } else {
-              formEdit.data = new Date(detalhe.data);
-            }
-          } else {
-            formEdit.data = new Date();
-          }
-          
-          formEdit.empresa = detalhe.empresa?.id || null;
-          formEdit.local = detalhe.local || '';
-          formEdit.solicitante = detalhe.solicitante?.id || detalhe.requester_id || null;
-          formEdit.observacao = detalhe.observacao || '';
-          
-          // Carregar itens editáveis
-          itensEdit.value = (detalhe.itens || []).map(item => ({
-            id: item.id,
-            codigo: item.codigo || '',
-            referencia: item.referencia || '',
-            mercadoria: item.mercadoria || '',
-            quantidade: item.quantidade || 0,
-            unidade: item.unidade || '',
-            aplicacao: item.aplicacao || '',
-            prioridade: item.prioridade || null,
-            tag: item.tag || '',
-            centroCusto: item.centro_custo,
-          }));
-        }
+        // Não preencher formEdit automaticamente - só será preenchido quando habilitar modo de edição
 
         const slugAtual = detalhe.status?.slug;
         const statusPermitidos = ['aguardando', 'analisada', 'analisada_aguardando', 'analise_gerencia'];
@@ -474,8 +495,8 @@ export default {
           observacao: observacao.value,
         };
         
-        // Se pode editar, incluir dados de edição
-        if (podeEditar.value) {
+        // Se modo de edição está habilitado, incluir dados de edição
+        if (modoEdicaoHabilitado.value) {
           // Formatar data
           let dataFormatada = null;
           if (formEdit.data) {
@@ -610,9 +631,6 @@ export default {
     };
 
     onMounted(async () => {
-      if (podeEditar.value) {
-        await Promise.all([carregarEmpresas(), carregarUsuarios()]);
-      }
       await carregarDados();
     });
 
@@ -642,6 +660,8 @@ export default {
       carregandoUsuarios,
       adicionarItem,
       removerItem,
+      modoEdicaoHabilitado,
+      habilitarModoEdicao,
     };
   }
 };
