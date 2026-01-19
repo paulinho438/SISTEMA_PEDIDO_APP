@@ -31,6 +31,29 @@
       </div>
     </div>
 
+    <!-- Seleção de Engenheiro (quando ENGENHEIRO está selecionado) -->
+    <div v-if="niveisSelecionados.includes('ENGENHEIRO')" class="card shadow-none bg-light p-4 mb-4">
+      <div class="flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 text-900">Vincule o engenheiro</h5>
+        <span v-if="carregando" class="text-600 text-sm">Carregando...</span>
+      </div>
+
+      <div class="grid">
+        <div class="col-12 md:col-6">
+          <label class="block text-600 mb-2">Engenheiro <span class="text-red-500">*</span></label>
+          <Dropdown
+              v-model="engenheiroSelecionado"
+              :options="engenheiros"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Selecione o engenheiro"
+              class="w-full"
+              :loading="carregando"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Seleção de Níveis de Aprovação -->
     <div class="card shadow-none bg-light p-4 mb-4">
       <h5 class="mb-3 text-900">Selecionar Níveis de Aprovação</h5>
@@ -169,6 +192,8 @@ export default {
 
     const compradores = ref([]);
     const compradorSelecionado = ref(null);
+    const engenheiros = ref([]);
+    const engenheiroSelecionado = ref(null);
     const observacaoAprovacao = ref('');
     const carregando = ref(false);
     const salvando = ref(false);
@@ -224,6 +249,15 @@ export default {
           value: buyer.id,
         }));
 
+        engenheiros.value = (data?.engineers ?? []).map((engineer) => ({
+          label: engineer.label,
+          value: engineer.id,
+        }));
+
+        if (detalhe.engineer?.id) {
+          engenheiroSelecionado.value = detalhe.engineer.id;
+        }
+
         if (detalhe.status?.slug !== 'autorizado') {
           toast.add({ severity: 'info', summary: 'Solicitação pendente', detail: 'Esta solicitação ainda não foi autorizada.', life: 3000 });
           const destino = detalhe.status?.slug === 'aguardando' ? 'aprovarSolicitacao' : 'solicitacoesPendentes';
@@ -270,6 +304,17 @@ export default {
         return;
       }
 
+      // Se ENGENHEIRO está selecionado, verificar se um engenheiro foi escolhido
+      if (niveisSelecionados.value.includes('ENGENHEIRO') && !engenheiroSelecionado.value) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Seleção obrigatória',
+          detail: 'Escolha um engenheiro antes de vincular.',
+          life: 3000,
+        });
+        return;
+      }
+
       try {
         salvando.value = true;
 
@@ -279,7 +324,15 @@ export default {
           observacao: observacaoAprovacao.value,
         });
 
-        // 2. Selecionar níveis de aprovação (incluindo COMPRADOR automaticamente)
+        // 2. Vincular engenheiro (se ENGENHEIRO está selecionado)
+        if (niveisSelecionados.value.includes('ENGENHEIRO') && engenheiroSelecionado.value) {
+          await SolicitacaoService.assignEngineer(solicitacao.id, {
+            engineer_id: engenheiroSelecionado.value,
+            observacao: observacaoAprovacao.value,
+          });
+        }
+
+        // 3. Selecionar níveis de aprovação (incluindo COMPRADOR automaticamente)
         if (niveisSelecionados.value.length > 0) {
           // Adicionar COMPRADOR automaticamente, pois ele sempre assina
           const niveisComComprador = ['COMPRADOR', ...niveisSelecionados.value];
@@ -341,6 +394,8 @@ export default {
       solicitacao,
       compradores,
       compradorSelecionado,
+      engenheiros,
+      engenheiroSelecionado,
       observacaoAprovacao,
       niveisSelecionados,
       niveisDisponiveis,

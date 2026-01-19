@@ -37,6 +37,10 @@ class SolicitacaoService {
     return axios.post(`/cotacoes/${id}/assign-buyer`, payload);
   }
 
+  assignEngineer(id, payload) {
+    return axios.post(`/cotacoes/${id}/assign-engineer`, payload);
+  }
+
   approve(id, payload) {
     return axios.post(`/cotacoes/${id}/approve`, payload);
   }
