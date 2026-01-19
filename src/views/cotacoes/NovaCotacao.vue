@@ -2158,10 +2158,11 @@ const abrirAnaliseDireta = async (action) => {
     return
   }
 
-  // Se o status atual é "analisada" ou "analisada_aguardando" e o targetStatus é "analisada",
+  // Se o status atual é "finalizada", "analisada" ou "analisada_aguardando" e o targetStatus é "analisada" ou "analisada_aguardando",
   // usar o método approve ao invés de analyze, pois o backend gerencia a mudança de status automaticamente
   const currentStatus = cotacao.status?.slug
-  if ((currentStatus === 'analisada' || currentStatus === 'analisada_aguardando') && action.targetStatus === 'analisada') {
+  if ((currentStatus === 'finalizada' || currentStatus === 'analisada' || currentStatus === 'analisada_aguardando') && 
+      (action.targetStatus === 'analisada' || action.targetStatus === 'analisada_aguardando')) {
     // Chamar approve diretamente sem modal
     try {
       analisandoCotacao.value = true
@@ -2216,14 +2217,20 @@ const confirmarAnalise = async () => {
   const currentStatus = cotacao.status?.slug
   const targetStatus = statusAnaliseSelecionado.value
   
-  // Se o status atual é "finalizada", "analisada" ou "analisada_aguardando" e o targetStatus é "analisada",
+  // Se o status atual é "finalizada", "analisada" ou "analisada_aguardando" e o targetStatus é "analisada" ou "analisada_aguardando",
   // usar o método approve ao invés de analyze, pois o backend gerencia a mudança de status automaticamente
-  if ((currentStatus === 'finalizada' || currentStatus === 'analisada' || currentStatus === 'analisada_aguardando') && targetStatus === 'analisada') {
+  if ((currentStatus === 'finalizada' || currentStatus === 'analisada' || currentStatus === 'analisada_aguardando') && 
+      (targetStatus === 'analisada' || targetStatus === 'analisada_aguardando')) {
     try {
       analisandoCotacao.value = true
-      await SolicitacaoService.approve(cotacao.id, {
+      const payload = {
         observacao: observacaoAnalise.value?.trim() || undefined,
-      })
+      }
+      // Se o status atual é "finalizada", enviar o status desejado para o backend mudar antes de salvar a assinatura
+      if (currentStatus === 'finalizada') {
+        payload.status = targetStatus
+      }
+      await SolicitacaoService.approve(cotacao.id, payload)
       
       toast.add({
         severity: 'success',
