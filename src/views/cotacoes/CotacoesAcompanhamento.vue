@@ -204,6 +204,17 @@ const statusOptions = [
   { label: 'Analisada / Aguardando', value: 'analisada_aguardando' },
   { label: 'Análise / Gerência', value: 'analise_gerencia' },
   { label: 'Aprovado', value: 'aprovado' },
+  // Status do pedido de compra
+  { label: 'Pedido Pendente', value: 'pendente' },
+  { label: 'Link', value: 'link' },
+  { label: 'Link Aprovado', value: 'link_aprovado' },
+  { label: 'Link Reprovado', value: 'link_reprovado' },
+  { label: 'Coleta', value: 'coleta' },
+  { label: 'Em Trânsito', value: 'em_transito' },
+  { label: 'Atendido', value: 'atendido' },
+  { label: 'Atendido Parcial', value: 'atendido_parcial' },
+  { label: 'Pagamento', value: 'pagamento' },
+  { label: 'Encerrado', value: 'encerrado' },
 ]
 
 const cotacoesFiltradas = computed(() => {
@@ -239,6 +250,7 @@ const cotacoesFiltradas = computed(() => {
 
 const getStatusSeverity = (statusSlug) => {
   const severityMap = {
+    // Status da cotação
     'aguardando': 'warning',
     'autorizado': 'info',
     'cotacao': 'info',
@@ -248,6 +260,17 @@ const getStatusSeverity = (statusSlug) => {
     'analisada_aguardando': 'warning',
     'analise_gerencia': 'info',
     'aprovado': 'success',
+    // Status do pedido de compra
+    'pendente': 'warning',
+    'link': 'info',
+    'link_aprovado': 'success',
+    'link_reprovado': 'danger',
+    'coleta': 'info',
+    'em_transito': 'warning',
+    'atendido': 'success',
+    'atendido_parcial': 'warning',
+    'pagamento': 'info',
+    'encerrado': 'success',
   }
   return severityMap[statusSlug] || 'secondary'
 }
