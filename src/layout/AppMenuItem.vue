@@ -107,18 +107,22 @@ const hasAnyPermission = (item) => {
 
 <template>
     <li v-if="item.visible !== false && hasAnyPermission(item)" :class="{ 'layout-root-menuitem': root, 'active-menuitem': isActiveMenu }">
-        <div v-if="root && permissionService.hasPermissions(item.permission)" class="layout-menuitem-root-text">{{ item.label }}</div>
-        <a v-if="(!item.to || item.items) && (!item.permission || permissionService.hasPermissions(item.permission))" :href="item.url" @click="itemClick($event, item, index)" :class="item.class" :target="item.target" tabindex="0">
+        <!-- Label do item raiz: só mostra se tiver permissão OU se tiver subitens com permissão -->
+        <div v-if="root && (!item.permission || permissionService.hasPermissions(item.permission) || (item.items && hasAnyPermission(item)))" class="layout-menuitem-root-text">{{ item.label }}</div>
+        <!-- Link para item com subitens: mostra se não tiver permissão definida OU se tiver permissão OU se algum subitem tiver permissão -->
+        <a v-if="(!item.to || item.items) && (!item.permission || permissionService.hasPermissions(item.permission) || (item.items && hasAnyPermission(item)))" :href="item.url" @click="itemClick($event, item, index)" :class="item.class" :target="item.target" tabindex="0">
             <i :class="item.icon" class="layout-menuitem-icon"></i>
             <span class="layout-menuitem-text">{{ item.label  }}</span>
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
         </a>
+        <!-- Link para item sem subitens: verifica permissão normalmente -->
         <router-link v-if="item.to && !item.items && (!item.permission || permissionService.hasPermissions(item.permission))" @click="itemClick($event, item, index)" :class="[item.class, { 'active-route': checkActiveRoute(item) }]" tabindex="0" :to="item.to">
             <i :class="item.icon" class="layout-menuitem-icon"></i>
             <span class="layout-menuitem-text">{{ item.label }}</span>
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
         </router-link>
-        <Transition v-if="item.items && (!item.permission || permissionService.hasPermissions(item.permission))" name="layout-submenu">
+        <!-- Subitens: mostra se não tiver permissão definida OU se tiver permissão OU se algum subitem tiver permissão -->
+        <Transition v-if="item.items && (!item.permission || permissionService.hasPermissions(item.permission) || hasAnyPermission(item))" name="layout-submenu">
             <ul v-show="root ? true : isActiveMenu" class="layout-submenu">
                 <app-menu-item v-for="(child, i) in item.items" :key="child" :index="i" :item="child" :parentItemKey="itemKey" :root="false"></app-menu-item>
             </ul>

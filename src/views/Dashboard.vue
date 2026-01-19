@@ -1,13 +1,28 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import DashboardService from '@/service/DashboardService';
 import { useLayout } from '@/layout/composables/layout';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
+import PermissionsService from '@/service/PermissionsService';
 
+const router = useRouter();
+const store = useStore();
 const { isDarkTheme } = useLayout();
 const toast = useToast();
 const dashboardService = new DashboardService();
+const permissionsService = new PermissionsService();
+
+const permissions = computed(() => store.getters.permissions || []);
+
+// Verificar permissão ao montar o componente
+onMounted(() => {
+    if (!permissionsService.hasPermissions('view_dashboard')) {
+        router.replace({ name: 'welcome' });
+    }
+});
 
 const processos = ref([]);
 const monthlyColumns = ref([]);

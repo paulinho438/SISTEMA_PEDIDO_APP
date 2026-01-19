@@ -42,6 +42,11 @@ const router = createRouter({
                     name: 'dashboard',
                     component: () => import('@/views/Dashboard.vue')
                 },
+                {
+                    path: '/welcome',
+                    name: 'welcome',
+                    component: () => import('@/views/Welcome.vue')
+                },
                 ...PermissionsRoutes,
                 ...CategoriesRoutes,
                 ...CostcenterRoutes,
@@ -242,7 +247,23 @@ router.beforeEach((to, from, next) => {
 
 	// Usuário não Autenticado
 	if (!token && !isAuthenticated) {
-		if (to.name !== 'login' && to.name !== 'forgot' && to.name !== 'landing') next({ name: 'login' });
+		if (to.name !== 'login' && to.name !== 'forgot' && to.name !== 'landing') {
+			next({ name: 'login' });
+			return;
+		}
+		next();
+		return;
+	}
+
+	// Se está tentando acessar dashboard sem permissão, redirecionar para welcome
+	if (to.name === 'dashboard') {
+		const permissions = store.getters.permissions || [];
+		const hasDashboardPermission = permissions.includes('view_dashboard');
+		
+		if (!hasDashboardPermission) {
+			next({ name: 'welcome' });
+			return;
+		}
 	}
 
 	// Segue rota de destino

@@ -17,13 +17,11 @@ const model = ref([
     },
     {
         label: '',
-        permission: 'view_dashboard',
         icon: 'pi pi-fw pi-briefcase',
         to: '/pages',
         items: [
             {
                 label: 'CADASTROS',
-                permission: 'view_dashboard',
                 icon: 'pi pi-fw pi-database',
                 items: [
                     {
@@ -78,7 +76,6 @@ const model = ref([
             },
             {
                 label: 'PROCESSOS',
-                permission: 'view_dashboard',
                 icon: 'pi pi-fw pi-arrow-right-arrow-left',
                 items: [
                     { label: 'Solicitações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes', permission: 'create_cotacoes' },
@@ -131,7 +128,8 @@ const changeCompany = async (companyId) => {
             let res = allPermissions.value.filter((item) => Number(item.company_id) === companyIdNum);
 
             if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                const permissionsArray = res[0]['permissions'];
+                // Converter array de objetos { slug: '...' } para array de strings
+                const permissionsArray = res[0]['permissions'].map(perm => perm.slug || perm);
                 store.commit('setPermissions', permissionsArray);
             } else {
                 store.commit('setPermissions', []);
@@ -154,7 +152,8 @@ onMounted(() => {
         let res = allPermissions.value.filter((item) => Number(item.company_id) === companyId);
 
         if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-            const permissionsArray = res[0]['permissions'];
+            // Converter array de objetos { slug: '...' } para array de strings
+            const permissionsArray = res[0]['permissions'].map(perm => perm.slug || perm);
             store.commit('setPermissions', permissionsArray);
         }
     }
