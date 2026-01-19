@@ -801,7 +801,7 @@ export default {
       if (!p) return;
       const novoItem = {
         codigo: p.B1_COD || '',
-        referencia: null,
+        referencia: p.B1_REF || null, // Preencher referência do produto selecionado
         mercadoria: p.B1_DESC || '',
         quantidade: 1,
         unidade: p.B1_UM || '',
@@ -864,6 +864,7 @@ export default {
           B1_COD: produto.code,
           B1_DESC: produto.description,
           B1_UM: produto.unit,
+          B1_REF: produto.reference || null, // Incluir referência
           source: 'internal',
           internal_id: produto.id
         };
