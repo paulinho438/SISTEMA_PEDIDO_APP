@@ -1729,12 +1729,29 @@ const menorIndice = (itemIndex) => {
 }
 
 const isMelhorPreco = (cot, itemIndex, cotIndex) => {
-  const menor = menorIndice(itemIndex)
-  if (menor === null) {
+  const selecaoManual = selecoes.value[itemIndex]
+  const menorPreco = menorIndice(itemIndex)
+  
+  // Se não houver menor preço, não aplica nenhuma cor
+  if (menorPreco === null) {
     return ''
   }
 
-  if (menor === cotIndex) {
+  // Se houver seleção manual diferente do menor preço
+  if (selecaoManual !== undefined && selecaoManual !== null && selecaoManual !== menorPreco) {
+    // O selecionado manualmente fica laranja
+    if (selecaoManual === cotIndex) {
+      return 'melhor-preco'
+    }
+    // O menor preço original fica com cor diferente
+    if (menorPreco === cotIndex) {
+      return 'menor-preco-original'
+    }
+    return ''
+  }
+
+  // Caso contrário (sem seleção manual ou seleção igual ao menor preço), menor preço fica laranja
+  if (menorPreco === cotIndex) {
     return 'melhor-preco'
   }
 
@@ -2428,8 +2445,12 @@ const abrirMensagens = () => {
 
 const resumo = computed(() => {
   return produtos.value.map((prod, p) => {
-    // Sempre usa o menor valor em "Custo C/ IPI /C Difal" (custoFinal)
-    const indice = menorIndice(p)
+    // Usa a seleção manual se houver, caso contrário usa o menor preço
+    const selecaoManual = selecoes.value[p]
+    const menorPreco = menorIndice(p)
+    const indice = selecaoManual !== undefined && selecaoManual !== null 
+      ? selecaoManual 
+      : menorPreco
 
     const cot = indice !== undefined && indice !== null ? cotacoes.value[indice] : null
     const itemOrigem = cotacao.itensOriginais[p] || {}
@@ -2632,6 +2653,13 @@ onMounted(async () => {
   background-color: #fff7ed !important;
   font-weight: 600;
   color: #b45309;
+}
+
+.menor-preco-original {
+  border: 2px dashed #fbbf24 !important; /* amarelo */
+  background-color: #fffbeb !important;
+  font-weight: 500;
+  color: #92400e;
 }
 
 .quadro-resumo {
