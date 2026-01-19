@@ -1043,6 +1043,12 @@ const isGeneralManagerOrDirector = computed(() => {
   return false
 })
 
+// Verificar se o usuário tem permissão para aprovar como Diretor
+const temPermissaoAprovarDiretor = computed(() => {
+  const permissions = store.getters?.permissions || []
+  return permissions.includes('cotacoes_aprovar_diretor')
+})
+
 // Verificar se pode adicionar fornecedor
 // O comprador responsável pode adicionar fornecedores mesmo quando não pode editar completamente
 const podeAdicionarFornecedor = computed(() => {
@@ -1102,6 +1108,23 @@ const approvalAction = computed(() => {
     // Se for o comprador responsável, permitir finalizar
     if (isBuyer) {
       return { type: 'finalize' }
+    }
+  }
+
+  // Verificar se o Diretor tem permissão para aprovar diretamente
+  // Se sim, pode aprovar diretamente para "aprovado" quando a cotação tem comprador
+  // e está em status: finalizada, analisada, analisada_aguardando, ou analise_gerencia
+  if (temPermissaoAprovarDiretor.value && cotacao.buyer && cotacao.buyer.id) {
+    const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia']
+    if (statusPermitidos.includes(slug)) {
+      return {
+        type: 'single',
+        targetStatus: 'aprovado',
+        buttonLabel: 'Aprovar Cotação',
+        buttonClass: 'p-button-success',
+        icon: 'pi pi-check',
+        description: 'Aprovar a cotação diretamente como Diretor, sem precisar de todas as assinaturas intermediárias.',
+      }
     }
   }
 
@@ -2158,9 +2181,44 @@ const abrirAnaliseDireta = async (action) => {
     return
   }
 
+  const currentStatus = cotacao.status?.slug
+
+  // Se o Diretor está aprovando diretamente para "aprovado" (com permissão cotacoes_aprovar_diretor)
+  if (action.targetStatus === 'aprovado' && temPermissaoAprovarDiretor.value && cotacao.buyer && cotacao.buyer.id) {
+    // Chamar approve diretamente sem modal
+    try {
+      analisandoCotacao.value = true
+      await SolicitacaoService.approve(cotacao.id, {
+        status: 'aprovado',
+        observacao: '',
+      })
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Cotação aprovada',
+        detail: 'Cotação aprovada diretamente como Diretor. Todas as assinaturas intermediárias foram aprovadas automaticamente.',
+        life: 4000,
+      })
+      
+      await carregarCotacao()
+      await carregarAssinaturas()
+      router.push({ name: 'cotacoesList' })
+    } catch (error) {
+      const detail = error?.response?.data?.message || 'Não foi possível aprovar a cotação.'
+      toast.add({
+        severity: 'error',
+        summary: 'Erro ao aprovar',
+        detail,
+        life: 4000,
+      })
+    } finally {
+      analisandoCotacao.value = false
+    }
+    return
+  }
+
   // Se o status atual é "finalizada", "analisada" ou "analisada_aguardando" e o targetStatus é "analisada" ou "analisada_aguardando",
   // usar o método approve ao invés de analyze, pois o backend gerencia a mudança de status automaticamente
-  const currentStatus = cotacao.status?.slug
   if ((currentStatus === 'finalizada' || currentStatus === 'analisada' || currentStatus === 'analisada_aguardando') && 
       (action.targetStatus === 'analisada' || action.targetStatus === 'analisada_aguardando')) {
     // Chamar approve diretamente sem modal

@@ -304,50 +304,64 @@ export default {
 
     // Verificar se o usuário tem permissão para aprovar como Diretor
     const temPermissaoAprovarDiretor = computed(() => {
-      const usuario = store.state.usuario;
-      if (!usuario || !usuario.permissions || !Array.isArray(usuario.permissions)) {
-        return false;
+      // Usar o mesmo método que outras telas: store.getters.permissions
+      const permissions = store.getters?.permissions || [];
+      
+      // Debug: verificar estrutura
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Verificando permissão cotacoes_aprovar_diretor:', {
+          permissionsCount: permissions.length,
+          permissions: permissions,
+        });
       }
       
-      // Verificar se o usuário tem a permissão "cotacoes_aprovar_diretor"
-      // As permissões podem estar em usuario.permissions (array de grupos) ou em store.state.permissions (array direto)
-      const permissions = store.state.permissions || [];
+      // Verificar se a permissão está no array (array de slugs)
+      const hasPermission = permissions.includes('cotacoes_aprovar_diretor');
       
-      // Verificar nas permissões diretas do store
-      for (const permission of permissions) {
-        if (permission && permission.slug === 'cotacoes_aprovar_diretor') {
-          return true;
-        }
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Permissão cotacoes_aprovar_diretor encontrada:', hasPermission);
       }
       
-      // Verificar nas permissões dos grupos do usuário
-      for (const perm of usuario.permissions) {
-        if (perm.permissions && Array.isArray(perm.permissions)) {
-          for (const permission of perm.permissions) {
-            if (permission && permission.slug === 'cotacoes_aprovar_diretor') {
-              return true;
-            }
-          }
-        }
-      }
-      return false;
+      return hasPermission;
     });
 
     // Verificar se pode aprovar diretamente uma cotação
     const podeAprovarDireto = (cotacao) => {
+      // Debug
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Verificando podeAprovarDireto:', {
+          cotacaoId: cotacao.id,
+          temPermissao: temPermissaoAprovarDiretor.value,
+          temComprador: cotacao.temComprador,
+          statusSlug: cotacao.statusSlug,
+        });
+      }
+      
       // Só pode aprovar se tem a permissão
       if (!temPermissaoAprovarDiretor.value) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('❌ Sem permissão');
+        }
         return false;
       }
       
       // Só pode aprovar se a cotação tem comprador associado
       if (!cotacao.temComprador) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('❌ Sem comprador');
+        }
         return false;
       }
       
       // Só pode aprovar se o status permite (finalizada, analisada, analisada_aguardando, analise_gerencia)
       const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia'];
-      return statusPermitidos.includes(cotacao.statusSlug);
+      const statusPermitido = statusPermitidos.includes(cotacao.statusSlug);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Status permitido:', statusPermitido, 'Status:', cotacao.statusSlug);
+      }
+      
+      return statusPermitido;
     };
 
     // Aprovar diretamente como Diretor
