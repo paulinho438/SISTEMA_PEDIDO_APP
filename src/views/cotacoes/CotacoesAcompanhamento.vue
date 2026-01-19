@@ -72,12 +72,17 @@
       <DataTable
         :value="cotacoesFiltradas"
         :loading="loading"
+        v-model:selection="cotacaoSelecionada"
+        selectionMode="single"
+        dataKey="id"
         stripedRows
         showGridlines
         responsiveLayout="scroll"
         :scrollable="true"
         scrollHeight="600px"
         class="p-datatable-sm"
+        @row-select="onRowSelect"
+        @row-unselect="onRowUnselect"
       >
         <Column field="numero_rm" header="NÚMERO RM" :sortable="true" style="min-width: 120px">
           <template #body="{ data }">
@@ -186,6 +191,7 @@ const toast = useToast()
 const loading = ref(false)
 const exportando = ref(false)
 const cotacoes = ref([])
+const cotacaoSelecionada = ref(null)
 
 const filtros = ref({
   status: null,
@@ -397,6 +403,16 @@ const exportarExcel = async () => {
   }
 }
 
+const onRowSelect = (event) => {
+  // Linha selecionada - pode adicionar lógica adicional aqui se necessário
+  console.log('Cotação selecionada:', event.data)
+}
+
+const onRowUnselect = (event) => {
+  // Linha desselecionada
+  console.log('Cotação desselecionada:', event.data)
+}
+
 const voltar = () => {
   router.push({ name: 'cotacoesList' })
 }
@@ -426,6 +442,25 @@ onMounted(() => {
 
 :deep(.p-datatable .p-datatable-tbody > tr:nth-child(even)) {
   background-color: #f9fafb;
+}
+
+/* Estilo para linha selecionada */
+:deep(.p-datatable .p-datatable-tbody > tr.p-highlight) {
+  background-color: #e3f2fd !important;
+  border-left: 4px solid #2196f3;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr.p-highlight:hover) {
+  background-color: #bbdefb !important;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr:hover) {
+  background-color: #f5f5f5;
+  cursor: pointer;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr.p-highlight:hover) {
+  background-color: #bbdefb !important;
 }
 </style>
 
