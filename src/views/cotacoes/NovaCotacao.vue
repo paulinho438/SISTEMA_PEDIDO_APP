@@ -1616,7 +1616,7 @@ const prepararCampoPercentual = (cotIndex) => {
   const cot = cotacoes.value[cotIndex]
   if (!cot) return
 
-  // Remove o % se existir e deixa apenas o número
+  // Remove o % se existir e deixa apenas o número (preserva decimais)
   if (cot.difalPercent && typeof cot.difalPercent === 'string') {
     cot.difalPercent = cot.difalPercent.replace('%', '').trim()
   }
@@ -1630,12 +1630,15 @@ const formatarCampoPercentual = (cotIndex) => {
   let valor = cot.difalPercent
   if (valor && typeof valor === 'string') {
     valor = valor.replace('%', '').trim()
+    // Permite apenas números e ponto decimal
+    valor = valor.replace(/[^\d.,]/g, '').replace(',', '.')
   }
   
   const numero = parseFloat(valor)
   if (isNaN(numero)) {
     cot.difalPercent = ''
   } else {
+    // Formatar com 2 casas decimais
     cot.difalPercent = `${numero.toFixed(2)}%`
   }
   
