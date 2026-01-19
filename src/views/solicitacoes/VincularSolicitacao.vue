@@ -318,19 +318,27 @@ export default {
       try {
         salvando.value = true;
 
-        // 1. Vincular comprador
+        // Validar permissões ANTES de executar qualquer operação
+        // Se ENGENHEIRO está selecionado, verificar se o usuário tem permissão para atribuir engenheiro
+        if (niveisSelecionados.value.includes('ENGENHEIRO') && engenheiroSelecionado.value) {
+          // Tentar atribuir engenheiro primeiro para validar permissão
+          // Se falhar, não executar nenhuma outra operação
+          try {
+            await SolicitacaoService.assignEngineer(solicitacao.id, {
+              engineer_id: engenheiroSelecionado.value,
+              observacao: observacaoAprovacao.value,
+            });
+          } catch (error) {
+            // Se falhar, não continuar com as outras operações
+            throw error;
+          }
+        }
+
+        // 1. Vincular comprador (após validar engenheiro se necessário)
         await SolicitacaoService.assignBuyer(solicitacao.id, {
           buyer_id: compradorSelecionado.value,
           observacao: observacaoAprovacao.value,
         });
-
-        // 2. Vincular engenheiro (se ENGENHEIRO está selecionado)
-        if (niveisSelecionados.value.includes('ENGENHEIRO') && engenheiroSelecionado.value) {
-          await SolicitacaoService.assignEngineer(solicitacao.id, {
-            engineer_id: engenheiroSelecionado.value,
-            observacao: observacaoAprovacao.value,
-          });
-        }
 
         // 3. Selecionar níveis de aprovação (incluindo COMPRADOR automaticamente)
         if (niveisSelecionados.value.length > 0) {
