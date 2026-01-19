@@ -84,15 +84,15 @@ export default {
                     this.$store.commit('setAllPermissions', response.data.user.permissions);
                     this.$store.commit('setAllCompanies', response.data.user.companies);
 
+                    let res = [];
                     if (response.data.user.permissions.length > 0) {
                         // Converter company_id para número para comparação correta (API retorna string)
                         const companyId = Number(response.data.user.companies[0]['id']);
-                        let res = response.data.user.permissions.filter((item) => Number(item.company_id) === companyId);
+                        res = response.data.user.permissions.filter((item) => Number(item.company_id) === companyId);
 
                         if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                            // Converter array de objetos { slug: '...' } para array de strings
-                            const permissionsArray = res[0]['permissions'].map(perm => perm.slug || perm);
-                            this.$store.commit('setPermissions', permissionsArray);
+                            // As permissões já vêm como array de strings (slugs)
+                            this.$store.commit('setPermissions', res[0]['permissions']);
                         } else {
                             this.$store.commit('setPermissions', []);
                         }
@@ -101,12 +101,10 @@ export default {
                     }
 
                     // Verificar se tem permissão de dashboard
-                    // As permissões vêm no formato: [{ company_id: X, permissions: [{ slug: '...' }, ...] }]
+                    // As permissões vêm no formato: [{ company_id: X, permissions: ['slug1', 'slug2', ...] }]
                     let hasDashboardPermission = false;
                     if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                        hasDashboardPermission = res[0]['permissions'].some(
-                            (perm) => (perm.slug || perm) === 'view_dashboard'
-                        );
+                        hasDashboardPermission = res[0]['permissions'].includes('view_dashboard');
                     }
                     
                     if (hasDashboardPermission) {
@@ -165,17 +163,14 @@ export default {
                 let companyPermissions = [];
                 if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
                     companyPermissions = res[0]['permissions'];
-                    // Converter array de objetos { slug: '...' } para array de strings
-                    const permissionsArray = companyPermissions.map(perm => perm.slug || perm);
-                    this.$store.commit('setPermissions', permissionsArray);
+                    // As permissões já vêm como array de strings (slugs)
+                    this.$store.commit('setPermissions', companyPermissions);
                 } else {
                     this.$store.commit('setPermissions', []);
                 }
 
                 // Verificar se tem permissão de dashboard
-                const hasDashboardPermission = companyPermissions.some(
-                    (perm) => (perm.slug || perm) === 'view_dashboard'
-                );
+                const hasDashboardPermission = companyPermissions.includes('view_dashboard');
                 
                 if (hasDashboardPermission) {
                     this.router.push({ name: 'dashboard' });

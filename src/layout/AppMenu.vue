@@ -128,9 +128,8 @@ const changeCompany = async (companyId) => {
             let res = allPermissions.value.filter((item) => Number(item.company_id) === companyIdNum);
 
             if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                // Converter array de objetos { slug: '...' } para array de strings
-                const permissionsArray = res[0]['permissions'].map(perm => perm.slug || perm);
-                store.commit('setPermissions', permissionsArray);
+                // As permissões já vêm como array de strings (slugs)
+                store.commit('setPermissions', res[0]['permissions']);
             } else {
                 store.commit('setPermissions', []);
             }
@@ -152,9 +151,8 @@ onMounted(() => {
         let res = allPermissions.value.filter((item) => Number(item.company_id) === companyId);
 
         if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-            // Converter array de objetos { slug: '...' } para array de strings
-            const permissionsArray = res[0]['permissions'].map(perm => perm.slug || perm);
-            store.commit('setPermissions', permissionsArray);
+            // As permissões já vêm como array de strings (slugs)
+            store.commit('setPermissions', res[0]['permissions']);
         }
     }
 });

@@ -4,11 +4,12 @@
             <div class="card">
                 <div class="flex flex-column align-items-center justify-content-center" style="min-height: 50vh;">
                     <div class="text-center mb-5">
-                        <img 
-                            src="https://www.gruporialma.com.br/assets/logo_sem_fundo-Dbkuj9iO.png" 
-                            alt="Logo Rialma" 
-                            style="max-width: 300px; margin-bottom: 2rem;"
-                        />
+                        <div class="logo-container">
+                            <img 
+                                src="https://www.gruporialma.com.br/assets/logo_sem_fundo-Dbkuj9iO.png" 
+                                alt="Logo Rialma" 
+                            />
+                        </div>
                     </div>
                     <h1 class="text-4xl font-bold mb-3">Bem-vindo ao Sistema de Compras</h1>
                     <p class="text-xl text-color-secondary mb-5">
@@ -75,6 +76,24 @@ const navigateTo = (path) => {
 <style scoped>
 .card {
     padding: 2rem;
+}
+
+.logo-container {
+    width: 200px;
+    height: 80px;
+    background-color: rgb(30, 58, 138);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.logo-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 </style>
 
