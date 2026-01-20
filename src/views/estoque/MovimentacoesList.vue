@@ -672,9 +672,11 @@ export default {
         if (filtros.value.date_to) paramsTransferencias.date_to = new Date(filtros.value.date_to).toISOString().split('T')[0];
         
         try {
-          const { data } = await transferService.getAll({ ...paramsTransferencias, per_page: 100 });
-          transferencias.value = data.data || [];
+          const response = await transferService.getAll({ ...paramsTransferencias, per_page: 100 });
+          // A resposta pode vir em data.data ou diretamente em data
+          transferencias.value = response?.data?.data || response?.data || [];
         } catch (error) {
+          console.error('Erro ao carregar transferências:', error);
           transferencias.value = [];
         }
         
@@ -699,21 +701,37 @@ export default {
 
     const movimentacoesAgrupadas = computed(() => {
       // Mapear transferências em lote para formato padronizado
-      const transferenciasLote = transferencias.value.map(t => ({
-        id: `transfer_${t.id}`,
-        data: t.created_at,
-        tipo: 'transferencia',
-        tipo_label: 'Transferência',
-        numero: t.transfer_number || '-',
-        origem: t.origin_location?.name || '-',
-        destino: t.destination_location?.name || '-',
-        observation: t.observation || '-',
-        user: t.user || { nome_completo: '-' },
-        itens_count: t.items_count || 0,
-        total_quantity: t.total_quantity || 0,
-        transferencia_id: t.id,
-        is_lote: true, // Marca como transferência em lote
-      }));
+      const transferenciasLote = transferencias.value.map(t => {
+        // Garantir que os dados estejam acessíveis corretamente
+        // O Resource retorna origin_location e destination_location como objetos
+        const originName = (t.origin_location && typeof t.origin_location === 'object') 
+          ? (t.origin_location.name || '-')
+          : (typeof t.origin_location === 'string' ? t.origin_location : '-');
+        
+        const destName = (t.destination_location && typeof t.destination_location === 'object')
+          ? (t.destination_location.name || '-')
+          : (typeof t.destination_location === 'string' ? t.destination_location : '-');
+        
+        const userName = (t.user && typeof t.user === 'object')
+          ? (t.user.name || t.user.nome_completo || '-')
+          : (typeof t.user === 'string' ? t.user : '-');
+        
+        return {
+          id: `transfer_${t.id}`,
+          data: t.created_at,
+          tipo: 'transferencia',
+          tipo_label: 'Transferência',
+          numero: t.transfer_number || '-',
+          origem: originName,
+          destino: destName,
+          observation: t.observation || '-',
+          user: { nome_completo: userName },
+          itens_count: t.items_count || 0,
+          total_quantity: t.total_quantity || 0,
+          transferencia_id: t.id,
+          is_lote: true, // Marca como transferência em lote
+        };
+      });
       
       if (ehTransferencia.value) {
         // Se filtro for transferência, retornar apenas transferências em lote
