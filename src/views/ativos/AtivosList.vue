@@ -2,7 +2,12 @@
   <div class="card p-5 bg-page">
     <div class="flex justify-content-between align-items-center mb-3">
       <h5 class="text-900 mb-0">Controle de Ativos</h5>
-      <Button label="Novo Ativo" icon="pi pi-plus" @click="$router.push('/ativos/add')" />
+      <Button 
+        v-if="podeCriar"
+        label="Novo Ativo" 
+        icon="pi pi-plus" 
+        @click="$router.push('/ativos/add')" 
+      />
     </div>
 
     <div class="grid mb-3">
@@ -67,20 +72,25 @@
       <Column header="Ações">
         <template #body="slotProps">
           <Button
+            v-if="podeVisualizar"
             icon="pi pi-eye"
             class="p-button-rounded p-button-text p-button-info mr-2"
-            @click="$router.push(`/ativos/${slotProps.data.id}`)"
+            @click="$router.push(`/ativos/${slotProps.data.id}?view=true`)"
+            v-tooltip.top="'Visualizar'"
           />
           <Button
+            v-if="podeEditar"
             icon="pi pi-pencil"
             class="p-button-rounded p-button-text p-button-success mr-2"
             @click="$router.push(`/ativos/${slotProps.data.id}`)"
+            v-tooltip.top="'Editar'"
           />
           <Button
-            v-if="slotProps.data.status !== 'baixado'"
+            v-if="podeDeletar && slotProps.data.status !== 'baixado'"
             icon="pi pi-times"
             class="p-button-rounded p-button-text p-button-danger"
             @click="abrirModalBaixar(slotProps.data)"
+            v-tooltip.top="'Baixar'"
           />
         </template>
       </Column>
@@ -108,8 +118,9 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
+import PermissionsService from '@/service/PermissionsService';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
 import UserService from '@/service/UserService';
@@ -118,6 +129,7 @@ export default {
   name: 'AtivosList',
   setup() {
     const toast = useToast();
+    const permissionService = new PermissionsService();
     const ativos = ref([]);
     const filiais = ref([]);
     const responsaveis = ref([]);
@@ -129,6 +141,12 @@ export default {
     const service = new AssetService();
     const branchService = new AssetAuxiliaryService('filiais');
     const userService = new UserService();
+
+    // Verificar permissões
+    const podeCriar = computed(() => permissionService.hasPermissions('view_ativos_create'));
+    const podeVisualizar = computed(() => permissionService.hasPermissions('view_ativos'));
+    const podeEditar = computed(() => permissionService.hasPermissions('view_ativos_edit'));
+    const podeDeletar = computed(() => permissionService.hasPermissions('view_ativos_delete'));
 
     const statusOptions = [
       { label: 'Incluído', value: 'incluido' },
@@ -234,6 +252,10 @@ export default {
       statusOptions,
       filtros,
       formBaixar,
+      podeCriar,
+      podeVisualizar,
+      podeEditar,
+      podeDeletar,
       formatarValor,
       getSeverityStatus,
       carregar,

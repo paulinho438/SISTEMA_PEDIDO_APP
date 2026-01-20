@@ -3,9 +3,27 @@
     <div class="flex justify-content-between align-items-center mb-3">
       <h5 class="text-900 m-0">Movimentações de Estoque</h5>
       <div class="flex gap-2">
-        <Button label="Entrada Manual" icon="pi pi-plus" class="p-button-success" @click="abrirModalEntrada" />
-        <Button label="Transferir entre Locais" icon="pi pi-arrow-right-arrow-left" class="p-button-info" @click="abrirModalTransferencia" />
-        <Button label="Ajuste Manual" icon="pi pi-pencil" class="p-button-warning" @click="abrirModalAjuste" />
+        <Button 
+          v-if="podeCriar"
+          label="Entrada Manual" 
+          icon="pi pi-plus" 
+          class="p-button-success" 
+          @click="abrirModalEntrada" 
+        />
+        <Button 
+          v-if="podeCriar"
+          label="Transferir entre Locais" 
+          icon="pi pi-arrow-right-arrow-left" 
+          class="p-button-info" 
+          @click="abrirModalTransferencia" 
+        />
+        <Button 
+          v-if="podeCriar"
+          label="Ajuste Manual" 
+          icon="pi pi-pencil" 
+          class="p-button-warning" 
+          @click="abrirModalAjuste" 
+        />
       </div>
     </div>
 
@@ -373,8 +391,9 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
+import PermissionsService from '@/service/PermissionsService';
 import StockMovementService from '@/service/StockMovementService';
 import StockProductService from '@/service/StockProductService';
 import StockService from '@/service/StockService';
@@ -384,12 +403,16 @@ export default {
   name: 'MovimentacoesList',
   setup() {
     const toast = useToast();
+    const permissionService = new PermissionsService();
     const movimentacoes = ref([]);
     const carregando = ref(false);
     const service = new StockMovementService();
     const stockService = new StockService();
     const productService = new StockProductService();
     const locationService = new StockLocationService();
+
+    // Verificar permissões
+    const podeCriar = computed(() => permissionService.hasPermissions('view_estoque_movimentacoes_create'));
 
     const tiposMovimento = [
       { label: 'Entrada', value: 'entrada' },
@@ -805,6 +828,7 @@ export default {
       locaisDisponiveis,
       sugestoesProdutos,
       sugestoesEstoque,
+      podeCriar,
       abrirModalCriarProduto,
       fecharModalCriarProduto,
       confirmarCriarProduto,
