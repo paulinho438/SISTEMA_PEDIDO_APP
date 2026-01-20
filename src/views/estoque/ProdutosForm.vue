@@ -252,7 +252,9 @@ export default {
 
     const getImageUrl = (path) => {
       if (!path) return null;
-      return `${apiPath}/storage/${path}`;
+      // Remover /api do caminho se existir, pois o storage está na raiz
+      const baseUrl = apiPath.replace('/api', '');
+      return `${baseUrl}/storage/${path}`;
     };
 
     const onImageSelect = (event) => {
@@ -344,7 +346,10 @@ export default {
             image_path: productData.image_path || null,
           };
           
-          if (productData.image_path) {
+          // Usar image_url do backend se disponível, senão construir a URL
+          if (productData.image_url) {
+            imageUrl.value = productData.image_url;
+          } else if (productData.image_path) {
             imageUrl.value = getImageUrl(productData.image_path);
           }
 
