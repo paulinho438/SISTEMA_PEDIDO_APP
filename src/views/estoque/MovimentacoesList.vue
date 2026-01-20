@@ -702,7 +702,7 @@ export default {
 
     const movimentacoesAgrupadas = computed(() => {
       // Mapear transferências em lote para formato padronizado
-      const transferenciasLote = transferencias.value.map(t => {
+      const transferenciasLote = (transferencias.value || []).map(t => {
         // Garantir que os dados estejam acessíveis corretamente
         // O Resource retorna origin_location e destination_location como objetos
         const originName = (t.origin_location && typeof t.origin_location === 'object') 
@@ -722,13 +722,13 @@ export default {
           data: t.created_at,
           tipo: 'transferencia',
           tipo_label: 'Transferência',
-          numero: t.transfer_number || '-',
+          numero: t.transfer_number || `TRANS-${t.id}`,
           origem: originName,
           destino: destName,
           observation: t.observation || '-',
           user: { nome_completo: userName },
-          itens_count: t.items_count || 0,
-          total_quantity: t.total_quantity || 0,
+          itens_count: t.items_count || (t.items?.length || 0),
+          total_quantity: t.total_quantity || (t.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0),
           transferencia_id: t.id,
           is_lote: true, // Marca como transferência em lote
         };
@@ -741,19 +741,21 @@ export default {
       
       // Para outras movimentações, agrupar transferências antigas (que criam 2 movimentações)
       // Mas excluir transferências que já estão na lista de transferências em lote
+      // As transferências em lote NÃO criam movimentações individuais, então não precisamos filtrá-las
       const movimentacoesNormais = movimentacoes.value.filter(m => m.movement_type !== 'transferencia');
+      
+      // Filtrar apenas transferências antigas (que não são de lote)
+      // Transferências de lote têm reference_type = 'transferencia_lote' ou reference_id apontando para stock_transfers
+      // Mas como o StockTransferService não cria movimentações, todas as transferências aqui são antigas
       const movimentacoesTransferencia = movimentacoes.value.filter(m => {
         if (m.movement_type !== 'transferencia') return false;
-        // Verificar se esta movimentação já está representada por uma transferência em lote
-        // Comparando pela data e observação
-        const obsBase = m.observation?.replace(/\s*\(Transferência:\s*(Origem|Destino)\)/i, '').trim() || '';
-        const movData = m.movement_date || m.created_at;
-        return !transferenciasLote.some(t => {
-          const tData = t.data;
-          // Se a data e observação forem similares, provavelmente já está na lista de lote
-          return tData && movData && tData.substring(0, 10) === movData.substring(0, 10) && 
-                 (t.observation === obsBase || obsBase === '');
-        });
+        // Se tem reference_type = 'transferencia_lote', já está representada por uma transferência em lote
+        if (m.reference_type === 'transferencia_lote') return false;
+        // Se tem reference_id que corresponde a uma transferência em lote, também já está representada
+        if (m.reference_id && transferenciasLote.some(t => t.transferencia_id === m.reference_id)) {
+          return false;
+        }
+        return true;
       });
       
       // Agrupar transferências antigas por observação (sem número de transferência)
