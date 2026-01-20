@@ -67,6 +67,45 @@
           </div>
         </TabPanel>
 
+        <TabPanel header="Imagem">
+          <div class="card p-3">
+            <h6 class="mb-3">Imagem do Ativo</h6>
+            
+            <!-- Preview da Imagem -->
+            <div v-if="imageUrl || form.image_path" class="mb-3 text-center">
+              <img 
+                :src="imageUrl || getImageUrl(form.image_path)" 
+                alt="Imagem do ativo" 
+                class="w-full border-round"
+                style="max-height: 300px; object-fit: contain;"
+              />
+            </div>
+            
+            <!-- Upload de Imagem -->
+            <div v-if="!isViewMode && podeEditar" class="mb-3">
+              <FileUpload
+                mode="basic"
+                accept="image/*"
+                :maxFileSize="5242880"
+                chooseLabel="Adicionar Imagem"
+                @select="onImageSelect"
+                class="w-full"
+              />
+              <Button
+                v-if="imageUrl || form.image_path"
+                label="Remover Imagem"
+                icon="pi pi-trash"
+                class="p-button-danger p-button-outlined w-full mt-2"
+                @click="removerImagem"
+                :loading="removendoImagem"
+              />
+            </div>
+            <div v-else-if="!imageUrl && !form.image_path" class="text-center text-500 py-4">
+              Nenhuma imagem cadastrada
+            </div>
+          </div>
+        </TabPanel>
+
         <TabPanel header="Classificação">
           <div class="grid">
             <div class="col-12 md:col-6">
@@ -198,12 +237,73 @@ export default {
     const descricoesPadrao = ref([]);
     const contas = ref([]);
     const projetos = ref([]);
+    
+    const imageUrl = ref(null);
+    const selectedFile = ref(null);
+    const removendoImagem = ref(false);
 
     const statusOptions = [
       { label: 'Incluído', value: 'incluido' },
       { label: 'Baixado', value: 'baixado' },
       { label: 'Transferido', value: 'transferido' },
     ];
+
+    const getImageUrl = (path) => {
+      if (!path) return null;
+      const baseUrl = import.meta.env.VITE_APP_BASE_URL || '';
+      const cleanBaseUrl = baseUrl.replace('/api', '');
+      return `${cleanBaseUrl}/storage/${path}`;
+    };
+
+    const onImageSelect = (event) => {
+      const file = event.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: 'Por favor, selecione um arquivo de imagem', life: 3000 });
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: 'A imagem deve ter no máximo 5MB', life: 3000 });
+        return;
+      }
+
+      selectedFile.value = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imageUrl.value = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const uploadImagem = async () => {
+      if (!selectedFile.value || !id) return;
+      try {
+        await service.uploadImage(id, selectedFile.value);
+        toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Imagem enviada com sucesso', life: 3000 });
+        selectedFile.value = null;
+        // Recarregar ativo para obter o caminho da imagem
+        await carregar();
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao enviar imagem', life: 3000 });
+      }
+    };
+
+    const removerImagem = async () => {
+      if (!id) return;
+      try {
+        removendoImagem.value = true;
+        await service.removeImage(id);
+        imageUrl.value = null;
+        form.value.image_path = null;
+        toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Imagem removida com sucesso', life: 3000 });
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao remover imagem', life: 3000 });
+      } finally {
+        removendoImagem.value = false;
+      }
+    };
 
     const carregar = async () => {
       if (id) {
@@ -217,6 +317,13 @@ export default {
           });
           if (asset.acquisition_date) {
             form.value.acquisition_date = new Date(asset.acquisition_date);
+          }
+          
+          // Carregar imagem
+          if (asset.image_url) {
+            imageUrl.value = asset.image_url;
+          } else if (asset.image_path) {
+            imageUrl.value = getImageUrl(asset.image_path);
           }
         } catch (error) {
           toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar ativo', life: 3000 });
@@ -271,7 +378,14 @@ export default {
         if (dataToSave.acquisition_date instanceof Date) {
           dataToSave.acquisition_date = dataToSave.acquisition_date.toISOString().split('T')[0];
         }
-        await service.save({ ...dataToSave, id: id || undefined });
+        const response = await service.save({ ...dataToSave, id: id || undefined });
+        const assetId = id || (response.data?.data?.id || response.data?.id);
+        
+        // Se houver imagem selecionada e ativo foi criado/editado, fazer upload
+        if (selectedFile.value && assetId) {
+          await uploadImagem();
+        }
+        
         toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Ativo salvo com sucesso', life: 3000 });
         router.push('/ativos/controle');
       } catch (error) {
@@ -306,6 +420,11 @@ export default {
       isViewMode,
       podeEditar,
       podeCriar,
+      imageUrl,
+      removendoImagem,
+      onImageSelect,
+      removerImagem,
+      getImageUrl,
       salvar,
       editar,
     };

@@ -33,5 +33,19 @@ export default class AssetService {
     alterarResponsavel = async (id, data) => {
         return await axios.post(`${apiPath}/ativos/${id}/alterar-responsavel`, data);
     };
+
+    uploadImage = async (id, file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return await axios.post(`${apiPath}/ativos/${id}/upload-image`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    };
+
+    removeImage = async (id) => {
+        return await axios.delete(`${apiPath}/ativos/${id}/remove-image`);
+    };
 }
 
