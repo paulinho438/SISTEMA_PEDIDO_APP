@@ -304,7 +304,11 @@ export default {
         const { data } = await locationService.getAll({ per_page: 100 });
         locais.value = data.data || [];
       } catch (error) {
-        console.error('Erro ao carregar locais:', error);
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || 'Erro ao carregar locais';
+        console.error('Erro ao carregar locais:', errorMessage);
       }
     };
 
@@ -319,11 +323,16 @@ export default {
         const { data } = await transferService.getAll(params);
         transferencias.value = data.data || [];
       } catch (error) {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || 'Erro ao carregar transferências';
+        
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: 'Erro ao carregar transferências',
-          life: 3000
+          detail: errorMessage,
+          life: 4000
         });
       } finally {
         carregando.value = false;
@@ -353,11 +362,16 @@ export default {
           selecionado: false,
         }));
       } catch (error) {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || 'Erro ao carregar dados da transferência';
+        
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: 'Erro ao carregar dados da transferência',
-          life: 3000
+          detail: errorMessage,
+          life: 4000
         });
         fecharModalRecebimento();
       } finally {
@@ -448,11 +462,16 @@ export default {
         fecharModalRecebimento();
         await carregar();
       } catch (error) {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || 'Erro ao marcar como recebido';
+        
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: error.response?.data?.error || error.message || 'Erro ao marcar como recebido',
-          life: 3000
+          detail: errorMessage,
+          life: 4000
         });
       } finally {
         modalRecebimento.value.processando = false;
@@ -491,11 +510,16 @@ export default {
         });
         await carregar();
       } catch (error) {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || 'Erro ao excluir transferência';
+        
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: error.response?.data?.error || 'Erro ao excluir transferência',
-          life: 3000
+          detail: errorMessage,
+          life: 4000
         });
       } finally {
         processando.value = null;
@@ -523,11 +547,16 @@ export default {
           life: 3000
         });
       } catch (error) {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || 'Erro ao gerar documento';
+        
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: 'Erro ao gerar documento',
-          life: 3000
+          detail: errorMessage,
+          life: 4000
         });
       }
     };
