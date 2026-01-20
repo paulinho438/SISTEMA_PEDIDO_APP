@@ -98,10 +98,10 @@
           <Column header="Ações">
             <template #body="slotProps">
               <Button
-                icon="pi pi-eye"
-                class="p-button-rounded p-button-text p-button-info"
-                @click="$router.push(`/estoque/produtos/${slotProps.data.id}?view=true`)"
-                v-tooltip.top="'Visualizar'"
+                icon="pi pi-pencil"
+                class="p-button-rounded p-button-text p-button-warning"
+                @click="abrirModalAjuste(slotProps.data)"
+                v-tooltip.top="'Ajustar Estoque'"
               />
             </template>
           </Column>
@@ -155,10 +155,10 @@
           <Column header="Ações">
             <template #body="slotProps">
               <Button
-                icon="pi pi-eye"
-                class="p-button-rounded p-button-text p-button-info"
-                @click="$router.push(`/estoque/produtos/${slotProps.data.id}?view=true`)"
-                v-tooltip.top="'Visualizar'"
+                icon="pi pi-pencil"
+                class="p-button-rounded p-button-text p-button-warning"
+                @click="abrirModalAjuste(slotProps.data)"
+                v-tooltip.top="'Ajustar Estoque'"
               />
             </template>
           </Column>
@@ -219,20 +219,111 @@
       </div>
     </div>
 
+    <!-- Modal de Ajuste Manual -->
+    <Dialog v-model:visible="modalAjuste.visivel" modal header="Ajuste Manual de Estoque" :style="{ width: '600px' }" appendTo="body">
+      <div class="mb-4">
+        <div class="mb-3">
+          <label class="block text-600 mb-2">Produto e Local *</label>
+          <AutoComplete
+            v-model="modalAjuste.estoque"
+            :suggestions="sugestoesEstoque"
+            @complete="buscarEstoque($event)"
+            optionLabel="label"
+            placeholder="Buscar produto no local..."
+            class="w-full"
+            dropdown
+            forceSelection
+          >
+            <template #item="slotProps">
+              <div class="flex flex-column">
+                <div class="font-semibold">{{ slotProps.item.product_description }}</div>
+                <div class="text-sm text-500">Local: {{ slotProps.item.location_name }}</div>
+                <div class="text-sm text-green-600">Disponível: {{ slotProps.item.quantity_available }}</div>
+              </div>
+            </template>
+          </AutoComplete>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-600 mb-2">Tipo de Ajuste *</label>
+          <Dropdown
+            v-model="modalAjuste.tipo"
+            :options="tiposAjuste"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Selecione o tipo"
+            class="w-full"
+            :disabled="!modalAjuste.estoque"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-600 mb-2">Quantidade *</label>
+          <InputNumber
+            v-model="modalAjuste.quantidade"
+            :min="0.0001"
+            :max="modalAjuste.tipo === 'saida' ? (modalAjuste.estoque?.quantity_available || 0) : null"
+            :step="0.0001"
+            class="w-full"
+            :useGrouping="false"
+            :disabled="!modalAjuste.estoque || !modalAjuste.tipo"
+          />
+          <small v-if="modalAjuste.estoque && modalAjuste.tipo === 'saida'" class="text-500">
+            Máximo disponível: {{ modalAjuste.estoque.quantity_available }}
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-600 mb-2">Custo Unitário (opcional)</label>
+          <InputNumber
+            v-model="modalAjuste.custo"
+            :min="0"
+            :step="0.01"
+            class="w-full"
+            :useGrouping="false"
+            mode="decimal"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-600 mb-2">Observação</label>
+          <Textarea v-model="modalAjuste.observacao" rows="3" class="w-full" placeholder="Informe observações sobre este ajuste..." />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-content-end gap-2">
+          <Button label="Cancelar" class="p-button-text" @click="fecharModalAjuste" />
+          <Button
+            label="Aplicar Ajuste"
+            icon="pi pi-check"
+            class="p-button-warning"
+            :disabled="!modalAjuste.estoque || !modalAjuste.tipo || !modalAjuste.quantidade"
+            :loading="modalAjuste.loading"
+            @click="confirmarAjuste"
+          />
+        </div>
+      </template>
+    </Dialog>
+
     <Toast />
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import DashboardService from '@/service/DashboardService';
+import StockMovementService from '@/service/StockMovementService';
+import StockService from '@/service/StockService';
 
 export default {
   name: 'DashboardEstoque',
   setup() {
     const toast = useToast();
     const dashboardService = new DashboardService();
+    const movementService = new StockMovementService();
+    const stockService = new StockService();
     const loading = ref(false);
     const metrics = ref({
       total_products: 0,
@@ -242,6 +333,26 @@ export default {
       total_value: 0,
       recent_movements: [],
     });
+
+    const modalAjuste = reactive({
+      visivel: false,
+      estoque: null,
+      tipo: null,
+      quantidade: null,
+      custo: null,
+      observacao: '',
+      loading: false,
+      produtoId: null,
+    });
+
+    const sugestoesEstoque = ref([]);
+    let timeoutBuscaEstoque = null;
+
+    const tiposAjuste = [
+      { label: 'Entrada', value: 'entrada' },
+      { label: 'Saída', value: 'saida' },
+      { label: 'Ajuste', value: 'ajuste' },
+    ];
 
     const formatNumber = (value) => {
       if (value === null || value === undefined) return '0';
@@ -310,6 +421,149 @@ export default {
       return allProducts.some(p => p.low_locations && p.low_locations.length > 0);
     });
 
+    const abrirModalAjuste = async (produto) => {
+      modalAjuste.visivel = true;
+      modalAjuste.estoque = null;
+      modalAjuste.tipo = null;
+      modalAjuste.quantidade = null;
+      modalAjuste.custo = null;
+      modalAjuste.observacao = '';
+      modalAjuste.produtoId = produto.id;
+      
+      // Buscar estoques do produto
+      if (produto.id) {
+        try {
+          const response = await stockService.getAll({ 
+            stock_product_id: produto.id,
+            per_page: 100 
+          });
+          const data = response?.data?.data ?? response?.data ?? [];
+          
+          sugestoesEstoque.value = Array.isArray(data) ? data.map(item => ({
+            ...item,
+            label: `${item.product?.description || produto.description || ''} - ${item.location?.name || ''}`,
+            product_description: item.product?.description || produto.description || '',
+            location_name: item.location?.name || '',
+          })) : [];
+          
+          // Se houver apenas um estoque, selecionar automaticamente
+          if (sugestoesEstoque.value.length === 1) {
+            modalAjuste.estoque = sugestoesEstoque.value[0];
+          }
+        } catch (error) {
+          console.error('Erro ao buscar estoques do produto:', error);
+          sugestoesEstoque.value = [];
+        }
+      }
+    };
+
+    const fecharModalAjuste = () => {
+      modalAjuste.visivel = false;
+      modalAjuste.estoque = null;
+      modalAjuste.tipo = null;
+      modalAjuste.quantidade = null;
+      modalAjuste.custo = null;
+      modalAjuste.observacao = '';
+      modalAjuste.produtoId = null;
+      sugestoesEstoque.value = [];
+    };
+
+    const buscarEstoque = async (event) => {
+      const query = event.query;
+      
+      if (!query || query.length < 2) {
+        // Se não há query, mas temos produtoId, buscar estoques do produto
+        if (modalAjuste.produtoId) {
+          try {
+            const response = await stockService.getAll({ 
+              stock_product_id: modalAjuste.produtoId,
+              per_page: 100 
+            });
+            const data = response?.data?.data ?? response?.data ?? [];
+            
+            sugestoesEstoque.value = Array.isArray(data) ? data.map(item => ({
+              ...item,
+              label: `${item.product?.description || ''} - ${item.location?.name || ''}`,
+              product_description: item.product?.description || '',
+              location_name: item.location?.name || '',
+            })) : [];
+          } catch (error) {
+            console.error('Erro ao buscar estoques:', error);
+            sugestoesEstoque.value = [];
+          }
+        } else {
+          sugestoesEstoque.value = [];
+        }
+        return;
+      }
+
+      if (timeoutBuscaEstoque) {
+        clearTimeout(timeoutBuscaEstoque);
+      }
+
+      timeoutBuscaEstoque = setTimeout(async () => {
+        try {
+          const params = { search: query, per_page: 20 };
+          // Se temos produtoId, filtrar por produto também
+          if (modalAjuste.produtoId) {
+            params.stock_product_id = modalAjuste.produtoId;
+          }
+          
+          const response = await stockService.getAll(params);
+          const data = response?.data?.data ?? response?.data ?? [];
+          
+          sugestoesEstoque.value = Array.isArray(data) ? data.map(item => ({
+            ...item,
+            label: `${item.product?.description || ''} - ${item.location?.name || ''}`,
+            product_description: item.product?.description || '',
+            location_name: item.location?.name || '',
+          })) : [];
+        } catch (error) {
+          console.error('Erro ao buscar estoque:', error);
+          sugestoesEstoque.value = [];
+        }
+      }, 300);
+    };
+
+    const confirmarAjuste = async () => {
+      if (!modalAjuste.estoque || !modalAjuste.tipo || !modalAjuste.quantidade) {
+        return;
+      }
+
+      try {
+        modalAjuste.loading = true;
+
+        const dados = {
+          stock_id: modalAjuste.estoque.id,
+          movement_type: modalAjuste.tipo,
+          quantity: modalAjuste.quantidade,
+          cost: modalAjuste.custo || null,
+          observation: modalAjuste.observacao || null,
+        };
+
+        await movementService.ajuste(dados);
+
+        toast.add({
+          severity: 'success',
+          summary: 'Sucesso',
+          detail: 'Ajuste realizado com sucesso!',
+          life: 3000
+        });
+
+        fecharModalAjuste();
+        await carregarDados();
+      } catch (error) {
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: error.response?.data?.message || 'Erro ao realizar ajuste',
+          life: 3000
+        });
+      } finally {
+        modalAjuste.loading = false;
+      }
+    };
+
     onMounted(() => {
       carregarDados();
     });
@@ -323,6 +577,13 @@ export default {
       formatMovementType,
       getSeverityType,
       hasLowLocations,
+      modalAjuste,
+      tiposAjuste,
+      sugestoesEstoque,
+      abrirModalAjuste,
+      fecharModalAjuste,
+      buscarEstoque,
+      confirmarAjuste,
     };
   },
 };
