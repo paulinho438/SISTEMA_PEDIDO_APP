@@ -62,6 +62,16 @@
           {{ formatarQuantidade(slotProps.data.quantity_total) }}
         </template>
       </Column>
+      <Column field="reservation_date" header="Data da Reserva" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.reservation_date || '-' }}
+        </template>
+      </Column>
+      <Column field="reservation_user.name" header="Solicitante" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.reservation_user?.name || '-' }}
+        </template>
+      </Column>
       <Column header="Ações" headerStyle="width:20rem">
         <template #body="slotProps">
           <div class="flex gap-1 flex-wrap">
