@@ -54,7 +54,7 @@
     </div>
 
     <DataTable
-      :value="movimentacoes"
+      :value="movimentacoesAgrupadas"
       :paginator="true"
       :rows="10"
       dataKey="id"
@@ -62,35 +62,74 @@
       class="p-datatable-sm"
       :loading="carregando"
     >
-      <Column field="movement_date" header="Data" sortable>
+      <Column field="data" header="Data" sortable>
         <template #body="slotProps">
-          {{ formatarData(slotProps.data.movement_date) }}
+          {{ formatarData(slotProps.data.data) }}
         </template>
       </Column>
-      <Column field="product.description" header="Produto" sortable>
+      <Column field="tipo" header="Tipo" sortable>
+        <template #body="slotProps">
+          <Tag :value="slotProps.data.tipo_label" :severity="getSeverityTipo(slotProps.data.tipo)" />
+        </template>
+      </Column>
+      <Column v-if="!ehTransferencia" field="product.description" header="Produto" sortable>
         <template #body="slotProps">
           {{ slotProps.data.product?.description || '-' }}
         </template>
       </Column>
-      <Column field="location.name" header="Local" sortable>
+      <Column v-if="ehTransferencia" field="numero" header="Número" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.numero || '-' }}
+        </template>
+      </Column>
+      <Column v-if="ehTransferencia" field="origem" header="Origem" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.origem || '-' }}
+        </template>
+      </Column>
+      <Column v-if="ehTransferencia" field="destino" header="Destino" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.destino || '-' }}
+        </template>
+      </Column>
+      <Column v-if="!ehTransferencia" field="location.name" header="Local" sortable>
         <template #body="slotProps">
           {{ slotProps.data.location?.name || '-' }}
         </template>
       </Column>
-      <Column field="movement_type" header="Tipo" sortable>
-        <template #body="slotProps">
-          <Tag :value="slotProps.data.movement_type" :severity="getSeverityTipo(slotProps.data.movement_type)" />
-        </template>
-      </Column>
-      <Column field="quantity" header="Quantidade" sortable>
+      <Column v-if="!ehTransferencia" field="quantity" header="Quantidade" sortable>
         <template #body="slotProps">
           {{ formatarQuantidade(slotProps.data.quantity) }}
         </template>
       </Column>
-      <Column field="observation" header="Observação" sortable></Column>
+      <Column v-if="ehTransferencia" field="itens_count" header="Qtd. Itens" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.itens_count || 0 }}
+        </template>
+      </Column>
+      <Column v-if="ehTransferencia" field="total_quantity" header="Qtd. Total" sortable>
+        <template #body="slotProps">
+          {{ formatarQuantidade(slotProps.data.total_quantity) }}
+        </template>
+      </Column>
+      <Column field="observation" header="Observação" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.observation || '-' }}
+        </template>
+      </Column>
       <Column field="user.nome_completo" header="Usuário" sortable>
         <template #body="slotProps">
           {{ slotProps.data.user?.nome_completo || '-' }}
+        </template>
+      </Column>
+      <Column v-if="ehTransferencia" header="Ações" :exportable="false">
+        <template #body="slotProps">
+          <Button
+            icon="pi pi-eye"
+            class="p-button-rounded p-button-text p-button-info p-button-sm"
+            v-tooltip.top="'Ver Detalhes'"
+            @click="verDetalhesTransferencia(slotProps.data)"
+          />
         </template>
       </Column>
     </DataTable>
@@ -386,6 +425,63 @@
       </template>
     </Dialog>
 
+    <!-- Modal de Detalhes da Transferência -->
+    <Dialog 
+      v-model:visible="modalDetalhesTransferencia.visivel" 
+      modal 
+      header="Detalhes da Transferência" 
+      :style="{ width: '800px' }" 
+      appendTo="body"
+    >
+      <div v-if="modalDetalhesTransferencia.carregando" class="text-center p-5">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <p class="mt-3">Carregando detalhes...</p>
+      </div>
+      
+      <div v-else>
+        <div class="mb-4" v-if="modalDetalhesTransferencia.transferencia">
+          <div class="grid">
+            <div class="col-12 md:col-6">
+              <strong>Número:</strong> {{ modalDetalhesTransferencia.transferencia.numero }}
+            </div>
+            <div class="col-12 md:col-6">
+              <strong>Data:</strong> {{ formatarData(modalDetalhesTransferencia.transferencia.data) }}
+            </div>
+            <div class="col-12 md:col-6">
+              <strong>Origem:</strong> {{ modalDetalhesTransferencia.transferencia.origem }}
+            </div>
+            <div class="col-12 md:col-6">
+              <strong>Destino:</strong> {{ modalDetalhesTransferencia.transferencia.destino }}
+            </div>
+            <div class="col-12" v-if="modalDetalhesTransferencia.transferencia.observation">
+              <strong>Observação:</strong> {{ modalDetalhesTransferencia.transferencia.observation }}
+            </div>
+          </div>
+        </div>
+
+        <DataTable
+          :value="modalDetalhesTransferencia.itens"
+          :paginator="true"
+          :rows="10"
+          responsiveLayout="scroll"
+          class="p-datatable-sm"
+        >
+          <Column field="codigo" header="Código" sortable></Column>
+          <Column field="referencia" header="Referência" sortable></Column>
+          <Column field="descricao" header="Descrição" sortable></Column>
+          <Column field="quantidade" header="Quantidade" sortable>
+            <template #body="slotProps">
+              {{ formatarQuantidade(slotProps.data.quantidade) }}
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+
+      <template #footer>
+        <Button label="Fechar" class="p-button-text" @click="modalDetalhesTransferencia.visivel = false" />
+      </template>
+    </Dialog>
+
     <Toast />
   </div>
 </template>
@@ -398,6 +494,7 @@ import StockMovementService from '@/service/StockMovementService';
 import StockProductService from '@/service/StockProductService';
 import StockService from '@/service/StockService';
 import StockLocationService from '@/service/StockLocationService';
+import StockTransferService from '@/service/StockTransferService';
 
 export default {
   name: 'MovimentacoesList',
@@ -405,11 +502,19 @@ export default {
     const toast = useToast();
     const permissionService = new PermissionsService();
     const movimentacoes = ref([]);
+    const transferencias = ref([]);
     const carregando = ref(false);
+    const modalDetalhesTransferencia = reactive({
+      visivel: false,
+      transferencia: null,
+      itens: [],
+      carregando: false,
+    });
     const service = new StockMovementService();
     const stockService = new StockService();
     const productService = new StockProductService();
     const locationService = new StockLocationService();
+    const transferService = new StockTransferService();
 
     // Verificar permissões
     const podeCriar = computed(() => permissionService.hasPermissions('view_estoque_movimentacoes_create'));
@@ -499,20 +604,64 @@ export default {
       return map[tipo] || 'secondary';
     };
 
+    const ehTransferencia = computed(() => {
+      return filtros.value.movement_type === 'transferencia';
+    });
+
     const carregar = async () => {
       try {
         carregando.value = true;
-        const params = { ...filtros.value, per_page: 100 };
-        if (params.date_from) params.date_from = new Date(params.date_from).toISOString().split('T')[0];
-        if (params.date_to) params.date_to = new Date(params.date_to).toISOString().split('T')[0];
-        const { data } = await service.getAll(params);
-        movimentacoes.value = data.data || [];
+        
+        if (ehTransferencia.value) {
+          // Se for transferência, buscar transferências
+          const params = {};
+          if (filtros.value.date_from) params.date_from = new Date(filtros.value.date_from).toISOString().split('T')[0];
+          if (filtros.value.date_to) params.date_to = new Date(filtros.value.date_to).toISOString().split('T')[0];
+          
+          const { data } = await transferService.getAll({ ...params, per_page: 100 });
+          transferencias.value = data.data || [];
+        } else {
+          // Caso contrário, buscar movimentações normais
+          const params = { ...filtros.value, per_page: 100 };
+          if (params.date_from) params.date_from = new Date(params.date_from).toISOString().split('T')[0];
+          if (params.date_to) params.date_to = new Date(params.date_to).toISOString().split('T')[0];
+          const { data } = await service.getAll(params);
+          movimentacoes.value = data.data || [];
+        }
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar movimentações', life: 3000 });
       } finally {
         carregando.value = false;
       }
     };
+
+    const movimentacoesAgrupadas = computed(() => {
+      if (ehTransferencia.value) {
+        // Retornar transferências formatadas
+        return transferencias.value.map(t => ({
+          id: t.id,
+          data: t.created_at,
+          tipo: 'transferencia',
+          tipo_label: 'Transferência',
+          numero: t.transfer_number,
+          origem: t.origin_location?.name || '-',
+          destino: t.destination_location?.name || '-',
+          observation: t.observation,
+          user: t.user,
+          itens_count: t.items_count || 0,
+          total_quantity: t.total_quantity || 0,
+          transferencia_id: t.id,
+        }));
+      } else {
+        // Retornar movimentações normais
+        return movimentacoes.value.map(m => ({
+          ...m,
+          data: m.movement_date,
+          tipo: m.movement_type,
+          tipo_label: tiposMovimento.find(t => t.value === m.movement_type)?.label || m.movement_type,
+        }));
+      }
+    });
 
     const carregarLocais = async () => {
       try {
@@ -781,6 +930,37 @@ export default {
       modalAjuste.visivel = false;
     };
 
+    const verDetalhesTransferencia = async (transferencia) => {
+      modalDetalhesTransferencia.visivel = true;
+      modalDetalhesTransferencia.transferencia = transferencia;
+      modalDetalhesTransferencia.carregando = true;
+      modalDetalhesTransferencia.itens = [];
+
+      try {
+        // Buscar detalhes da transferência
+        const { data } = await transferService.getById(transferencia.transferencia_id);
+        const transferenciaCompleta = data.data;
+        
+        if (transferenciaCompleta && transferenciaCompleta.items) {
+          modalDetalhesTransferencia.itens = transferenciaCompleta.items.map(item => ({
+            codigo: item.product?.code || '-',
+            referencia: item.product?.reference || '-',
+            descricao: item.product?.description || '-',
+            quantidade: item.quantity,
+          }));
+        }
+      } catch (error) {
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'Erro ao carregar detalhes da transferência',
+          life: 3000
+        });
+      } finally {
+        modalDetalhesTransferencia.carregando = false;
+      }
+    };
+
     const confirmarAjuste = async () => {
       if (!modalAjuste.estoque || !modalAjuste.tipo || !modalAjuste.quantidade) {
         return;
@@ -858,6 +1038,10 @@ export default {
       abrirModalAjuste,
       fecharModalAjuste,
       confirmarAjuste,
+      ehTransferencia,
+      movimentacoesAgrupadas,
+      verDetalhesTransferencia,
+      modalDetalhesTransferencia,
     };
   },
 };

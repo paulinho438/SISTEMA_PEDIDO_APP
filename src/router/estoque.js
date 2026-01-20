@@ -76,6 +76,12 @@ const estoqueRoutes = [
                 path: 'transferencia-lote',
                 name: 'estoqueTransferenciaLote',
                 component: () => import('@/views/estoque/TransferenciaLote.vue')
+            },
+            // Controle de Transferências
+            {
+                path: 'transferencias',
+                name: 'estoqueTransferencias',
+                component: () => import('@/views/estoque/TransferenciasList.vue')
             }
         ]
     }

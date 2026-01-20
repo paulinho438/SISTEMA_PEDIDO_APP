@@ -46,7 +46,26 @@
     </div>
 
     <div class="grid mb-3">
-      <div class="col-12">
+      <div class="col-12 md:col-4">
+        <label for="motorista">Nome do Motorista</label>
+        <InputText
+          id="motorista"
+          v-model="motorista"
+          placeholder="Nome do motorista"
+          class="w-full"
+        />
+      </div>
+      <div class="col-12 md:col-4">
+        <label for="placa">Placa</label>
+        <InputText
+          id="placa"
+          v-model="placa"
+          placeholder="ABC-1234"
+          class="w-full"
+          :maxlength="8"
+        />
+      </div>
+      <div class="col-12 md:col-4">
         <label for="observacao">Observação</label>
         <Textarea 
           id="observacao"
@@ -204,25 +223,31 @@
 
 <script>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import PermissionsService from '@/service/PermissionsService';
 import StockService from '@/service/StockService';
 import StockLocationService from '@/service/StockLocationService';
 import StockMovementService from '@/service/StockMovementService';
+import StockTransferService from '@/service/StockTransferService';
 import axios from '@/plugins/axios';
 
 export default {
   name: 'TransferenciaLote',
   setup() {
+    const router = useRouter();
     const toast = useToast();
     const permissionService = new PermissionsService();
     const stockService = new StockService();
     const locationService = new StockLocationService();
     const movementService = new StockMovementService();
+    const transferService = new StockTransferService();
 
     const localOrigem = ref(null);
     const localDestino = ref(null);
     const observacao = ref('');
+    const motorista = ref('');
+    const placa = ref('');
     const locaisDisponiveis = ref([]);
     const locaisDestino = ref([]);
     const estoques = ref([]);
@@ -255,10 +280,10 @@ export default {
     });
 
     const formatarQuantidade = (qtd) => {
-      if (!qtd) return '0,0000';
+      if (!qtd) return '0,00';
       return parseFloat(qtd).toLocaleString('pt-BR', { 
-        minimumFractionDigits: 4, 
-        maximumFractionDigits: 4 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
       });
     };
 
@@ -403,6 +428,8 @@ export default {
         const dados = {
           local_origem_id: localOrigem.value,
           local_destino_id: localDestino.value,
+          driver_name: motorista.value || null,
+          license_plate: placa.value || null,
           observacao: observacao.value || null,
           itens: itensSelecionados.value.map(item => ({
             stock_id: item.id,
@@ -410,32 +437,26 @@ export default {
           }))
         };
 
-        const response = await movementService.transferirLote(dados);
+        const response = await transferService.criar(dados);
         
-        const sucessos = response?.data?.data?.sucessos || 0;
-        const falhas = response?.data?.data?.falhas || 0;
+        // Redirecionar para controle de transferências após criar
+        setTimeout(() => {
+          router.push('/estoque/transferencias');
+        }, 1500);
+        
+        toast.add({
+          severity: 'success',
+          summary: 'Sucesso',
+          detail: response?.data?.message || 'Transferência criada com sucesso!',
+          life: 5000
+        });
 
-        if (sucessos > 0) {
-          toast.add({
-            severity: 'success',
-            summary: 'Sucesso',
-            detail: response?.data?.message || `${sucessos} item(ns) transferido(s) com sucesso${falhas > 0 ? `. ${falhas} falha(s).` : '.'}`,
-            life: 5000
-          });
-        }
-
-        if (falhas > 0) {
-          toast.add({
-            severity: 'warn',
-            summary: 'Aviso',
-            detail: `${falhas} item(ns) não puderam ser transferidos. Verifique os detalhes.`,
-            life: 5000
-          });
-        }
-
-        // Limpar seleção e recarregar
+        // Limpar formulário
         itensSelecionados.value = [];
         selecaoEstoques.value = [];
+        motorista.value = '';
+        placa.value = '';
+        observacao.value = '';
         await carregarEstoques();
       } catch (error) {
         toast.add({
@@ -451,45 +472,49 @@ export default {
 
     const gerarDocumento = async () => {
       if (itensSelecionados.value.length === 0 || !localDestino.value) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Aviso',
+          detail: 'Selecione os itens e o local de destino antes de gerar o documento.',
+          life: 3000
+        });
         return;
       }
 
+      // Primeiro criar a transferência, depois gerar o documento
       try {
         gerandoDocumento.value = true;
-
-        const localOrigemObj = locaisDisponiveis.value.find(l => l.id === localOrigem.value);
-        const localDestinoObj = locaisDestino.value.find(l => l.id === localDestino.value);
 
         const dados = {
           local_origem_id: localOrigem.value,
           local_destino_id: localDestino.value,
+          driver_name: motorista.value || null,
+          license_plate: placa.value || null,
           observacao: observacao.value || null,
           itens: itensSelecionados.value.map(item => ({
             stock_id: item.id,
-            product_id: item.stock_product_id,
-            codigo: item.product?.code,
-            referencia: item.product?.reference,
-            descricao: item.product?.description,
             quantidade: item.quantidade,
-            quantidade_disponivel: item.quantity_available,
           }))
         };
 
-        // Chamar endpoint para gerar PDF usando axios do plugin (já configurado com token)
-        const response = await axios.post(
-          '/estoque/transferencias/gerar-documento',
-          dados,
-          {
-            responseType: 'blob',
-          }
-        );
+        // Criar transferência primeiro
+        const response = await transferService.criar(dados);
+        const transferId = response?.data?.data?.id;
+
+        if (!transferId) {
+          throw new Error('Transferência criada mas ID não retornado');
+        }
+
+        // Gerar documento da transferência criada
+        const docResponse = await transferService.gerarDocumento(transferId);
 
         // Criar blob e fazer download
-        const blob = response.data;
+        const blob = docResponse.data;
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `transferencia-${localOrigemObj?.code || localOrigem.value}-${localDestinoObj?.code || localDestino.value}-${new Date().toISOString().split('T')[0]}.pdf`;
+        const transferNumber = response?.data?.data?.transfer_number || transferId;
+        a.download = `transferencia-${transferNumber}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -498,12 +523,20 @@ export default {
         toast.add({
           severity: 'success',
           summary: 'Sucesso',
-          detail: 'Documento gerado com sucesso!',
+          detail: 'Transferência criada e documento gerado com sucesso!',
           life: 3000
         });
+
+        // Limpar formulário
+        itensSelecionados.value = [];
+        selecaoEstoques.value = [];
+        motorista.value = '';
+        placa.value = '';
+        observacao.value = '';
+        await carregarEstoques();
       } catch (error) {
         console.error('Erro ao gerar documento:', error);
-        const errorMessage = error.message || error.response?.data?.message || error.response?.data?.error || 'Erro ao gerar documento';
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Erro ao gerar documento';
         toast.add({
           severity: 'error',
           summary: 'Erro',
@@ -528,6 +561,8 @@ export default {
       localOrigem,
       localDestino,
       observacao,
+      motorista,
+      placa,
       locaisDisponiveis,
       locaisDestino,
       estoques,
