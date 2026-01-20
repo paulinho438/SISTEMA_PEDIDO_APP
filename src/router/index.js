@@ -39,6 +39,23 @@ const router = createRouter({
             children: [
                 {
                     path: '/',
+                    name: 'home',
+                    redirect: (to) => {
+                        const permissions = store.getters.permissions || [];
+                        const hasStockDashboard = permissions.includes('view_estoque_dashboard');
+                        const hasPurchaseDashboard = permissions.includes('view_dashboard');
+                        
+                        if (hasStockDashboard) {
+                            return { name: 'estoqueDashboard' };
+                        } else if (hasPurchaseDashboard) {
+                            return { name: 'dashboard' };
+                        } else {
+                            return { name: 'welcome' };
+                        }
+                    }
+                },
+                {
+                    path: '/dashboard',
                     name: 'dashboard',
                     component: () => import('@/views/Dashboard.vue')
                 },
@@ -255,12 +272,35 @@ router.beforeEach((to, from, next) => {
 		return;
 	}
 
-	// Se está tentando acessar dashboard sem permissão, redirecionar para welcome
+	// Se está tentando acessar dashboard de compras sem permissão, redirecionar para welcome
 	if (to.name === 'dashboard') {
 		const permissions = store.getters.permissions || [];
 		const hasDashboardPermission = permissions.includes('view_dashboard');
 		
 		if (!hasDashboardPermission) {
+			// Verificar se tem permissão de dashboard de estoque
+			const hasStockDashboard = permissions.includes('view_estoque_dashboard');
+			if (hasStockDashboard) {
+				next({ name: 'estoqueDashboard' });
+				return;
+			}
+			next({ name: 'welcome' });
+			return;
+		}
+	}
+
+	// Se está tentando acessar dashboard de estoque sem permissão, redirecionar para welcome ou dashboard de compras
+	if (to.name === 'estoqueDashboard') {
+		const permissions = store.getters.permissions || [];
+		const hasStockDashboardPermission = permissions.includes('view_estoque_dashboard');
+		
+		if (!hasStockDashboardPermission) {
+			// Verificar se tem permissão de dashboard de compras
+			const hasPurchaseDashboard = permissions.includes('view_dashboard');
+			if (hasPurchaseDashboard) {
+				next({ name: 'dashboard' });
+				return;
+			}
 			next({ name: 'welcome' });
 			return;
 		}

@@ -100,14 +100,20 @@ export default {
                         this.$store.commit('setPermissions', []);
                     }
 
-                    // Verificar se tem permissão de dashboard
+                    // Verificar permissões de dashboard (prioridade: estoque > compras > welcome)
                     // As permissões vêm no formato: [{ company_id: X, permissions: ['slug1', 'slug2', ...] }]
-                    let hasDashboardPermission = false;
+                    let hasStockDashboardPermission = false;
+                    let hasPurchaseDashboardPermission = false;
+                    
                     if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                        hasDashboardPermission = res[0]['permissions'].includes('view_dashboard');
+                        const permissions = res[0]['permissions'];
+                        hasStockDashboardPermission = permissions.includes('view_estoque_dashboard');
+                        hasPurchaseDashboardPermission = permissions.includes('view_dashboard');
                     }
                     
-                    if (hasDashboardPermission) {
+                    if (hasStockDashboardPermission) {
+                        this.router.push({ name: 'estoqueDashboard' });
+                    } else if (hasPurchaseDashboardPermission) {
                         this.router.push({ name: 'dashboard' });
                     } else {
                         this.router.push({ name: 'welcome' });
@@ -169,10 +175,13 @@ export default {
                     this.$store.commit('setPermissions', []);
                 }
 
-                // Verificar se tem permissão de dashboard
-                const hasDashboardPermission = companyPermissions.includes('view_dashboard');
+                // Verificar permissões de dashboard (prioridade: estoque > compras > welcome)
+                const hasStockDashboardPermission = companyPermissions.includes('view_estoque_dashboard');
+                const hasPurchaseDashboardPermission = companyPermissions.includes('view_dashboard');
                 
-                if (hasDashboardPermission) {
+                if (hasStockDashboardPermission) {
+                    this.router.push({ name: 'estoqueDashboard' });
+                } else if (hasPurchaseDashboardPermission) {
                     this.router.push({ name: 'dashboard' });
                 } else {
                     this.router.push({ name: 'welcome' });

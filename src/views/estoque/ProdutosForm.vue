@@ -53,8 +53,8 @@
                 :disabled="isViewMode || !podeEditar"
                 :min="0"
                 :useGrouping="false"
-                :minFractionDigits="4"
-                :maxFractionDigits="4"
+                :minFractionDigits="0"
+                :maxFractionDigits="0"
               />
             </div>
             <div class="col-12 md:col-6">
@@ -66,8 +66,8 @@
                 :disabled="isViewMode || !podeEditar"
                 :min="0"
                 :useGrouping="false"
-                :minFractionDigits="4"
-                :maxFractionDigits="4"
+                :minFractionDigits="0"
+                :maxFractionDigits="0"
               />
             </div>
           </div>

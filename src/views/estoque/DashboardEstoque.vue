@@ -163,10 +163,7 @@ export default {
 
     const formatNumber = (value) => {
       if (value === null || value === undefined) return '0';
-      return parseFloat(value).toLocaleString('pt-BR', {
-        minimumFractionDigits: 4,
-        maximumFractionDigits: 4,
-      });
+      return parseInt(value).toLocaleString('pt-BR');
     };
 
     const carregarDados = async () => {
