@@ -2,7 +2,12 @@
   <div class="card p-5 bg-page">
     <div class="flex justify-content-between align-items-center mb-3">
       <h5 class="text-900 mb-0">Produtos de Estoque</h5>
-      <Button label="Novo Produto" icon="pi pi-plus" @click="$router.push('/estoque/produtos/add')" />
+      <Button 
+        v-if="podeCriar"
+        label="Novo Produto" 
+        icon="pi pi-plus" 
+        @click="$router.push('/estoque/produtos/add')" 
+      />
     </div>
 
     <div class="flex justify-content-end mb-3">
@@ -33,14 +38,25 @@
       <Column header="Ações">
         <template #body="slotProps">
           <Button
+            v-if="podeVisualizar"
+            icon="pi pi-eye"
+            class="p-button-rounded p-button-text p-button-info mr-2"
+            @click="$router.push(`/estoque/produtos/${slotProps.data.id}?view=true`)"
+            v-tooltip.top="'Visualizar'"
+          />
+          <Button
+            v-if="podeEditar"
             icon="pi pi-pencil"
             class="p-button-rounded p-button-text p-button-info mr-2"
             @click="$router.push(`/estoque/produtos/${slotProps.data.id}`)"
+            v-tooltip.top="'Editar'"
           />
           <Button
+            v-if="podeDeletar"
             :icon="slotProps.data.active ? 'pi pi-ban' : 'pi pi-check'"
             :class="slotProps.data.active ? 'p-button-rounded p-button-text p-button-warning' : 'p-button-rounded p-button-text p-button-success'"
             @click="toggleActive(slotProps.data)"
+            v-tooltip.top="slotProps.data.active ? 'Desativar' : 'Ativar'"
           />
         </template>
       </Column>
@@ -53,16 +69,26 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
+import { useStore } from 'vuex';
+import PermissionsService from '@/service/PermissionsService';
 import StockProductService from '@/service/StockProductService';
 
 export default {
   name: 'ProdutosList',
   setup() {
     const toast = useToast();
+    const store = useStore();
+    const permissionService = new PermissionsService();
     const produtos = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
     const service = new StockProductService();
+
+    // Verificar permissões
+    const podeCriar = computed(() => permissionService.hasPermissions('view_estoque_produtos_create'));
+    const podeVisualizar = computed(() => permissionService.hasPermissions('view_estoque_produtos'));
+    const podeEditar = computed(() => permissionService.hasPermissions('view_estoque_produtos_edit'));
+    const podeDeletar = computed(() => permissionService.hasPermissions('view_estoque_produtos_delete'));
 
     const produtosFiltrados = computed(() => {
       if (!filtroGlobal.value) return produtos.value;
@@ -106,6 +132,10 @@ export default {
       produtosFiltrados,
       carregando,
       toggleActive,
+      podeCriar,
+      podeVisualizar,
+      podeEditar,
+      podeDeletar,
     };
   },
 };
