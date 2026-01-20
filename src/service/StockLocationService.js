@@ -10,6 +10,10 @@ export default class StockLocationService {
         return await axios.get(`${apiPath}/estoque/locais`, { params });
     };
 
+    getAllActive = async (params = {}) => {
+        return await axios.get(`${apiPath}/estoque/locais/all-active`, { params });
+    };
+
     save = async (location) => {
         if (undefined === location.id) {
             return await axios.post(`${apiPath}/estoque/locais`, location);

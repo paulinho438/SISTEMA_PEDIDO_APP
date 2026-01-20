@@ -252,7 +252,7 @@
           <label class="block text-600 mb-2">Local de Destino *</label>
           <Dropdown
             v-model="modalTransferencia.localDestino"
-            :options="locaisDisponiveis"
+            :options="locaisDestino"
             optionLabel="name"
             optionValue="id"
             placeholder="Selecione o local de destino"
@@ -472,7 +472,8 @@ export default {
     });
 
     // Dados auxiliares
-    const locaisDisponiveis = ref([]);
+    const locaisDisponiveis = ref([]); // Locais com acesso (para entrada manual)
+    const locaisDestino = ref([]); // Todos os locais ativos (para destino em transferência)
     const sugestoesProdutos = ref([]);
     const sugestoesEstoque = ref([]);
     
@@ -519,6 +520,15 @@ export default {
         locaisDisponiveis.value = data.data || [];
       } catch (error) {
         console.error('Erro ao carregar locais:', error);
+      }
+    };
+
+    const carregarLocaisDestino = async () => {
+      try {
+        const { data } = await locationService.getAllActive({ per_page: 100 });
+        locaisDestino.value = data.data || [];
+      } catch (error) {
+        console.error('Erro ao carregar locais de destino:', error);
       }
     };
 
@@ -666,8 +676,8 @@ export default {
       modalTransferencia.quantidade = null;
       modalTransferencia.observacao = '';
       
-      if (locaisDisponiveis.value.length === 0) {
-        await carregarLocais();
+      if (locaisDestino.value.length === 0) {
+        await carregarLocaisDestino();
       }
     };
 
@@ -826,6 +836,7 @@ export default {
       modalTransferencia,
       modalAjuste,
       locaisDisponiveis,
+      locaisDestino,
       sugestoesProdutos,
       sugestoesEstoque,
       podeCriar,
