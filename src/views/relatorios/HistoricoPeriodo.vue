@@ -157,13 +157,21 @@ const montarParametros = () => {
     const [inicio, fim] = range;
 
     if (inicio instanceof Date) {
-      params.start_date = inicio.toISOString().substring(0, 10);
+      // Usar métodos locais para evitar problemas de timezone
+      const ano = inicio.getFullYear();
+      const mes = String(inicio.getMonth() + 1).padStart(2, '0');
+      const dia = String(inicio.getDate()).padStart(2, '0');
+      params.start_date = `${ano}-${mes}-${dia}`;
     } else if (typeof inicio === 'string' && inicio) {
       params.start_date = inicio.split('T')[0] ?? inicio;
     }
 
     if (fim instanceof Date) {
-      params.end_date = fim.toISOString().substring(0, 10);
+      // Usar métodos locais para evitar problemas de timezone
+      const ano = fim.getFullYear();
+      const mes = String(fim.getMonth() + 1).padStart(2, '0');
+      const dia = String(fim.getDate()).padStart(2, '0');
+      params.end_date = `${ano}-${mes}-${dia}`;
     } else if (typeof fim === 'string' && fim) {
       params.end_date = fim.split('T')[0] ?? fim;
     }
