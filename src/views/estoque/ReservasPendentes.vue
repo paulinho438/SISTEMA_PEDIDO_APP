@@ -350,7 +350,7 @@
           icon="pi pi-times"
           class="p-button-danger"
           :loading="processando"
-          :disabled="!formCancelarReserva.quantidade || formCancelarReserva.quantidade <= 0 || formCancelarReserva.quantidade > estoqueSelecionado?.quantity_reserved || !formCancelarReserva.motivo || formCancelarReserva.motivo.length < 10"
+          :disabled="!podeConfirmarCancelamento"
           @click="confirmarCancelarReserva"
         />
       </template>
@@ -482,6 +482,16 @@ export default {
     const formCancelarReserva = ref({
       quantidade: null,
       motivo: '',
+    });
+
+    const podeConfirmarCancelamento = computed(() => {
+      const quantidade = parseFloat(formCancelarReserva.value.quantidade) || 0;
+      const quantidadeReservada = parseFloat(estoqueSelecionado.value?.quantity_reserved) || 0;
+      const motivo = formCancelarReserva.value.motivo?.trim() || '';
+      
+      return quantidade > 0 
+        && quantidade <= quantidadeReservada 
+        && motivo.length >= 10;
     });
 
     const locaisDestino = computed(() => {
@@ -938,6 +948,7 @@ export default {
       formSaida,
       formTransferirESair,
       formCancelarReserva,
+      podeConfirmarCancelamento,
       formatarQuantidade,
       carregar,
       abrirModalSaida,
