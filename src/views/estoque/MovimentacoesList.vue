@@ -763,11 +763,6 @@ export default {
         return true;
       });
       
-      // Se filtro for transferência, retornar apenas transferências em lote e transferências antigas agrupadas
-      if (ehTransferencia.value) {
-        return [...transferenciasLote, ...transferenciasAgrupadas];
-      }
-      
       // Agrupar transferências antigas por observação (sem número de transferência)
       const transferenciasAgrupadas = [];
       const transferenciasProcessadas = new Set();
@@ -828,13 +823,56 @@ export default {
       ];
       
       // Ordenar por data (mais recente primeiro)
+      // Converter todas as datas para um formato comparável
       return todasMovimentacoes.sort((a, b) => {
         try {
-          const dataA = new Date(a.data);
-          const dataB = new Date(b.data);
-          if (isNaN(dataA.getTime()) || isNaN(dataB.getTime())) return 0;
-          return dataB - dataA;
-        } catch {
+          // Função auxiliar para converter data para timestamp
+          const getTimestamp = (dataStr) => {
+            if (!dataStr) return 0;
+            
+            // Se já está em formato de data ISO ou timestamp
+            if (typeof dataStr === 'string') {
+              // Tentar formato brasileiro DD/MM/YYYY HH:mm:ss ou DD/MM/YYYY
+              const brFormat = dataStr.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}):(\d{2}))?/);
+              if (brFormat) {
+                const [, dia, mes, ano, hora = '00', minuto = '00', segundo = '00'] = brFormat;
+                const dateStr = `${ano}-${mes}-${dia}T${hora}:${minuto}:${segundo}`;
+                const parsed = new Date(dateStr);
+                if (!isNaN(parsed.getTime())) {
+                  return parsed.getTime();
+                }
+              }
+              
+              // Tentar parsear como ISO string ou outros formatos
+              const parsed = new Date(dataStr);
+              if (!isNaN(parsed.getTime())) {
+                return parsed.getTime();
+              }
+            }
+            
+            // Se for um objeto Date
+            if (dataStr instanceof Date) {
+              return dataStr.getTime();
+            }
+            
+            return 0;
+          };
+          
+          const timestampA = getTimestamp(a.data);
+          const timestampB = getTimestamp(b.data);
+          
+          // Se ambas as datas são válidas, ordenar por timestamp (mais recente primeiro)
+          if (timestampA > 0 && timestampB > 0) {
+            return timestampB - timestampA; // Ordem decrescente (mais recente primeiro)
+          }
+          
+          // Se uma data é inválida, colocar no final
+          if (timestampA > 0) return -1;
+          if (timestampB > 0) return 1;
+          
+          return 0;
+        } catch (error) {
+          console.error('Erro ao ordenar movimentações:', error, a, b);
           return 0;
         }
       });
