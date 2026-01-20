@@ -138,6 +138,59 @@
       </div>
     </div>
 
+    <!-- Histórico de Movimentações -->
+    <div class="col-12">
+      <div class="card">
+        <h5 class="mb-3">Últimas Movimentações</h5>
+        <DataTable 
+          :value="metrics.recent_movements || []" 
+          :loading="loading"
+          responsiveLayout="scroll"
+          class="p-datatable-sm"
+          :paginator="false"
+        >
+          <Column field="movement_date" header="Data" sortable>
+            <template #body="slotProps">
+              {{ formatDate(slotProps.data.movement_date) }}
+            </template>
+          </Column>
+          <Column field="product_description" header="Produto" sortable>
+            <template #body="slotProps">
+              <div>
+                <div class="font-semibold">{{ slotProps.data.product_code }}</div>
+                <div class="text-sm text-500">{{ slotProps.data.product_description }}</div>
+              </div>
+            </template>
+          </Column>
+          <Column field="location_name" header="Local" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.location_name || '-' }}
+            </template>
+          </Column>
+          <Column field="movement_type" header="Tipo" sortable>
+            <template #body="slotProps">
+              <Tag :value="formatMovementType(slotProps.data.movement_type)" :severity="getSeverityType(slotProps.data.movement_type)" />
+            </template>
+          </Column>
+          <Column field="quantity" header="Quantidade" sortable>
+            <template #body="slotProps">
+              {{ formatQuantity(slotProps.data.quantity) }}
+            </template>
+          </Column>
+          <Column field="user_name" header="Usuário" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.user_name || '-' }}
+            </template>
+          </Column>
+          <Column field="observation" header="Observação" sortable>
+            <template #body="slotProps">
+              <span class="text-500">{{ slotProps.data.observation || '-' }}</span>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+    </div>
+
     <Toast />
   </div>
 </template>
@@ -159,11 +212,50 @@ export default {
       out_of_stock_products: [],
       total_low_stock: 0,
       total_value: 0,
+      recent_movements: [],
     });
 
     const formatNumber = (value) => {
       if (value === null || value === undefined) return '0';
       return parseInt(value).toLocaleString('pt-BR');
+    };
+
+    const formatDate = (date) => {
+      if (!date) return '-';
+      try {
+        const d = new Date(date);
+        return d.toLocaleDateString('pt-BR');
+      } catch (e) {
+        return date;
+      }
+    };
+
+    const formatQuantity = (value) => {
+      if (value === null || value === undefined) return '0';
+      return parseFloat(value).toLocaleString('pt-BR', {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4,
+      });
+    };
+
+    const formatMovementType = (type) => {
+      const types = {
+        'entrada': 'Entrada',
+        'saida': 'Saída',
+        'ajuste': 'Ajuste',
+        'transferencia': 'Transferência',
+      };
+      return types[type] || type;
+    };
+
+    const getSeverityType = (type) => {
+      const map = {
+        'entrada': 'success',
+        'saida': 'danger',
+        'ajuste': 'warning',
+        'transferencia': 'info',
+      };
+      return map[type] || 'secondary';
     };
 
     const carregarDados = async () => {
@@ -191,6 +283,10 @@ export default {
       loading,
       metrics,
       formatNumber,
+      formatDate,
+      formatQuantity,
+      formatMovementType,
+      getSeverityType,
     };
   },
 };
