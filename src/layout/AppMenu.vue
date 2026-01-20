@@ -88,7 +88,7 @@ const model = ref([
                         icon: 'pi pi-fw pi-chart-bar',
                         permission: 'view_cotacoes',
                         items: [
-                            { label: 'Acompanhamento de Cotações', icon: 'pi pi-fw pi-table', to: '/cotacoes/acompanhamento', permission: 'view_cotacoes' },
+                            { label: 'Acompanhamento de Cotações', icon: 'pi pi-fw pi-table', to: '/cotacoes/acompanhamento', permission: 'view_acompanhamento_cotacoes' },
                             { label: 'Custos por Centro de Custo', icon: 'pi pi-fw pi-chart-bar', to: '/relatorios/custos-centro-custo', permission: 'view_cotacoes' },
                             { label: 'Relatório de cotação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/cotacoes', permission: 'cotacoes_imprimir' },
                             { label: 'Custos por Fornecedor', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-fornecedor', permission: 'view_cotacoes' },
