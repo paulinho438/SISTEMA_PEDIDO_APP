@@ -54,6 +54,7 @@ const model = ref([
                     { label: 'Locais', icon: 'pi pi-fw pi-map-marker', to: '/estoque/locais', permission: 'view_estoque_locais' },
                     { label: 'Consulta de Estoque', icon: 'pi pi-fw pi-search', to: '/estoque/consulta', permission: 'view_estoque_consulta' },
                     { label: 'Movimentações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/estoque/movimentacoes', permission: 'view_estoque_movimentacoes' },
+                    { label: 'Transferência em Lote', icon: 'pi pi-fw pi-send', to: '/estoque/transferencia-lote', permission: 'view_estoque_movimentacoes_create' },
                     { label: 'Gerenciar Almoxarifes', icon: 'pi pi-fw pi-users', to: '/estoque/almoxarifes', permission: 'view_estoque_almoxarifes' },
                     { label: 'Análise de Reservas', icon: 'pi pi-fw pi-check-circle', to: '/estoque/reservas', permission: 'view_estoque_reservas' },
                     { label: 'Nota Fiscal e Entrada', icon: 'pi pi-fw pi-file', to: '/estoque/nota-fiscal/nova', permission: 'view_estoque_nota_fiscal' }
