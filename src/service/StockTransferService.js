@@ -14,8 +14,8 @@ export default class StockTransferService {
         return await axios.post(`${apiPath}/estoque/transferencias`, data);
     };
 
-    receber = async (id) => {
-        return await axios.post(`${apiPath}/estoque/transferencias/${id}/receber`);
+    receber = async (id, dados = {}) => {
+        return await axios.post(`${apiPath}/estoque/transferencias/${id}/receber`, dados);
     };
 
     excluir = async (id) => {

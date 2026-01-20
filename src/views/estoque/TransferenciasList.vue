@@ -86,7 +86,7 @@
         <template #body="slotProps">
           <Tag 
             :value="slotProps.data.status_label" 
-            :severity="slotProps.data.status === 'pendente' ? 'warning' : 'success'" 
+            :severity="getSeverityStatus(slotProps.data.status)" 
           />
         </template>
       </Column>
@@ -135,13 +135,128 @@
       </Column>
     </DataTable>
 
+    <!-- Modal de Recebimento -->
+    <Dialog 
+      v-model:visible="modalRecebimento.visivel" 
+      modal 
+      header="Marcar como Recebido" 
+      :style="{ width: '700px' }" 
+      appendTo="body"
+    >
+      <div v-if="modalRecebimento.carregando" class="text-center p-5">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <p class="mt-3">Carregando...</p>
+      </div>
+      
+      <div v-else>
+        <div class="mb-4">
+          <label class="block text-600 mb-2">Tipo de Recebimento *</label>
+          <div class="flex gap-3">
+            <div class="flex align-items-center">
+              <RadioButton 
+                id="recebimentoTotal" 
+                v-model="modalRecebimento.tipo" 
+                value="total" 
+                inputId="recebimentoTotal"
+              />
+              <label for="recebimentoTotal" class="ml-2">Total</label>
+            </div>
+            <div class="flex align-items-center">
+              <RadioButton 
+                id="recebimentoParcial" 
+                v-model="modalRecebimento.tipo" 
+                value="parcial" 
+                inputId="recebimentoParcial"
+              />
+              <label for="recebimentoParcial" class="ml-2">Parcial</label>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="modalRecebimento.tipo === 'parcial'" class="mb-4">
+          <label class="block text-600 mb-2">Selecione os itens recebidos:</label>
+          <DataTable 
+            :value="modalRecebimento.itens" 
+            class="p-datatable-sm"
+            :scrollable="true"
+            scrollHeight="300px"
+          >
+            <Column>
+              <template #header>
+                <Checkbox 
+                  v-model="modalRecebimento.todosSelecionados"
+                  :binary="true"
+                  @change="toggleTodosItens"
+                />
+              </template>
+              <template #body="slotProps">
+                <Checkbox 
+                  v-model="slotProps.data.selecionado"
+                  :binary="true"
+                />
+              </template>
+            </Column>
+            <Column field="product.code" header="Código" sortable>
+              <template #body="slotProps">
+                {{ slotProps.data.product?.code || '-' }}
+              </template>
+            </Column>
+            <Column field="product.description" header="Produto" sortable>
+              <template #body="slotProps">
+                {{ slotProps.data.product?.description || '-' }}
+              </template>
+            </Column>
+            <Column field="quantity" header="Quantidade Original" sortable>
+              <template #body="slotProps">
+                {{ formatarQuantidade(slotProps.data.quantity) }}
+              </template>
+            </Column>
+            <Column header="Quantidade Recebida">
+              <template #body="slotProps">
+                <InputNumber
+                  v-model="slotProps.data.quantidade_recebida"
+                  :min="0"
+                  :max="slotProps.data.quantity"
+                  :step="0.01"
+                  :disabled="!slotProps.data.selecionado"
+                  class="w-full"
+                  :useGrouping="false"
+                  mode="decimal"
+                  :minFractionDigits="2"
+                  :maxFractionDigits="2"
+                />
+              </template>
+            </Column>
+          </DataTable>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-content-end gap-2">
+          <Button 
+            label="Cancelar" 
+            class="p-button-text" 
+            @click="fecharModalRecebimento" 
+          />
+          <Button
+            label="Confirmar Recebimento"
+            icon="pi pi-check"
+            class="p-button-success"
+            :disabled="!modalRecebimento.tipo || (modalRecebimento.tipo === 'parcial' && !temItensSelecionados)"
+            :loading="modalRecebimento.processando"
+            @click="confirmarRecebimento"
+          />
+        </div>
+      </template>
+    </Dialog>
+
     <Toast />
     <ConfirmDialog />
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import StockTransferService from '@/service/StockTransferService';
@@ -171,7 +286,18 @@ export default {
     const statusOptions = [
       { label: 'Pendente', value: 'pendente' },
       { label: 'Recebido', value: 'recebido' },
+      { label: 'Recebido Parcial', value: 'recebido_parcial' },
     ];
+
+    const modalRecebimento = ref({
+      visivel: false,
+      carregando: false,
+      processando: false,
+      transferenciaId: null,
+      tipo: 'total', // 'total' ou 'parcial'
+      itens: [],
+      todosSelecionados: false,
+    });
 
     const carregarLocais = async () => {
       try {
@@ -205,26 +331,141 @@ export default {
     };
 
     const marcarRecebido = async (id) => {
-      processando.value = id;
+      modalRecebimento.value.transferenciaId = id;
+      modalRecebimento.value.visivel = true;
+      modalRecebimento.value.carregando = true;
+      modalRecebimento.value.tipo = 'total';
+      modalRecebimento.value.itens = [];
+      modalRecebimento.value.todosSelecionados = false;
+
       try {
-        await transferService.receber(id);
+        const { data } = await transferService.getById(id);
+        const transferencia = data.data || data;
+        
+        // Preparar itens para o modal
+        modalRecebimento.value.itens = (transferencia.items || []).map(item => ({
+          id: item.id,
+          stock_id: item.stock_id,
+          stock_product_id: item.product?.id,
+          product: item.product,
+          quantity: item.quantity,
+          quantidade_recebida: item.quantity, // Por padrão, recebe tudo
+          selecionado: false,
+        }));
+      } catch (error) {
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'Erro ao carregar dados da transferência',
+          life: 3000
+        });
+        fecharModalRecebimento();
+      } finally {
+        modalRecebimento.value.carregando = false;
+      }
+    };
+
+    const fecharModalRecebimento = () => {
+      modalRecebimento.value.visivel = false;
+      modalRecebimento.value.transferenciaId = null;
+      modalRecebimento.value.tipo = 'total';
+      modalRecebimento.value.itens = [];
+      modalRecebimento.value.todosSelecionados = false;
+    };
+
+    const toggleTodosItens = () => {
+      modalRecebimento.value.itens.forEach(item => {
+        item.selecionado = modalRecebimento.value.todosSelecionados;
+        if (!item.selecionado) {
+          item.quantidade_recebida = item.quantity;
+        }
+      });
+    };
+
+    const temItensSelecionados = computed(() => {
+      return modalRecebimento.value.itens.some(item => item.selecionado);
+    });
+
+    const confirmarRecebimento = async () => {
+      if (!modalRecebimento.value.tipo) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Atenção',
+          detail: 'Selecione o tipo de recebimento',
+          life: 3000
+        });
+        return;
+      }
+
+      if (modalRecebimento.value.tipo === 'parcial' && !temItensSelecionados.value) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Atenção',
+          detail: 'Selecione pelo menos um item para recebimento parcial',
+          life: 3000
+        });
+        return;
+      }
+
+      modalRecebimento.value.processando = true;
+
+      try {
+        const dados = {
+          tipo: modalRecebimento.value.tipo,
+        };
+
+        if (modalRecebimento.value.tipo === 'parcial') {
+          dados.itens = modalRecebimento.value.itens
+            .filter(item => item.selecionado)
+            .map(item => ({
+              item_id: item.id,
+              quantidade_recebida: parseFloat(item.quantidade_recebida) || 0,
+            }));
+
+          // Validar quantidades
+          for (const item of dados.itens) {
+            const itemOriginal = modalRecebimento.value.itens.find(i => i.id === item.item_id);
+            if (item.quantidade_recebida > itemOriginal.quantity) {
+              throw new Error(`A quantidade recebida não pode ser maior que a quantidade original para o item ${itemOriginal.product?.code || itemOriginal.product?.description}`);
+            }
+            if (item.quantidade_recebida <= 0) {
+              throw new Error(`A quantidade recebida deve ser maior que zero para o item ${itemOriginal.product?.code || itemOriginal.product?.description}`);
+            }
+          }
+        }
+
+        await transferService.receber(modalRecebimento.value.transferenciaId, dados);
+        
         toast.add({
           severity: 'success',
           summary: 'Sucesso',
-          detail: 'Transferência marcada como recebida',
+          detail: modalRecebimento.value.tipo === 'total' 
+            ? 'Transferência marcada como recebida' 
+            : 'Transferência marcada como recebida parcialmente',
           life: 3000
         });
+        
+        fecharModalRecebimento();
         await carregar();
       } catch (error) {
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: error.response?.data?.error || 'Erro ao marcar como recebido',
+          detail: error.response?.data?.error || error.message || 'Erro ao marcar como recebido',
           life: 3000
         });
       } finally {
-        processando.value = null;
+        modalRecebimento.value.processando = false;
       }
+    };
+
+    const getSeverityStatus = (status) => {
+      const map = {
+        'pendente': 'warning',
+        'recebido': 'success',
+        'recebido_parcial': 'danger',
+      };
+      return map[status] || 'secondary';
     };
 
     const confirmarExclusao = (id) => {
@@ -316,13 +557,19 @@ export default {
       processando,
       filtros,
       statusOptions,
+      modalRecebimento,
+      temItensSelecionados,
       carregar,
       marcarRecebido,
+      fecharModalRecebimento,
+      toggleTodosItens,
+      confirmarRecebimento,
       confirmarExclusao,
       excluir,
       imprimirDocumento,
       formatarQuantidade,
       formatarData,
+      getSeverityStatus,
     };
   },
 };
