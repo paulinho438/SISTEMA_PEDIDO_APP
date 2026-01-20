@@ -487,7 +487,21 @@ export default {
         });
 
         if (!response.ok) {
-          throw new Error('Erro ao gerar documento');
+          // Tentar ler mensagem de erro se for JSON
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Erro ao gerar documento');
+          }
+          throw new Error(`Erro ao gerar documento: ${response.status} ${response.statusText}`);
+        }
+
+        // Verificar se a resposta é um PDF
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/pdf')) {
+          // Se não for PDF, pode ser uma mensagem de erro em JSON
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao gerar documento');
         }
 
         // Criar blob e fazer download
