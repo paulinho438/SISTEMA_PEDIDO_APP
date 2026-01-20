@@ -230,10 +230,6 @@
                             this.usuario = response?.data?.data || {};
                             this.multiselectValue = this.usuario.empresas || [];
 
-                            // Usar o método auxiliar para definir a permissão selecionada
-                            // Isso garante que funciona mesmo se as permissões ainda não foram carregadas
-                            this.setSelectedPermissao();
-
                             // A URL da assinatura já vem do backend via UsuarioResource
                             // Se não vier, recalcular usando getSignatureUrl
                             if (this.usuario?.signature_path && !this.usuario?.signature_url) {
@@ -242,10 +238,24 @@
                                 );
                             }
 
-                            // Carregar locais associados se for almoxarife
-                            if (this.isAlmoxarife && this.usuario.id) {
-                                this.carregarLocaisDoUsuario();
-                            }
+                            // Usar o método auxiliar para definir a permissão selecionada
+                            // Isso garante que funciona mesmo se as permissões ainda não foram carregadas
+                            this.setSelectedPermissao();
+
+                            // Aguardar um pouco para garantir que a permissão foi definida
+                            // e então carregar locais se for almoxarife
+                            this.$nextTick(async () => {
+                                // Verificar se a permissão selecionada é Almoxarife
+                                if (this.selectedPermissao && this.selectedPermissao.name === 'Almoxarife' && this.usuario.id) {
+                                    console.log('Permissão é Almoxarife, carregando locais...');
+                                    await this.carregarLocaisDoUsuario();
+                                } else {
+                                    console.log('Permissão não é Almoxarife ou usuário sem ID:', {
+                                        selectedPermissao: this.selectedPermissao,
+                                        userId: this.usuario.id
+                                    });
+                                }
+                            });
                         })
                         .catch((error) => {
                             this.toast.add({
@@ -278,13 +288,30 @@
             },
 
             async carregarLocaisDoUsuario() {
-                if (!this.usuario?.id) return;
+                if (!this.usuario?.id) {
+                    console.log('carregarLocaisDoUsuario: usuário sem ID');
+                    return;
+                }
                 try {
+                    console.log('Carregando locais para usuário:', this.usuario.id);
                     const { data } = await this.almoxarifeService.listByAlmoxarife(this.usuario.id);
-                    this.locaisSelecionados = (data.locations || []).map(loc => loc.id);
+                    console.log('Resposta da API:', data);
+                    const locationIds = (data.locations || []).map(loc => loc.id);
+                    console.log('IDs dos locais:', locationIds);
+                    // Garantir que seja um array, nunca null
+                    this.locaisSelecionados = Array.isArray(locationIds) ? locationIds : [];
                 } catch (error) {
                     console.error('Erro ao carregar locais do usuário:', error);
+                    this.locaisSelecionados = [];
                 }
+            },
+
+            getLocationName(locationId) {
+                const location = this.locaisDisponiveis.find(loc => loc.id === locationId);
+                if (location) {
+                    return location.code ? `${location.name} (${location.code})` : location.name;
+                }
+                return `Local ${locationId}`;
             },
     
             onSignatureSelect(event) {
@@ -624,7 +651,20 @@
                                     placeholder="Selecione os locais"
                                     :filter="true"
                                     class="w-full"
+                                    :disabled="loading"
                                 >
+                                    <template #value="slotProps">
+                                        <div v-if="slotProps.value && slotProps.value.length > 0" class="flex flex-wrap gap-2">
+                                            <div 
+                                                v-for="locationId of slotProps.value" 
+                                                :key="locationId"
+                                                class="inline-flex align-items-center py-1 px-2 bg-primary text-primary border-round"
+                                            >
+                                                {{ getLocationName(locationId) }}
+                                            </div>
+                                        </div>
+                                        <span v-else class="text-500">Selecione os locais</span>
+                                    </template>
                                     <template #option="slotProps">
                                         <div>
                                             <span>{{ slotProps.option.name }}</span>
