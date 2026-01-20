@@ -209,6 +209,7 @@ import PermissionsService from '@/service/PermissionsService';
 import StockService from '@/service/StockService';
 import StockLocationService from '@/service/StockLocationService';
 import StockMovementService from '@/service/StockMovementService';
+import axios from '@/plugins/axios';
 
 export default {
   name: 'TransferenciaLote',
@@ -474,38 +475,17 @@ export default {
           }))
         };
 
-        // Chamar endpoint para gerar PDF
-        const apiPath = import.meta.env.VITE_APP_BASE_URL;
-        const response = await fetch(`${apiPath}/estoque/transferencias/gerar-documento`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'company-id': localStorage.getItem('company-id') || '',
-          },
-          body: JSON.stringify(dados)
-        });
-
-        if (!response.ok) {
-          // Tentar ler mensagem de erro se for JSON
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Erro ao gerar documento');
+        // Chamar endpoint para gerar PDF usando axios do plugin (já configurado com token)
+        const response = await axios.post(
+          '/estoque/transferencias/gerar-documento',
+          dados,
+          {
+            responseType: 'blob',
           }
-          throw new Error(`Erro ao gerar documento: ${response.status} ${response.statusText}`);
-        }
-
-        // Verificar se a resposta é um PDF
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/pdf')) {
-          // Se não for PDF, pode ser uma mensagem de erro em JSON
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Erro ao gerar documento');
-        }
+        );
 
         // Criar blob e fazer download
-        const blob = await response.blob();
+        const blob = response.data;
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -523,11 +503,12 @@ export default {
         });
       } catch (error) {
         console.error('Erro ao gerar documento:', error);
+        const errorMessage = error.message || error.response?.data?.message || error.response?.data?.error || 'Erro ao gerar documento';
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: error.response?.data?.message || 'Erro ao gerar documento',
-          life: 3000
+          detail: errorMessage,
+          life: 5000
         });
       } finally {
         gerandoDocumento.value = false;
