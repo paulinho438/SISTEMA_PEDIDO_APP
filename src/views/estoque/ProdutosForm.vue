@@ -73,6 +73,67 @@
           </div>
         </div>
 
+        <!-- Seção de Estoques por Local (apenas em modo visualização) -->
+        <div v-if="isViewMode && id && stocks.length > 0" class="col-12 mt-4">
+          <div class="card">
+            <h6 class="mb-3">Estoques por Local</h6>
+            <DataTable 
+              :value="stocks" 
+              :loading="carregandoEstoques"
+              responsiveLayout="scroll"
+              class="p-datatable-sm"
+            >
+              <Column field="location_name" header="Local" sortable>
+                <template #body="slotProps">
+                  <div>
+                    <div class="font-semibold">{{ slotProps.data.location_name || '-' }}</div>
+                    <div v-if="slotProps.data.location_code" class="text-sm text-500">{{ slotProps.data.location_code }}</div>
+                  </div>
+                </template>
+              </Column>
+              <Column field="quantity_available" header="Disponível" sortable>
+                <template #body="slotProps">
+                  <div>
+                    <span :class="getStockClass(slotProps.data.quantity_available, form.min_stock)">
+                      {{ formatQuantity(slotProps.data.quantity_available) }} {{ form.unit }}
+                    </span>
+                    <Tag 
+                      v-if="form.min_stock && slotProps.data.quantity_available < form.min_stock"
+                      value="Abaixo do mínimo"
+                      severity="warning"
+                      class="ml-2"
+                    />
+                  </div>
+                </template>
+              </Column>
+              <Column field="quantity_reserved" header="Reservado" sortable>
+                <template #body="slotProps">
+                  {{ formatQuantity(slotProps.data.quantity_reserved) }} {{ form.unit }}
+                </template>
+              </Column>
+              <Column field="quantity_total" header="Total" sortable>
+                <template #body="slotProps">
+                  {{ formatQuantity(slotProps.data.quantity_total) }} {{ form.unit }}
+                </template>
+              </Column>
+              <Column field="last_movement_at" header="Última Movimentação" sortable>
+                <template #body="slotProps">
+                  {{ slotProps.data.last_movement_at || '-' }}
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+        </div>
+
+        <div v-else-if="isViewMode && id && stocks.length === 0" class="col-12 mt-4">
+          <div class="card">
+            <h6 class="mb-3">Estoques por Local</h6>
+            <div class="text-center text-500 py-4">
+              Este produto não possui estoque em nenhum local.
+            </div>
+          </div>
+        </div>
+
         <!-- Sidebar - Imagem -->
         <div class="col-12 lg:col-4">
           <div class="card p-3">
@@ -186,6 +247,8 @@ export default {
     const imageUrl = ref(null);
     const removendoImagem = ref(false);
     const selectedFile = ref(null);
+    const stocks = ref([]);
+    const carregandoEstoques = ref(false);
 
     const getImageUrl = (path) => {
       if (!path) return null;
@@ -248,9 +311,26 @@ export default {
       }
     };
 
+    const formatQuantity = (value) => {
+      if (value === null || value === undefined) return '0';
+      return parseFloat(value).toLocaleString('pt-BR', {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4,
+      });
+    };
+
+    const getStockClass = (quantity, minStock) => {
+      if (!minStock) return '';
+      if (quantity < minStock) {
+        return quantity === 0 ? 'text-red-500 font-bold' : 'text-orange-500 font-semibold';
+      }
+      return '';
+    };
+
     const carregar = async () => {
       if (id) {
         try {
+          carregandoEstoques.value = true;
           const { data } = await service.get(id);
           const productData = data.data || data;
           form.value = {
@@ -267,8 +347,15 @@ export default {
           if (productData.image_path) {
             imageUrl.value = getImageUrl(productData.image_path);
           }
+
+          // Carregar estoques se estiverem disponíveis
+          if (productData.stocks) {
+            stocks.value = productData.stocks;
+          }
         } catch (error) {
           toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar produto', life: 3000 });
+        } finally {
+          carregandoEstoques.value = false;
         }
       }
     };
@@ -331,6 +418,10 @@ export default {
       onImageSelect,
       removerImagem,
       getImageUrl,
+      stocks,
+      carregandoEstoques,
+      formatQuantity,
+      getStockClass,
     };
   },
 };
