@@ -107,10 +107,8 @@ export default {
 				name: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
 				nome_completo: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
 				email: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-				cpf: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-				rg: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
 				telefone_celular: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-				companies: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
+				permissao: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
                 // global: { value: null, matchMode: FilterMatchMode.CONTAINS },
                 // name: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
                 // 'country.name': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
@@ -129,6 +127,38 @@ export default {
         },
         clearFilter() {
             this.initFilters();
+        },
+        getPermissaoNome(data) {
+            // O backend retorna permissao como uma coleção de grupos (many-to-many)
+            if (!data.permissao) {
+                return '-';
+            }
+            
+            // Se for array (coleção de grupos)
+            if (Array.isArray(data.permissao)) {
+                if (data.permissao.length === 0) {
+                    return '-';
+                }
+                
+                // Pegar o grupo da empresa atual se disponível
+                const companyId = this.$store?.getters?.isCompany?.id;
+                if (companyId) {
+                    const permissaoFiltrada = data.permissao.find(p => p.company_id == companyId);
+                    if (permissaoFiltrada) {
+                        return permissaoFiltrada.name || '-';
+                    }
+                }
+                
+                // Se não encontrou filtrado, retornar a primeira
+                return data.permissao[0]?.name || '-';
+            }
+            
+            // Se for objeto único
+            if (typeof data.permissao === 'object' && data.permissao.name) {
+                return data.permissao.name;
+            }
+            
+            return '-';
         }
     },
     beforeMount() {
@@ -168,7 +198,7 @@ export default {
                         :loading="loading1"
                         :filters="filters1"
                         responsiveLayout="scroll"
-                        :globalFilterFields="['login', 'nome_completo', 'email', 'cpf', 'rg', 'telefone_celular', 'companies']"
+                        :globalFilterFields="['login', 'nome_completo', 'email', 'telefone_celular', 'permissao']"
                     >
                         <template #header>
                             <div class="flex justify-content-between flex-column sm:flex-row">
@@ -201,28 +231,10 @@ export default {
 
 						<Column field="email" header="E-mail" style="min-width: 12rem">
                             <template #body="{ data }">
-                                {{ data.email }}
+                                {{ data.email || '-' }}
                             </template>
                             <template #filter="{ filterModel }">
                                 <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Buscar E-mail" />
-                            </template>
-                        </Column>
-
-						<Column field="cpf" header="CPF" style="min-width: 12rem">
-                            <template #body="{ data }">
-                                {{ data.cpf }}
-                            </template>
-                            <template #filter="{ filterModel }">
-                                <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Buscar CPF" />
-                            </template>
-                        </Column>
-
-						<Column field="rg" header="RG" style="min-width: 12rem">
-                            <template #body="{ data }">
-                                {{ data.rg }}
-                            </template>
-                            <template #filter="{ filterModel }">
-                                <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Buscar RG" />
                             </template>
                         </Column>
 
@@ -234,12 +246,13 @@ export default {
                                 <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Buscar Celular" />
                             </template>
                         </Column>
-						<Column field="companies" header="Empresa" style="min-width: 12rem">
+
+						<Column field="permissao" header="Permissão" style="min-width: 12rem">
                             <template #body="{ data }">
-                                {{ data.companies }}
+                                {{ getPermissaoNome(data) }}
                             </template>
                             <template #filter="{ filterModel }">
-                                <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Buscar Empresa" />
+                                <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Buscar Permissão" />
                             </template>
                         </Column>
 
