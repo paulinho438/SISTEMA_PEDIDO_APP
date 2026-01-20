@@ -81,6 +81,20 @@
               <span class="text-red-500 font-bold">{{ formatNumber(slotProps.data.current_stock) }} {{ slotProps.data.unit }}</span>
             </template>
           </Column>
+          <Column field="low_locations" header="Locais com Estoque Baixo" v-if="hasLowLocations">
+            <template #body="slotProps">
+              <div v-if="slotProps.data.low_locations && slotProps.data.low_locations.length > 0">
+                <Tag 
+                  v-for="(loc, idx) in slotProps.data.low_locations" 
+                  :key="idx"
+                  :value="`${loc.location_name}: ${formatNumber(loc.quantity)}`"
+                  severity="warning"
+                  class="mr-1 mb-1"
+                />
+              </div>
+              <span v-else class="text-500">-</span>
+            </template>
+          </Column>
           <Column header="Ações">
             <template #body="slotProps">
               <Button
@@ -122,6 +136,20 @@
           <Column field="percentage" header="%" sortable>
             <template #body="slotProps">
               <ProgressBar :value="slotProps.data.percentage" :showValue="true" />
+            </template>
+          </Column>
+          <Column field="low_locations" header="Locais com Estoque Baixo" v-if="hasLowLocations">
+            <template #body="slotProps">
+              <div v-if="slotProps.data.low_locations && slotProps.data.low_locations.length > 0">
+                <Tag 
+                  v-for="(loc, idx) in slotProps.data.low_locations" 
+                  :key="idx"
+                  :value="`${loc.location_name}: ${formatNumber(loc.quantity)}`"
+                  severity="warning"
+                  class="mr-1 mb-1"
+                />
+              </div>
+              <span v-else class="text-500">-</span>
             </template>
           </Column>
           <Column header="Ações">
@@ -196,7 +224,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import DashboardService from '@/service/DashboardService';
 
@@ -275,6 +303,13 @@ export default {
       }
     };
 
+    const hasLowLocations = computed(() => {
+      const outOfStock = metrics.value.out_of_stock_products || [];
+      const lowStock = metrics.value.low_stock_products || [];
+      const allProducts = [...outOfStock, ...lowStock];
+      return allProducts.some(p => p.low_locations && p.low_locations.length > 0);
+    });
+
     onMounted(() => {
       carregarDados();
     });
@@ -287,6 +322,7 @@ export default {
       formatQuantity,
       formatMovementType,
       getSeverityType,
+      hasLowLocations,
     };
   },
 };
