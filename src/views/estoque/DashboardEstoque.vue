@@ -133,11 +133,6 @@
               {{ formatNumber(slotProps.data.min_stock) }} {{ slotProps.data.unit }}
             </template>
           </Column>
-          <Column field="percentage" header="%" sortable>
-            <template #body="slotProps">
-              <ProgressBar :value="slotProps.data.percentage" :showValue="true" />
-            </template>
-          </Column>
           <Column field="low_locations" header="Locais com Estoque Baixo" v-if="hasLowLocations">
             <template #body="slotProps">
               <div v-if="slotProps.data.low_locations && slotProps.data.low_locations.length > 0">
