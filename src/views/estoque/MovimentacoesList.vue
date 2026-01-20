@@ -72,44 +72,84 @@
           <Tag :value="slotProps.data.tipo_label" :severity="getSeverityTipo(slotProps.data.tipo)" />
         </template>
       </Column>
-      <Column v-if="!ehTransferencia" field="product.description" header="Produto" sortable>
+      <Column field="product.description" header="Produto" sortable>
         <template #body="slotProps">
-          {{ slotProps.data.product?.description || '-' }}
+          <template v-if="slotProps.data.tipo !== 'transferencia'">
+            {{ slotProps.data.product?.description || '-' }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
-      <Column v-if="ehTransferencia" field="numero" header="Número" sortable>
+      <Column field="numero" header="Número" sortable>
         <template #body="slotProps">
-          {{ slotProps.data.numero || '-' }}
+          <template v-if="slotProps.data.tipo === 'transferencia'">
+            {{ slotProps.data.numero || '-' }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
-      <Column v-if="ehTransferencia" field="origem" header="Origem" sortable>
+      <Column field="origem" header="Origem" sortable>
         <template #body="slotProps">
-          {{ slotProps.data.origem || '-' }}
+          <template v-if="slotProps.data.tipo === 'transferencia'">
+            {{ slotProps.data.origem || '-' }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
-      <Column v-if="ehTransferencia" field="destino" header="Destino" sortable>
+      <Column field="destino" header="Destino" sortable>
         <template #body="slotProps">
-          {{ slotProps.data.destino || '-' }}
+          <template v-if="slotProps.data.tipo === 'transferencia'">
+            {{ slotProps.data.destino || '-' }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
-      <Column v-if="!ehTransferencia" field="location.name" header="Local" sortable>
+      <Column field="location.name" header="Local" sortable>
         <template #body="slotProps">
-          {{ slotProps.data.location?.name || '-' }}
+          <template v-if="slotProps.data.tipo !== 'transferencia'">
+            {{ slotProps.data.location?.name || '-' }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
-      <Column v-if="!ehTransferencia" field="quantity" header="Quantidade" sortable>
+      <Column field="quantity" header="Quantidade" sortable>
         <template #body="slotProps">
-          {{ formatarQuantidade(slotProps.data.quantity) }}
+          <template v-if="slotProps.data.tipo !== 'transferencia'">
+            {{ formatarQuantidade(slotProps.data.quantity) }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
-      <Column v-if="ehTransferencia" field="itens_count" header="Qtd. Itens" sortable>
+      <Column field="itens_count" header="Qtd. Itens" sortable>
         <template #body="slotProps">
-          {{ slotProps.data.itens_count || 0 }}
+          <template v-if="slotProps.data.tipo === 'transferencia'">
+            {{ slotProps.data.itens_count || 0 }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
-      <Column v-if="ehTransferencia" field="total_quantity" header="Qtd. Total" sortable>
+      <Column field="total_quantity" header="Qtd. Total" sortable>
         <template #body="slotProps">
-          {{ formatarQuantidade(slotProps.data.total_quantity) }}
+          <template v-if="slotProps.data.tipo === 'transferencia'">
+            {{ formatarQuantidade(slotProps.data.total_quantity) }}
+          </template>
+          <template v-else>
+            -
+          </template>
         </template>
       </Column>
       <Column field="observation" header="Observação" sortable>
@@ -122,12 +162,13 @@
           {{ slotProps.data.user?.nome_completo || '-' }}
         </template>
       </Column>
-      <Column v-if="ehTransferencia" header="Ações" :exportable="false">
+      <Column header="Ações" :exportable="false">
         <template #body="slotProps">
           <Button
+            v-if="slotProps.data.is_lote"
             icon="pi pi-eye"
             class="p-button-rounded p-button-text p-button-info p-button-sm"
-            v-tooltip.top="'Ver Detalhes'"
+            v-tooltip.top="'Ver Detalhes da Transferência'"
             @click="verDetalhesTransferencia(slotProps.data)"
           />
         </template>
@@ -587,7 +628,20 @@ export default {
 
     const formatarData = (data) => {
       if (!data) return '-';
-      return new Date(data).toLocaleDateString('pt-BR');
+      try {
+        // Se já estiver formatada como string, retornar
+        if (typeof data === 'string' && data.includes('/')) {
+          return data;
+        }
+        // Tentar parsear a data
+        const dataObj = new Date(data);
+        if (isNaN(dataObj.getTime())) {
+          return '-';
+        }
+        return dataObj.toLocaleDateString('pt-BR');
+      } catch (error) {
+        return '-';
+      }
     };
 
     const formatarQuantidade = (qtd) => {
@@ -612,21 +666,29 @@ export default {
       try {
         carregando.value = true;
         
-        if (ehTransferencia.value) {
-          // Se for transferência, buscar transferências
-          const params = {};
-          if (filtros.value.date_from) params.date_from = new Date(filtros.value.date_from).toISOString().split('T')[0];
-          if (filtros.value.date_to) params.date_to = new Date(filtros.value.date_to).toISOString().split('T')[0];
-          
-          const { data } = await transferService.getAll({ ...params, per_page: 100 });
+        // Sempre buscar transferências em lote (para mostrar o ícone de olho quando necessário)
+        const paramsTransferencias = {};
+        if (filtros.value.date_from) paramsTransferencias.date_from = new Date(filtros.value.date_from).toISOString().split('T')[0];
+        if (filtros.value.date_to) paramsTransferencias.date_to = new Date(filtros.value.date_to).toISOString().split('T')[0];
+        
+        try {
+          const { data } = await transferService.getAll({ ...paramsTransferencias, per_page: 100 });
           transferencias.value = data.data || [];
-        } else {
-          // Caso contrário, buscar movimentações normais
-          const params = { ...filtros.value, per_page: 100 };
-          if (params.date_from) params.date_from = new Date(params.date_from).toISOString().split('T')[0];
-          if (params.date_to) params.date_to = new Date(params.date_to).toISOString().split('T')[0];
+        } catch (error) {
+          transferencias.value = [];
+        }
+        
+        // Buscar movimentações normais
+        const params = { ...filtros.value, per_page: 100 };
+        if (params.date_from) params.date_from = new Date(params.date_from).toISOString().split('T')[0];
+        if (params.date_to) params.date_to = new Date(params.date_to).toISOString().split('T')[0];
+        
+        // Se o filtro for transferência, não buscar movimentações individuais
+        if (!ehTransferencia.value) {
           const { data } = await service.getAll(params);
           movimentacoes.value = data.data || [];
+        } else {
+          movimentacoes.value = [];
         }
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar movimentações', life: 3000 });
@@ -636,31 +698,91 @@ export default {
     };
 
     const movimentacoesAgrupadas = computed(() => {
+      // Mapear transferências em lote para formato padronizado
+      const transferenciasLote = transferencias.value.map(t => ({
+        id: `transfer_${t.id}`,
+        data: t.created_at,
+        tipo: 'transferencia',
+        tipo_label: 'Transferência',
+        numero: t.transfer_number,
+        origem: t.origin_location?.name || '-',
+        destino: t.destination_location?.name || '-',
+        observation: t.observation,
+        user: t.user,
+        itens_count: t.items_count || 0,
+        total_quantity: t.total_quantity || 0,
+        transferencia_id: t.id,
+        is_lote: true, // Marca como transferência em lote
+      }));
+      
       if (ehTransferencia.value) {
-        // Retornar transferências formatadas
-        return transferencias.value.map(t => ({
-          id: t.id,
-          data: t.created_at,
-          tipo: 'transferencia',
-          tipo_label: 'Transferência',
-          numero: t.transfer_number,
-          origem: t.origin_location?.name || '-',
-          destino: t.destination_location?.name || '-',
-          observation: t.observation,
-          user: t.user,
-          itens_count: t.items_count || 0,
-          total_quantity: t.total_quantity || 0,
-          transferencia_id: t.id,
-        }));
-      } else {
-        // Retornar movimentações normais
-        return movimentacoes.value.map(m => ({
+        // Se filtro for transferência, retornar apenas transferências em lote
+        return transferenciasLote;
+      }
+      
+      // Para outras movimentações, agrupar transferências antigas (que criam 2 movimentações)
+      const movimentacoesNormais = movimentacoes.value.filter(m => m.movement_type !== 'transferencia');
+      const movimentacoesTransferencia = movimentacoes.value.filter(m => m.movement_type === 'transferencia');
+      
+      // Agrupar transferências antigas por observação (sem número de transferência)
+      const transferenciasAgrupadas = [];
+      const transferenciasProcessadas = new Set();
+      
+      movimentacoesTransferencia.forEach(mov => {
+        // Extrair observação base (sem "Transferência: Origem" ou "Transferência: Destino")
+        const obsBase = mov.observation?.replace(/\s*\(Transferência:\s*(Origem|Destino)\)/i, '').trim() || '';
+        const chave = `${mov.stock_product_id}-${mov.movement_date}-${obsBase}`;
+        
+        if (!transferenciasProcessadas.has(chave)) {
+          transferenciasProcessadas.add(chave);
+          
+          // Encontrar a movimentação de destino correspondente
+          const movDestino = movimentacoesTransferencia.find(m => 
+            m.stock_product_id === mov.stock_product_id &&
+            m.movement_date === mov.movement_date &&
+            m.observation?.includes(obsBase) &&
+            m.observation?.includes('Destino') &&
+            m.id !== mov.id
+          );
+          
+          transferenciasAgrupadas.push({
+            id: mov.id,
+            data: mov.movement_date || mov.created_at,
+            tipo: 'transferencia',
+            tipo_label: 'Transferência',
+            numero: '-',
+            origem: mov.location?.name || '-',
+            destino: movDestino?.location?.name || '-',
+            observation: obsBase || mov.observation,
+            user: mov.user,
+            itens_count: 1,
+            total_quantity: Math.abs(mov.quantity),
+            transferencia_id: null,
+            is_lote: false, // Transferência antiga (não é lote)
+            movimentacoes: [mov, movDestino].filter(Boolean),
+          });
+        }
+      });
+      
+      // Combinar tudo: movimentações normais, transferências antigas agrupadas e transferências em lote
+      const todasMovimentacoes = [
+        ...movimentacoesNormais.map(m => ({
           ...m,
-          data: m.movement_date,
+          data: m.movement_date || m.created_at,
           tipo: m.movement_type,
           tipo_label: tiposMovimento.find(t => t.value === m.movement_type)?.label || m.movement_type,
-        }));
-      }
+          is_lote: false,
+        })),
+        ...transferenciasAgrupadas,
+        ...transferenciasLote,
+      ];
+      
+      // Ordenar por data (mais recente primeiro)
+      return todasMovimentacoes.sort((a, b) => {
+        const dataA = new Date(a.data);
+        const dataB = new Date(b.data);
+        return dataB - dataA;
+      });
     });
 
     const carregarLocais = async () => {
@@ -937,17 +1059,29 @@ export default {
       modalDetalhesTransferencia.itens = [];
 
       try {
-        // Buscar detalhes da transferência
-        const { data } = await transferService.getById(transferencia.transferencia_id);
-        const transferenciaCompleta = data.data;
-        
-        if (transferenciaCompleta && transferenciaCompleta.items) {
-          modalDetalhesTransferencia.itens = transferenciaCompleta.items.map(item => ({
-            codigo: item.product?.code || '-',
-            referencia: item.product?.reference || '-',
-            descricao: item.product?.description || '-',
-            quantidade: item.quantity,
-          }));
+        if (transferencia.is_lote && transferencia.transferencia_id) {
+          // Buscar detalhes da transferência em lote
+          const { data } = await transferService.getById(transferencia.transferencia_id);
+          const transferenciaCompleta = data.data;
+          
+          if (transferenciaCompleta && transferenciaCompleta.items) {
+            modalDetalhesTransferencia.itens = transferenciaCompleta.items.map(item => ({
+              codigo: item.product?.code || '-',
+              referencia: item.product?.reference || '-',
+              descricao: item.product?.description || '-',
+              quantidade: item.quantity,
+            }));
+          }
+        } else if (transferencia.movimentacoes) {
+          // Para transferências antigas (não em lote), usar as movimentações
+          modalDetalhesTransferencia.itens = transferencia.movimentacoes
+            .filter(m => m.quantity < 0) // Apenas a de origem (negativa)
+            .map(mov => ({
+              codigo: mov.product?.code || '-',
+              referencia: mov.product?.reference || '-',
+              descricao: mov.product?.description || '-',
+              quantidade: Math.abs(mov.quantity),
+            }));
         }
       } catch (error) {
         toast.add({
