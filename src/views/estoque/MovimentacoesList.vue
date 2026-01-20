@@ -668,13 +668,14 @@ export default {
         
         // Sempre buscar transferências em lote (para mostrar o ícone de olho quando necessário)
         const paramsTransferencias = {};
+        // Aplicar filtro de data se houver
         if (filtros.value.date_from) paramsTransferencias.date_from = new Date(filtros.value.date_from).toISOString().split('T')[0];
         if (filtros.value.date_to) paramsTransferencias.date_to = new Date(filtros.value.date_to).toISOString().split('T')[0];
         
         try {
-          const response = await transferService.getAll({ ...paramsTransferencias, per_page: 100 });
-          // A resposta pode vir em data.data ou diretamente em data
-          transferencias.value = response?.data?.data || response?.data || [];
+          const { data } = await transferService.getAll({ ...paramsTransferencias, per_page: 100 });
+          // A resposta vem em data.data conforme o controller
+          transferencias.value = data?.data || [];
         } catch (error) {
           console.error('Erro ao carregar transferências:', error);
           transferencias.value = [];
