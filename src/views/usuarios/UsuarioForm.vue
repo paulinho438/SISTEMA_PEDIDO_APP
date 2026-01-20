@@ -57,7 +57,8 @@
 
                 // Locais para almoxarife
                 locaisDisponiveis: [],
-                locaisSelecionados: []
+                locaisSelecionados: [],
+                locaisAssociados: [] // Armazenar dados completos dos locais associados
             };
         },
     
@@ -67,6 +68,21 @@
             },
             isAlmoxarife() {
                 return this.selectedPermissao && this.selectedPermissao.name === 'Almoxarife';
+            },
+            locaisDisponiveisFiltrados() {
+                // Retornar apenas locais ativos para seleção
+                // Mas incluir locais inativos que já estão associados (para exibição)
+                const ativos = this.locaisDisponiveis.filter(loc => loc.active !== false);
+                const associadosInativos = this.locaisAssociados.filter(loc => {
+                    const disponivel = this.locaisDisponiveis.find(d => d.id === loc.id);
+                    return !disponivel || disponivel.active === false;
+                });
+                
+                // Combinar e remover duplicatas
+                const todos = [...ativos, ...associadosInativos];
+                return todos.filter((loc, index, self) => 
+                    index === self.findIndex(l => l.id === loc.id)
+                );
             }
         },
 
@@ -296,21 +312,52 @@
                     console.log('Carregando locais para usuário:', this.usuario.id);
                     const { data } = await this.almoxarifeService.listByAlmoxarife(this.usuario.id);
                     console.log('Resposta da API:', data);
-                    const locationIds = (data.locations || []).map(loc => loc.id);
+                    
+                    // Armazenar dados completos dos locais associados
+                    this.locaisAssociados = data.locations || [];
+                    
+                    // Extrair apenas os IDs para o v-model do MultiSelect
+                    const locationIds = this.locaisAssociados.map(loc => loc.id);
                     console.log('IDs dos locais:', locationIds);
+                    
                     // Garantir que seja um array, nunca null
                     this.locaisSelecionados = Array.isArray(locationIds) ? locationIds : [];
+                    
+                    // Adicionar locais associados que não estão em locaisDisponiveis (caso estejam inativos)
+                    // Isso garante que possamos exibir os nomes corretos mesmo se o local estiver inativo
+                    this.locaisAssociados.forEach(loc => {
+                        const exists = this.locaisDisponiveis.find(disp => disp.id === loc.id);
+                        if (!exists) {
+                            // Adicionar temporariamente para exibição
+                            this.locaisDisponiveis.push({
+                                id: loc.id,
+                                name: loc.name,
+                                code: loc.code,
+                                active: false // Marcar como inativo para não aparecer na lista de seleção
+                            });
+                        }
+                    });
                 } catch (error) {
                     console.error('Erro ao carregar locais do usuário:', error);
                     this.locaisSelecionados = [];
+                    this.locaisAssociados = [];
                 }
             },
 
             getLocationName(locationId) {
+                // Primeiro tentar buscar nos locais associados (dados completos da API)
+                const associatedLocation = this.locaisAssociados.find(loc => loc.id === locationId);
+                if (associatedLocation) {
+                    return associatedLocation.code ? `${associatedLocation.name} (${associatedLocation.code})` : associatedLocation.name;
+                }
+                
+                // Se não encontrar, buscar nos locais disponíveis
                 const location = this.locaisDisponiveis.find(loc => loc.id === locationId);
                 if (location) {
                     return location.code ? `${location.name} (${location.code})` : location.name;
                 }
+                
+                // Fallback: retornar apenas o ID
                 return `Local ${locationId}`;
             },
     
@@ -645,7 +692,7 @@
                                 <MultiSelect
                                     id="locais"
                                     v-model="locaisSelecionados"
-                                    :options="locaisDisponiveis"
+                                    :options="locaisDisponiveisFiltrados"
                                     optionLabel="name"
                                     optionValue="id"
                                     placeholder="Selecione os locais"
