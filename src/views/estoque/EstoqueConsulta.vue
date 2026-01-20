@@ -468,7 +468,24 @@ export default {
     const carregar = async () => {
       try {
         carregando.value = true;
-        const params = { ...filtros.value, per_page: 100 };
+        const params = { 
+          per_page: 100 
+        };
+        
+        // Adicionar filtros apenas se tiverem valor
+        if (filtros.value.search && filtros.value.search.trim()) {
+          params.search = filtros.value.search.trim();
+        }
+        
+        if (filtros.value.location_id) {
+          params.location_id = filtros.value.location_id;
+        }
+        
+        // Converter boolean para string 'true'/'false' ou 1/0 para o backend
+        if (filtros.value.has_available !== null && filtros.value.has_available !== undefined) {
+          params.has_available = filtros.value.has_available ? '1' : '0';
+        }
+        
         const { data } = await stockService.getAll(params);
         estoques.value = data.data || [];
       } catch (error) {
@@ -749,9 +766,20 @@ export default {
       }
     };
 
+    let timeoutCarregar = null;
+
+    const carregarComDebounce = () => {
+      if (timeoutCarregar) {
+        clearTimeout(timeoutCarregar);
+      }
+      timeoutCarregar = setTimeout(() => {
+        carregar();
+      }, 500);
+    };
+
     watch([() => filtros.value.search, () => filtros.value.location_id, () => filtros.value.has_available], () => {
-      carregar();
-    }, { debounce: 500 });
+      carregarComDebounce();
+    });
 
     onMounted(() => {
       carregar();
