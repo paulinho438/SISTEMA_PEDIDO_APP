@@ -17,5 +17,9 @@ export default class StockMovementService {
     transferir = async (data) => {
         return await axios.post(`${apiPath}/estoque/movimentacoes/transferir`, data);
     };
+
+    transferirLote = async (data) => {
+        return await axios.post(`${apiPath}/estoque/movimentacoes/transferir-lote`, data);
+    };
 }
 
