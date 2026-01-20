@@ -33,5 +33,19 @@ export default class StockProductService {
     buscarCombinado = async (params = {}) => {
         return await axios.get(`${apiPath}/estoque/produtos/buscar-combinado`, { params });
     };
+
+    uploadImage = async (id, file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return await axios.post(`${apiPath}/estoque/produtos/${id}/upload-image`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    };
+
+    removeImage = async (id) => {
+        return await axios.delete(`${apiPath}/estoque/produtos/${id}/remove-image`);
+    };
 }
 

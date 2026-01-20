@@ -49,6 +49,7 @@ const model = ref([
                 permission: 'view_estoque',
                 icon: 'pi pi-fw pi-box',
                 items: [
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', to: '/estoque/dashboard', permission: 'view_estoque_dashboard' },
                     { label: 'Produtos', icon: 'pi pi-fw pi-box', to: '/estoque/produtos', permission: 'view_estoque_produtos' },
                     { label: 'Locais', icon: 'pi pi-fw pi-map-marker', to: '/estoque/locais', permission: 'view_estoque_locais' },
                     { label: 'Consulta de Estoque', icon: 'pi pi-fw pi-search', to: '/estoque/consulta', permission: 'view_estoque_consulta' },

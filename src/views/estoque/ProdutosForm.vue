@@ -13,27 +13,106 @@
 
     <form @submit.prevent="salvar">
       <div class="grid">
-        <div class="col-12 md:col-6">
-          <label for="code">Código *</label>
-          <InputText id="code" v-model="form.code" class="w-full" :disabled="isViewMode || !podeEditar" required />
+        <!-- Coluna Principal -->
+        <div class="col-12 lg:col-8">
+          <div class="grid">
+            <div class="col-12 md:col-6">
+              <label for="code">Código *</label>
+              <InputText id="code" v-model="form.code" class="w-full" :disabled="isViewMode || !podeEditar" required />
+            </div>
+            <div class="col-12 md:col-6">
+              <label for="reference">Referência</label>
+              <InputText id="reference" v-model="form.reference" class="w-full" :disabled="isViewMode || !podeEditar" />
+            </div>
+            <div class="col-12">
+              <label for="description">Descrição *</label>
+              <InputText id="description" v-model="form.description" class="w-full" :disabled="isViewMode || !podeEditar" required />
+            </div>
+            <div class="col-12 md:col-6">
+              <label for="unit">Unidade *</label>
+              <InputText id="unit" v-model="form.unit" class="w-full" :disabled="isViewMode || !podeEditar" required />
+            </div>
+            <div class="col-12 md:col-6">
+              <label for="active">Ativo</label>
+              <div class="flex align-items-center mt-2">
+                <Checkbox id="active" v-model="form.active" :binary="true" :disabled="isViewMode || !podeEditar" />
+                <label for="active" class="ml-2">Produto ativo</label>
+              </div>
+            </div>
+            
+            <!-- Campos de Estoque -->
+            <div class="col-12">
+              <h6 class="mb-3">Controle de Estoque</h6>
+            </div>
+            <div class="col-12 md:col-6">
+              <label for="min_stock">Estoque Mínimo</label>
+              <InputNumber 
+                id="min_stock" 
+                v-model="form.min_stock" 
+                class="w-full" 
+                :disabled="isViewMode || !podeEditar"
+                :min="0"
+                :useGrouping="false"
+                :minFractionDigits="4"
+                :maxFractionDigits="4"
+              />
+            </div>
+            <div class="col-12 md:col-6">
+              <label for="max_stock">Estoque Máximo</label>
+              <InputNumber 
+                id="max_stock" 
+                v-model="form.max_stock" 
+                class="w-full" 
+                :disabled="isViewMode || !podeEditar"
+                :min="0"
+                :useGrouping="false"
+                :minFractionDigits="4"
+                :maxFractionDigits="4"
+              />
+            </div>
+          </div>
         </div>
-        <div class="col-12 md:col-6">
-          <label for="reference">Referência</label>
-          <InputText id="reference" v-model="form.reference" class="w-full" :disabled="isViewMode || !podeEditar" />
-        </div>
-        <div class="col-12">
-          <label for="description">Descrição *</label>
-          <InputText id="description" v-model="form.description" class="w-full" :disabled="isViewMode || !podeEditar" required />
-        </div>
-        <div class="col-12 md:col-6">
-          <label for="unit">Unidade *</label>
-          <InputText id="unit" v-model="form.unit" class="w-full" :disabled="isViewMode || !podeEditar" required />
-        </div>
-        <div class="col-12 md:col-6">
-          <label for="active">Ativo</label>
-          <div class="flex align-items-center mt-2">
-            <Checkbox id="active" v-model="form.active" :binary="true" :disabled="isViewMode || !podeEditar" />
-            <label for="active" class="ml-2">Produto ativo</label>
+
+        <!-- Sidebar - Imagem -->
+        <div class="col-12 lg:col-4">
+          <div class="card p-3">
+            <h6 class="mb-3">Imagem do Produto</h6>
+            
+            <!-- Preview da Imagem -->
+            <div v-if="imageUrl || form.image_path" class="mb-3 text-center">
+              <img 
+                :src="imageUrl || getImageUrl(form.image_path)" 
+                alt="Imagem do produto" 
+                class="w-full border-round"
+                style="max-height: 300px; object-fit: contain;"
+              />
+            </div>
+            
+            <!-- Upload de Imagem -->
+            <div v-if="!isViewMode && podeEditar" class="flex flex-column gap-2">
+              <FileUpload
+                mode="basic"
+                accept="image/*"
+                :maxFileSize="5120000"
+                :auto="false"
+                chooseLabel="Adicionar Imagem"
+                @select="onImageSelect"
+                class="w-full"
+              />
+              
+              <Button
+                v-if="imageUrl || form.image_path"
+                label="Remover Imagem"
+                icon="pi pi-times"
+                class="p-button-danger p-button-outlined w-full"
+                @click="removerImagem"
+                :loading="removendoImagem"
+              />
+            </div>
+            
+            <div v-else-if="!imageUrl && !form.image_path" class="text-center text-500 py-4">
+              Nenhuma imagem cadastrada
+            </div>
           </div>
         </div>
       </div>
@@ -70,6 +149,7 @@ export default {
     const id = route.params.id;
     const isViewMode = computed(() => route.query.view === 'true');
     const service = new StockProductService();
+    const apiPath = import.meta.env.VITE_APP_BASE_URL;
 
     // Verificar permissões
     const podeVisualizar = computed(() => permissionService.hasPermissions('view_estoque_produtos'));
@@ -98,14 +178,95 @@ export default {
       description: '',
       unit: 'UN',
       active: true,
+      min_stock: null,
+      max_stock: null,
+      image_path: null,
     });
     const salvando = ref(false);
+    const imageUrl = ref(null);
+    const removendoImagem = ref(false);
+    const selectedFile = ref(null);
+
+    const getImageUrl = (path) => {
+      if (!path) return null;
+      return `${apiPath}/storage/${path}`;
+    };
+
+    const onImageSelect = (event) => {
+      const file = event.files[0];
+      if (!file) return;
+
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: 'Por favor, selecione um arquivo de imagem', life: 3000 });
+        return;
+      }
+
+      // Validar tamanho (5MB)
+      if (file.size > 5120000) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: 'A imagem deve ter no máximo 5MB', life: 3000 });
+        return;
+      }
+
+      selectedFile.value = file;
+      
+      // Criar preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imageUrl.value = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const uploadImagem = async () => {
+      if (!selectedFile.value || !id) return;
+
+      try {
+        await service.uploadImage(id, selectedFile.value);
+        toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Imagem enviada com sucesso', life: 3000 });
+        selectedFile.value = null;
+        // Recarregar produto para obter o caminho da imagem
+        await carregar();
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao enviar imagem', life: 3000 });
+      }
+    };
+
+    const removerImagem = async () => {
+      if (!id) return;
+
+      try {
+        removendoImagem.value = true;
+        await service.removeImage(id);
+        imageUrl.value = null;
+        form.value.image_path = null;
+        toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Imagem removida com sucesso', life: 3000 });
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao remover imagem', life: 3000 });
+      } finally {
+        removendoImagem.value = false;
+      }
+    };
 
     const carregar = async () => {
       if (id) {
         try {
           const { data } = await service.get(id);
-          form.value = data.data || data;
+          const productData = data.data || data;
+          form.value = {
+            code: productData.code || '',
+            reference: productData.reference || '',
+            description: productData.description || '',
+            unit: productData.unit || 'UN',
+            active: productData.active !== undefined ? productData.active : true,
+            min_stock: productData.min_stock || null,
+            max_stock: productData.max_stock || null,
+            image_path: productData.image_path || null,
+          };
+          
+          if (productData.image_path) {
+            imageUrl.value = getImageUrl(productData.image_path);
+          }
         } catch (error) {
           toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar produto', life: 3000 });
         }
@@ -129,7 +290,16 @@ export default {
 
       try {
         salvando.value = true;
-        await service.save({ ...form.value, id: id || undefined });
+        const savedProduct = await service.save({ ...form.value, id: id || undefined });
+        
+        // Se houver imagem selecionada e produto foi criado/editado, fazer upload
+        if (selectedFile.value) {
+          const productId = id || (savedProduct.data?.data?.id || savedProduct.data?.id);
+          if (productId) {
+            await service.uploadImage(productId, selectedFile.value);
+          }
+        }
+        
         toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Produto salvo com sucesso', life: 3000 });
         router.push('/estoque/produtos');
       } catch (error) {
@@ -156,8 +326,12 @@ export default {
       podeEditar,
       podeCriar,
       editar,
+      imageUrl,
+      removendoImagem,
+      onImageSelect,
+      removerImagem,
+      getImageUrl,
     };
   },
 };
 </script>
-

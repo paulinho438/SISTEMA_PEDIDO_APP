@@ -64,6 +64,12 @@ const estoqueRoutes = [
                 path: 'nota-fiscal/nova',
                 name: 'notaFiscalNova',
                 component: () => import('@/views/estoque/NotaFiscalForm.vue')
+            },
+            // Dashboard
+            {
+                path: 'dashboard',
+                name: 'estoqueDashboard',
+                component: () => import('@/views/estoque/DashboardEstoque.vue')
             }
         ]
     }

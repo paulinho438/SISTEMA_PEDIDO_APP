@@ -38,6 +38,10 @@ export default class DashboardService {
 		return await axios.get(`${apiPath}/contaspagar/pagamentos/pendentes`);
 	};
 
+	getStockMetrics = async () => {
+		return await axios.get(`${apiPath}/dashboard/stock-metrics`);
+	};
+
     delete = async (id) => {
 		return await axios.get(`${apiPath}/contaspagar/${id}/delete`);
 	};
