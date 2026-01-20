@@ -704,11 +704,11 @@ export default {
         data: t.created_at,
         tipo: 'transferencia',
         tipo_label: 'Transferência',
-        numero: t.transfer_number,
+        numero: t.transfer_number || '-',
         origem: t.origin_location?.name || '-',
         destino: t.destination_location?.name || '-',
-        observation: t.observation,
-        user: t.user,
+        observation: t.observation || '-',
+        user: t.user || { nome_completo: '-' },
         itens_count: t.items_count || 0,
         total_quantity: t.total_quantity || 0,
         transferencia_id: t.id,
@@ -721,8 +721,21 @@ export default {
       }
       
       // Para outras movimentações, agrupar transferências antigas (que criam 2 movimentações)
+      // Mas excluir transferências que já estão na lista de transferências em lote
       const movimentacoesNormais = movimentacoes.value.filter(m => m.movement_type !== 'transferencia');
-      const movimentacoesTransferencia = movimentacoes.value.filter(m => m.movement_type === 'transferencia');
+      const movimentacoesTransferencia = movimentacoes.value.filter(m => {
+        if (m.movement_type !== 'transferencia') return false;
+        // Verificar se esta movimentação já está representada por uma transferência em lote
+        // Comparando pela data e observação
+        const obsBase = m.observation?.replace(/\s*\(Transferência:\s*(Origem|Destino)\)/i, '').trim() || '';
+        const movData = m.movement_date || m.created_at;
+        return !transferenciasLote.some(t => {
+          const tData = t.data;
+          // Se a data e observação forem similares, provavelmente já está na lista de lote
+          return tData && movData && tData.substring(0, 10) === movData.substring(0, 10) && 
+                 (t.observation === obsBase || obsBase === '');
+        });
+      });
       
       // Agrupar transferências antigas por observação (sem número de transferência)
       const transferenciasAgrupadas = [];
@@ -753,8 +766,8 @@ export default {
             numero: '-',
             origem: mov.location?.name || '-',
             destino: movDestino?.location?.name || '-',
-            observation: obsBase || mov.observation,
-            user: mov.user,
+            observation: obsBase || mov.observation || '-',
+            user: mov.user || { nome_completo: '-' },
             itens_count: 1,
             total_quantity: Math.abs(mov.quantity),
             transferencia_id: null,
@@ -779,9 +792,14 @@ export default {
       
       // Ordenar por data (mais recente primeiro)
       return todasMovimentacoes.sort((a, b) => {
-        const dataA = new Date(a.data);
-        const dataB = new Date(b.data);
-        return dataB - dataA;
+        try {
+          const dataA = new Date(a.data);
+          const dataB = new Date(b.data);
+          if (isNaN(dataA.getTime()) || isNaN(dataB.getTime())) return 0;
+          return dataB - dataA;
+        } catch {
+          return 0;
+        }
       });
     });
 
