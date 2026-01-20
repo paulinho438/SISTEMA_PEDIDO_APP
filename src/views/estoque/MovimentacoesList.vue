@@ -34,6 +34,8 @@
           id="tipoMovimento"
           v-model="filtros.movement_type"
           :options="tiposMovimento"
+          optionLabel="label"
+          optionValue="value"
           placeholder="Todos"
           class="w-full"
           showClear
@@ -659,7 +661,15 @@ export default {
     };
 
     const ehTransferencia = computed(() => {
-      return filtros.value.movement_type === 'transferencia';
+      const tipo = filtros.value.movement_type;
+      // Pode ser string ou objeto, então verificamos ambos
+      if (typeof tipo === 'string') {
+        return tipo === 'transferencia';
+      }
+      if (tipo && typeof tipo === 'object') {
+        return tipo.value === 'transferencia';
+      }
+      return false;
     });
 
     const carregar = async () => {
@@ -734,11 +744,6 @@ export default {
         };
       });
       
-      if (ehTransferencia.value) {
-        // Se filtro for transferência, retornar apenas transferências em lote
-        return transferenciasLote;
-      }
-      
       // Para outras movimentações, agrupar transferências antigas (que criam 2 movimentações)
       // Mas excluir transferências que já estão na lista de transferências em lote
       // As transferências em lote NÃO criam movimentações individuais, então não precisamos filtrá-las
@@ -757,6 +762,11 @@ export default {
         }
         return true;
       });
+      
+      // Se filtro for transferência, retornar apenas transferências em lote e transferências antigas agrupadas
+      if (ehTransferencia.value) {
+        return [...transferenciasLote, ...transferenciasAgrupadas];
+      }
       
       // Agrupar transferências antigas por observação (sem número de transferência)
       const transferenciasAgrupadas = [];
@@ -798,7 +808,13 @@ export default {
         }
       });
       
+      // Se filtro for transferência, retornar apenas transferências em lote e transferências antigas agrupadas
+      if (ehTransferencia.value) {
+        return [...transferenciasLote, ...transferenciasAgrupadas];
+      }
+      
       // Combinar tudo: movimentações normais, transferências antigas agrupadas e transferências em lote
+      // SEMPRE incluir transferências em lote, mesmo sem filtro
       const todasMovimentacoes = [
         ...movimentacoesNormais.map(m => ({
           ...m,
@@ -808,7 +824,7 @@ export default {
           is_lote: false,
         })),
         ...transferenciasAgrupadas,
-        ...transferenciasLote,
+        ...transferenciasLote, // SEMPRE incluir transferências em lote
       ];
       
       // Ordenar por data (mais recente primeiro)
