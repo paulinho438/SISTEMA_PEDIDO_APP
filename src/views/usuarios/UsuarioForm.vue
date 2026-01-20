@@ -6,6 +6,8 @@
     import UtilService from '@/service/UtilService';
     import AddressClient from '../address/Address.vue';
     import PermissionsService from '@/service/PermissionsService';
+    import StockLocationService from '@/service/StockLocationService';
+    import StockAlmoxarifeService from '@/service/StockAlmoxarifeService';
     import { ToastSeverity, PrimeIcons } from 'primevue/api';
     
     import LoadingComponent from '../../components/Loading.vue';
@@ -21,6 +23,8 @@
                 usuarioService: new UsuarioService(),
                 empresaService: new EmpresaService(),
                 permissionsService: new PermissionsService(),
+                locationService: new StockLocationService(),
+                almoxarifeService: new StockAlmoxarifeService(),
                 icons: PrimeIcons,
                 toast: useToast()
             };
@@ -47,15 +51,34 @@
                 loading: false,
     
                 selectedPermissao: null,
-    
+
                 signatureFile: null,
-                signaturePreview: null
+                signaturePreview: null,
+
+                // Locais para almoxarife
+                locaisDisponiveis: [],
+                locaisSelecionados: []
             };
         },
     
         computed: {
             title() {
                 return this.route.params?.id ? 'Editar Usuário' : 'Criar Usuário';
+            },
+            isAlmoxarife() {
+                return this.selectedPermissao && this.selectedPermissao.name === 'Almoxarife';
+            }
+        },
+
+        watch: {
+            async selectedPermissao(newVal) {
+                // Quando a permissão mudar para Almoxarife e já tiver usuário carregado, carregar locais
+                if (newVal && newVal.name === 'Almoxarife' && this.usuario?.id) {
+                    await this.carregarLocaisDoUsuario();
+                } else if (newVal && newVal.name !== 'Almoxarife') {
+                    // Se mudar para outra permissão, limpar locais selecionados
+                    this.locaisSelecionados = [];
+                }
             }
         },
     
@@ -63,6 +86,7 @@
             this.getPermissions();
             this.getEmpresas();
             this.getUsuario();
+            this.carregarLocais();
         },
     
         methods: {
@@ -199,7 +223,7 @@
                 if (this.route.params?.id) {
                     this.usuario = null;
                     this.setLoading(true);
-    
+
                     this.usuarioService
                         .get(this.route.params.id)
                         .then((response) => {
@@ -209,13 +233,18 @@
                             // Usar o método auxiliar para definir a permissão selecionada
                             // Isso garante que funciona mesmo se as permissões ainda não foram carregadas
                             this.setSelectedPermissao();
-    
+
                             // A URL da assinatura já vem do backend via UsuarioResource
                             // Se não vier, recalcular usando getSignatureUrl
                             if (this.usuario?.signature_path && !this.usuario?.signature_url) {
                                 this.usuario.signature_url = this.usuarioService.getSignatureUrl(
                                     this.usuario.signature_path
                                 );
+                            }
+
+                            // Carregar locais associados se for almoxarife
+                            if (this.isAlmoxarife && this.usuario.id) {
+                                this.carregarLocaisDoUsuario();
                             }
                         })
                         .catch((error) => {
@@ -235,6 +264,26 @@
                     this.usuario = { address: [] };
                     this.multiselectValue = [];
                     this.selectedPermissao = null;
+                    this.locaisSelecionados = [];
+                }
+            },
+
+            async carregarLocais() {
+                try {
+                    const { data } = await this.locationService.getAll({ per_page: 100 });
+                    this.locaisDisponiveis = (data.data || []).filter(loc => loc.active);
+                } catch (error) {
+                    console.error('Erro ao carregar locais:', error);
+                }
+            },
+
+            async carregarLocaisDoUsuario() {
+                if (!this.usuario?.id) return;
+                try {
+                    const { data } = await this.almoxarifeService.listByAlmoxarife(this.usuario.id);
+                    this.locaisSelecionados = (data.locations || []).map(loc => loc.id);
+                } catch (error) {
+                    console.error('Erro ao carregar locais do usuário:', error);
                 }
             },
     
@@ -364,15 +413,47 @@
     
                 this.usuarioService
                     .save(this.usuario, formData)
-                    .then((response) => {
+                    .then(async (response) => {
                         const saved = response?.data?.data;
-    
+                        const userId = saved?.id || this.usuario?.id;
+                        const isNewUser = !this.usuario?.id;
+
+                        // Se for almoxarife e tiver locais selecionados, salvar associações
+                        if (this.isAlmoxarife && userId && this.locaisSelecionados?.length > 0) {
+                            try {
+                                // Se for um novo usuário, aguardar um pouco para garantir que a permissão foi associada
+                                if (isNewUser) {
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                }
+                                await this.almoxarifeService.associateMultiple(userId, this.locaisSelecionados);
+                            } catch (error) {
+                                console.error('Erro ao associar locais:', error);
+                                // Não bloquear o salvamento do usuário se falhar a associação
+                                this.toast.add({
+                                    severity: ToastSeverity.WARN,
+                                    detail: 'Usuário salvo, mas houve erro ao associar locais. Você pode associar os locais na tela de "Gerenciar Almoxarifes".',
+                                    life: 5000
+                                });
+                            }
+                        } else if (this.isAlmoxarife && userId && this.locaisSelecionados?.length === 0) {
+                            // Se for almoxarife mas não tiver locais selecionados, remover todas as associações existentes
+                            try {
+                                const { data: existingData } = await this.almoxarifeService.listByAlmoxarife(userId);
+                                const existingLocationIds = (existingData.locations || []).map(loc => loc.id);
+                                if (existingLocationIds.length > 0) {
+                                    await this.almoxarifeService.disassociateMultiple(userId, existingLocationIds);
+                                }
+                            } catch (error) {
+                                console.error('Erro ao remover associações:', error);
+                            }
+                        }
+
                         this.toast.add({
                             severity: ToastSeverity.SUCCESS,
                             detail: saved?.id ? 'Dados alterados com sucesso!' : 'Dados inseridos com sucesso!',
                             life: 3000
                         });
-    
+
                         setTimeout(() => {
                             this.router.push({ name: 'usuarioList' });
                         }, 1200);
@@ -525,6 +606,32 @@
                                         v-tooltip.top="'Remover assinatura'"
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Locais para Almoxarife -->
+                        <div v-if="isAlmoxarife" class="field col-12">
+                            <div class="card p-3 bg-gray-50">
+                                <h6 class="mb-3 text-900">Locais de Estoque</h6>
+                                <p class="text-600 mb-3 text-sm">Selecione os locais de estoque que este almoxarife pode gerenciar.</p>
+                                <label for="locais">Locais</label>
+                                <MultiSelect
+                                    id="locais"
+                                    v-model="locaisSelecionados"
+                                    :options="locaisDisponiveis"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Selecione os locais"
+                                    :filter="true"
+                                    class="w-full"
+                                >
+                                    <template #option="slotProps">
+                                        <div>
+                                            <span>{{ slotProps.option.name }}</span>
+                                            <span v-if="slotProps.option.code" class="text-500 ml-2">({{ slotProps.option.code }})</span>
+                                        </div>
+                                    </template>
+                                </MultiSelect>
                             </div>
                         </div>
                     </div>
