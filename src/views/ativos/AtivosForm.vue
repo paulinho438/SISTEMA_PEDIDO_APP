@@ -309,13 +309,42 @@ export default {
         try {
           const { data } = await service.get(id);
           const asset = data.data || data;
+          
+          // Mapear todos os campos, incluindo IDs de relacionamentos
           Object.keys(form.value).forEach(key => {
             if (asset[key] !== undefined) {
               form.value[key] = asset[key];
             }
           });
+          
+          // Mapear relacionamentos caso os IDs não venham diretamente (fallback)
+          if (!asset.location_id && asset.location?.id) {
+            form.value.location_id = asset.location.id;
+          }
+          if (!asset.responsible_id && asset.responsible?.id) {
+            form.value.responsible_id = asset.responsible.id;
+          }
+          if (!asset.branch_id && asset.branch?.id) {
+            form.value.branch_id = asset.branch.id;
+          }
+          if (!asset.account_id && asset.account?.id) {
+            form.value.account_id = asset.account.id;
+          }
+          if (!asset.project_id && asset.project?.id) {
+            form.value.project_id = asset.project.id;
+          }
+          if (!asset.cost_center_id && asset.cost_center?.id) {
+            form.value.cost_center_id = asset.cost_center.id;
+          }
+          
           if (asset.acquisition_date) {
-            form.value.acquisition_date = new Date(asset.acquisition_date);
+            // Se a data está em formato dd/mm/yyyy, converter
+            if (typeof asset.acquisition_date === 'string' && asset.acquisition_date.includes('/')) {
+              const [day, month, year] = asset.acquisition_date.split('/');
+              form.value.acquisition_date = new Date(`${year}-${month}-${day}`);
+            } else {
+              form.value.acquisition_date = new Date(asset.acquisition_date);
+            }
           }
           
           // Carregar imagem
