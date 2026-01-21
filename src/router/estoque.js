@@ -82,6 +82,12 @@ const estoqueRoutes = [
                 path: 'transferencias',
                 name: 'estoqueTransferencias',
                 component: () => import('@/views/estoque/TransferenciasList.vue')
+            },
+            // Controle de Notas Fiscais
+            {
+                path: 'notas-fiscais',
+                name: 'estoqueNotasFiscais',
+                component: () => import('@/views/estoque/NotasFiscaisList.vue')
             }
         ]
     }
