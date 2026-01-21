@@ -45,10 +45,11 @@ const router = createRouter({
                         const hasStockDashboard = permissions.includes('view_estoque_dashboard');
                         const hasPurchaseDashboard = permissions.includes('view_dashboard');
                         
-                        if (hasStockDashboard) {
-                            return { name: 'estoqueDashboard' };
-                        } else if (hasPurchaseDashboard) {
+                        // Priorizar dashboard de compras se tiver ambas as permissões
+                        if (hasPurchaseDashboard) {
                             return { name: 'dashboard' };
+                        } else if (hasStockDashboard) {
+                            return { name: 'estoqueDashboard' };
                         } else {
                             return { name: 'welcome' };
                         }
