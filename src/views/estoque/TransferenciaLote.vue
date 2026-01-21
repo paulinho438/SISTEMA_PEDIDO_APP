@@ -375,6 +375,19 @@ export default {
       return '';
     };
 
+    const toggleItemSelecao = (estoque) => {
+      const index = itensSelecionados.value.findIndex(item => item.id === estoque.id);
+      if (index !== -1) {
+        // Remover da seleção
+        itensSelecionados.value.splice(index, 1);
+      } else {
+        // Adicionar à seleção
+        itensSelecionados.value.push({
+          ...estoque,
+          quantidade: Math.min(1, estoque.quantity_available)
+        });
+      }
+    };
 
     const removerItem = (index) => {
       itensSelecionados.value.splice(index, 1);
