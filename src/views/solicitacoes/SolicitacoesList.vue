@@ -121,6 +121,7 @@ import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useRouter } from 'vue-router';
 import SolicitacaoService from '@/service/SolicitacaoService';
+import PermissionsService from '@/service/PermissionsService';
 
 export default {
   name: 'CicomList',
@@ -128,6 +129,7 @@ export default {
     const toast = useToast();
     const confirm = useConfirm();
     const router = useRouter();
+    const permissionService = new PermissionsService();
 
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
@@ -135,6 +137,11 @@ export default {
     const perPage = ref(10);
     const paginaAtual = ref(1);
     const carregando = ref(false);
+
+    // Verificar se o usuário tem permissão para visualizar todas as solicitações
+    const podeVerTodas = computed(() => {
+      return permissionService.hasPermissions('view_all_solicitacoes');
+    });
 
     const mapaStatus = {
       aguardando: 'warning',
@@ -151,7 +158,14 @@ export default {
     const carregarSolicitacoes = async () => {
       try {
         carregando.value = true;
-        const { data } = await SolicitacaoService.list({ per_page: 100 });
+        
+        // Se não tiver permissão para ver todas, filtrar apenas as do usuário logado
+        const params = { per_page: 100 };
+        if (!podeVerTodas.value) {
+          params.my_requests = 'true';
+        }
+        
+        const { data } = await SolicitacaoService.list(params);
         solicitacoes.value = (data?.data || []).map((item) => ({
           id: item.id,
           numero: item.numero,
