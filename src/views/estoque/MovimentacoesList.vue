@@ -806,8 +806,11 @@ export default {
         return [...transferenciasLote, ...transferenciasAgrupadas];
       }
       
+      // Verificar se há filtro de tipo ativo (mas não é transferência)
+      const temFiltroTipo = filtros.value.movement_type && !ehTransferencia.value;
+      
       // Combinar tudo: movimentações normais, transferências antigas agrupadas e transferências em lote
-      // SEMPRE incluir transferências em lote, mesmo sem filtro
+      // Incluir transferências apenas se NÃO houver filtro de tipo ativo
       const todasMovimentacoes = [
         ...movimentacoesNormais.map(m => ({
           ...m,
@@ -816,8 +819,10 @@ export default {
           tipo_label: tiposMovimento.find(t => t.value === m.movement_type)?.label || m.movement_type,
           is_lote: false,
         })),
-        ...transferenciasAgrupadas,
-        ...transferenciasLote, // SEMPRE incluir transferências em lote
+        // Incluir transferências antigas agrupadas apenas se não houver filtro de tipo
+        ...(temFiltroTipo ? [] : transferenciasAgrupadas),
+        // Incluir transferências em lote apenas se não houver filtro de tipo
+        ...(temFiltroTipo ? [] : transferenciasLote),
       ];
       
       // Ordenar por data (mais recente primeiro)
