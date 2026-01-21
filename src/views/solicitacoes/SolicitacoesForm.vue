@@ -219,39 +219,117 @@
       v-model:visible="modalCadastroProduto.visivel" 
       modal 
       header="Cadastrar Novo Produto" 
-      :style="{ width: '50vw', maxWidth: '700px' }" 
+      :style="{ width: '90vw', maxWidth: '1000px' }" 
       appendTo="body"
     >
       <div class="grid formgrid">
-        <div class="col-12">
-          <label class="block text-600 mb-2">Descrição <span class="text-red-500">*</span></label>
-          <InputText 
-            v-model="modalCadastroProduto.form.description" 
-            placeholder="Digite a descrição do produto" 
-            class="w-full" 
-            :disabled="modalCadastroProduto.saving"
-          />
-          <small class="text-500">O código será gerado automaticamente pelo sistema</small>
+        <!-- Coluna Principal -->
+        <div class="col-12 lg:col-8">
+          <div class="grid">
+            <div class="col-12">
+              <label class="block text-600 mb-2">Descrição <span class="text-red-500">*</span></label>
+              <InputText 
+                v-model="modalCadastroProduto.form.description" 
+                placeholder="Digite a descrição do produto" 
+                class="w-full" 
+                :disabled="modalCadastroProduto.saving"
+              />
+              <small class="text-500">O código será gerado automaticamente pelo sistema</small>
+            </div>
+
+            <div class="col-12 md:col-6">
+              <label class="block text-600 mb-2">Referência</label>
+              <InputText 
+                v-model="modalCadastroProduto.form.reference" 
+                placeholder="Referência do produto" 
+                class="w-full" 
+                :disabled="modalCadastroProduto.saving"
+              />
+            </div>
+
+            <div class="col-12 md:col-6">
+              <label class="block text-600 mb-2">Unidade de Medida <span class="text-red-500">*</span></label>
+              <InputText 
+                v-model="modalCadastroProduto.form.unit" 
+                placeholder="Ex: UN, KG, PC" 
+                class="w-full" 
+                :disabled="modalCadastroProduto.saving"
+              />
+            </div>
+
+            <!-- Campos de Estoque -->
+            <div class="col-12">
+              <h6 class="mb-3">Controle de Estoque</h6>
+            </div>
+            <div class="col-12 md:col-6">
+              <label class="block text-600 mb-2">Estoque Mínimo</label>
+              <InputNumber 
+                v-model="modalCadastroProduto.form.min_stock" 
+                class="w-full" 
+                :disabled="modalCadastroProduto.saving"
+                :min="0"
+                :useGrouping="false"
+                :minFractionDigits="0"
+                :maxFractionDigits="0"
+              />
+            </div>
+            <div class="col-12 md:col-6">
+              <label class="block text-600 mb-2">Estoque Máximo</label>
+              <InputNumber 
+                v-model="modalCadastroProduto.form.max_stock" 
+                class="w-full" 
+                :disabled="modalCadastroProduto.saving"
+                :min="0"
+                :useGrouping="false"
+                :minFractionDigits="0"
+                :maxFractionDigits="0"
+              />
+            </div>
+          </div>
         </div>
 
-        <div class="col-12 md:col-6">
-          <label class="block text-600 mb-2">Referência</label>
-          <InputText 
-            v-model="modalCadastroProduto.form.reference" 
-            placeholder="Referência do produto" 
-            class="w-full" 
-            :disabled="modalCadastroProduto.saving"
-          />
-        </div>
-
-        <div class="col-12 md:col-6">
-          <label class="block text-600 mb-2">Unidade de Medida <span class="text-red-500">*</span></label>
-          <InputText 
-            v-model="modalCadastroProduto.form.unit" 
-            placeholder="Ex: UN, KG, PC" 
-            class="w-full" 
-            :disabled="modalCadastroProduto.saving"
-          />
+        <!-- Sidebar - Imagem -->
+        <div class="col-12 lg:col-4">
+          <div class="card p-3">
+            <h6 class="mb-3">Imagem do Produto</h6>
+            
+            <!-- Preview da Imagem -->
+            <div v-if="modalCadastroProduto.imageUrl" class="mb-3 text-center">
+              <img 
+                :src="modalCadastroProduto.imageUrl" 
+                alt="Imagem do produto" 
+                class="w-full border-round"
+                style="max-height: 300px; object-fit: contain;"
+              />
+            </div>
+            
+            <!-- Upload de Imagem -->
+            <div class="flex flex-column gap-2">
+              <FileUpload
+                mode="basic"
+                accept="image/*"
+                :maxFileSize="5120000"
+                :auto="false"
+                chooseLabel="Adicionar Imagem"
+                @select="onImageSelectModalProduto"
+                class="w-full"
+                :disabled="modalCadastroProduto.saving"
+              />
+              
+              <Button
+                v-if="modalCadastroProduto.imageUrl"
+                label="Remover Imagem"
+                icon="pi pi-times"
+                class="p-button-danger p-button-outlined w-full"
+                @click="removerImagemModalProduto"
+                :disabled="modalCadastroProduto.saving"
+              />
+            </div>
+            
+            <div v-if="!modalCadastroProduto.imageUrl" class="text-center text-500 py-4">
+              Nenhuma imagem selecionada
+            </div>
+          </div>
         </div>
       </div>
 
@@ -497,6 +575,7 @@ import StockProductService from '@/service/StockProductService';
 import StockService from '@/service/StockService';
 import EmpresaService from '@/service/EmpresaService';
 import Dropdown from 'primevue/dropdown';
+import FileUpload from 'primevue/fileupload';
 
 export default {
   name: 'CadastroSolicitacao',
@@ -716,10 +795,14 @@ export default {
     const modalCadastroProduto = reactive({
       visivel: false,
       saving: false,
+      imageUrl: null,
+      selectedFile: null,
       form: {
         description: '',
         reference: '',
-        unit: 'UN'
+        unit: 'UN',
+        min_stock: null,
+        max_stock: null,
       }
     });
 
@@ -825,8 +908,12 @@ export default {
       modalCadastroProduto.form = {
         description: modalProdutos.busca || '',
         reference: '',
-        unit: 'UN'
+        unit: 'UN',
+        min_stock: null,
+        max_stock: null,
       };
+      modalCadastroProduto.imageUrl = null;
+      modalCadastroProduto.selectedFile = null;
       modalCadastroProduto.visivel = true;
     };
 
@@ -835,8 +922,43 @@ export default {
       modalCadastroProduto.form = {
         description: '',
         reference: '',
-        unit: 'UN'
+        unit: 'UN',
+        min_stock: null,
+        max_stock: null,
       };
+      modalCadastroProduto.imageUrl = null;
+      modalCadastroProduto.selectedFile = null;
+    };
+
+    const onImageSelectModalProduto = (event) => {
+      const file = event.files[0];
+      if (!file) return;
+
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: 'Por favor, selecione um arquivo de imagem', life: 3000 });
+        return;
+      }
+
+      // Validar tamanho (5MB)
+      if (file.size > 5120000) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: 'A imagem deve ter no máximo 5MB', life: 3000 });
+        return;
+      }
+
+      modalCadastroProduto.selectedFile = file;
+      
+      // Criar preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        modalCadastroProduto.imageUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const removerImagemModalProduto = () => {
+      modalCadastroProduto.imageUrl = null;
+      modalCadastroProduto.selectedFile = null;
     };
 
     const validarFormProduto = () => {
@@ -858,10 +980,33 @@ export default {
       try {
         modalCadastroProduto.saving = true;
 
+        // Preparar dados do produto
+        const productData = {
+          ...modalCadastroProduto.form,
+          active: true, // Produto sempre ativo ao criar
+        };
+
         // Cadastrar produto no sistema e no Protheus
-        const response = await stockProductService.saveWithProtheus(modalCadastroProduto.form);
+        const response = await stockProductService.saveWithProtheus(productData);
 
         const produto = response.data?.data || response.data;
+        const productId = produto.id;
+
+        // Se houver imagem selecionada, fazer upload
+        if (modalCadastroProduto.selectedFile && productId) {
+          try {
+            await stockProductService.uploadImage(productId, modalCadastroProduto.selectedFile);
+          } catch (imageError) {
+            console.error('Erro ao fazer upload da imagem:', imageError);
+            // Não falha o cadastro se o upload da imagem falhar
+            toast.add({
+              severity: 'warn',
+              summary: 'Aviso',
+              detail: 'Produto cadastrado, mas houve erro ao enviar a imagem',
+              life: 3000
+            });
+          }
+        }
 
         // Adicionar o produto à lista de produtos do modal (formato Protheus)
         const produtoProtheus = {
@@ -1402,7 +1547,9 @@ export default {
       route,
       empresasLocais,
       carregandoEmpresas,
-      errors
+      errors,
+      onImageSelectModalProduto,
+      removerImagemModalProduto
     };
   }
 };

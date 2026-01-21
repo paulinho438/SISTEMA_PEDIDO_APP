@@ -87,6 +87,19 @@
         </DataTable>
       </div>
 
+      <!-- Mensagem de Reprovação -->
+      <div v-if="solicitacao.status?.slug === 'reprovado' && mensagensReprovacao.length > 0" class="mt-4">
+        <Message severity="error" :closable="false">
+          <div class="flex flex-column gap-2">
+            <strong class="block">Motivo da Reprovação:</strong>
+            <div v-for="(mensagem, index) in mensagensReprovacao" :key="mensagem.id || index" class="flex flex-column">
+              <div class="text-700">{{ mensagem.mensagem }}</div>
+              <small class="text-500">Por: {{ mensagem.autor }} em {{ mensagem.data }}</small>
+            </div>
+          </div>
+        </Message>
+      </div>
+
       <div class="mt-4">
         <label class="block text-600 mb-1">Observação</label>
         <p class="text-900">{{ solicitacao.observacao || '-' }}</p>
@@ -98,7 +111,7 @@
 </template>
 
 <script>
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import SolicitacaoService from '@/service/SolicitacaoService';
@@ -108,6 +121,7 @@ import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import Toast from 'primevue/toast';
+import Message from 'primevue/message';
 
 export default {
   name: 'SolicitacoesView',
@@ -118,6 +132,7 @@ export default {
     Tag,
     ProgressSpinner,
     Toast,
+    Message,
   },
   setup() {
     const router = useRouter();
@@ -135,10 +150,19 @@ export default {
       centro_custo: null,
       itens: [],
       status: null,
+      mensagens: [],
     });
 
     const carregando = ref(false);
     const carregandoPDF = ref(false);
+
+    // Filtrar mensagens de reprovação
+    const mensagensReprovacao = computed(() => {
+      if (!solicitacao.mensagens || !Array.isArray(solicitacao.mensagens)) {
+        return [];
+      }
+      return solicitacao.mensagens.filter(msg => msg.tipo === 'reprova');
+    });
 
     const formatarCentroCusto = (centroCusto) => {
       if (!centroCusto) return '-';
@@ -216,6 +240,7 @@ export default {
           centro_custo: item.centro_custo || null,
         }));
         solicitacao.status = detalhe.status || null;
+        solicitacao.mensagens = detalhe.mensagens || [];
       } catch (error) {
         console.error('Erro ao carregar solicitação', error);
         toast.add({
@@ -269,6 +294,7 @@ export default {
       getStyleStatus,
       imprimirPDF,
       voltar,
+      mensagensReprovacao,
     };
   }
 };
