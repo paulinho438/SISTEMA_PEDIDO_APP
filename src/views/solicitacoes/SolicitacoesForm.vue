@@ -512,7 +512,11 @@ export default {
 
     const form = ref({
       numero: null,
-      data: new Date(), // Data atual automaticamente
+      data: (() => {
+        // Criar data local sem hora para evitar problemas de timezone
+        const hoje = new Date();
+        return new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      })(),
       solicitante: null,
       empresa: null,
       local: '',
@@ -1283,7 +1287,11 @@ export default {
         if (Number.isNaN(date.getTime())) {
           return null;
         }
-        return date.toISOString().slice(0, 10);
+        // Usar data local para evitar problemas de timezone
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       };
 
       // Obter dados do usuário e empresa do store

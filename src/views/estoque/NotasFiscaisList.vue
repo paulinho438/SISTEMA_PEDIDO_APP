@@ -58,6 +58,11 @@
           {{ slotProps.data.supplier_name || '-' }}
         </template>
       </Column>
+      <Column field="order.order_number" header="Nº Pedido" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.order?.order_number || '-' }}
+        </template>
+      </Column>
       <Column field="items_count" header="Qtd. Itens" sortable>
         <template #body="slotProps">
           {{ slotProps.data.items_count || 0 }}
@@ -111,6 +116,9 @@
           </div>
           <div class="col-12 md:col-6">
             <strong>CNPJ/CPF:</strong> {{ modalDetalhes.nota.supplier_document || '-' }}
+          </div>
+          <div class="col-12 md:col-6" v-if="modalDetalhes.nota.order?.order_number">
+            <strong>Nº Pedido:</strong> {{ modalDetalhes.nota.order.order_number }}
           </div>
           <div class="col-12 md:col-6">
             <strong>Criado Por:</strong> {{ modalDetalhes.nota.created_by_user?.nome_completo || '-' }}
