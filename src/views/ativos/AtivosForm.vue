@@ -313,28 +313,33 @@ export default {
           // Mapear todos os campos, incluindo IDs de relacionamentos
           Object.keys(form.value).forEach(key => {
             if (asset[key] !== undefined) {
-              form.value[key] = asset[key];
+              // Converter IDs para number para garantir compatibilidade com dropdowns
+              if (key.endsWith('_id') && asset[key] !== null) {
+                form.value[key] = parseInt(asset[key]);
+              } else {
+                form.value[key] = asset[key];
+              }
             }
           });
           
           // Mapear relacionamentos caso os IDs não venham diretamente (fallback)
-          if (!asset.location_id && asset.location?.id) {
-            form.value.location_id = asset.location.id;
+          if (!form.value.location_id && asset.location?.id) {
+            form.value.location_id = parseInt(asset.location.id);
           }
-          if (!asset.responsible_id && asset.responsible?.id) {
-            form.value.responsible_id = asset.responsible.id;
+          if (!form.value.responsible_id && asset.responsible?.id) {
+            form.value.responsible_id = parseInt(asset.responsible.id);
           }
-          if (!asset.branch_id && asset.branch?.id) {
-            form.value.branch_id = asset.branch.id;
+          if (!form.value.branch_id && asset.branch?.id) {
+            form.value.branch_id = parseInt(asset.branch.id);
           }
-          if (!asset.account_id && asset.account?.id) {
-            form.value.account_id = asset.account.id;
+          if (!form.value.account_id && asset.account?.id) {
+            form.value.account_id = parseInt(asset.account.id);
           }
-          if (!asset.project_id && asset.project?.id) {
-            form.value.project_id = asset.project.id;
+          if (!form.value.project_id && asset.project?.id) {
+            form.value.project_id = parseInt(asset.project.id);
           }
-          if (!asset.cost_center_id && asset.cost_center?.id) {
-            form.value.cost_center_id = asset.cost_center.id;
+          if (!form.value.cost_center_id && asset.cost_center?.id) {
+            form.value.cost_center_id = parseInt(asset.cost_center.id);
           }
           
           if (asset.acquisition_date) {
@@ -361,9 +366,12 @@ export default {
 
     const carregarAuxiliares = async () => {
       try {
+        // Se estiver editando, carregar todos (incluindo inativos) para garantir que o item selecionado apareça
+        const all = id ? { all: true } : {};
+        
         const [filiaisRes, locaisRes, usuariosRes, centrosRes, condicoesRes, descricoesRes, contasRes, projetosRes] = await Promise.all([
-          new AssetAuxiliaryService('filiais').getAll(),
-          new AssetAuxiliaryService('locais').getAll(),
+          new AssetAuxiliaryService('filiais').getAll(all),
+          new AssetAuxiliaryService('locais').getAll(all),
           new UserService().getAll(),
           new CostcenterService().getAll(),
           new AssetAuxiliaryService('condicoes-uso').getAll(),
@@ -427,9 +435,13 @@ export default {
       router.push(`/ativos/${id}`);
     };
 
-    onMounted(() => {
-      carregarAuxiliares();
-      if (id) carregar();
+    onMounted(async () => {
+      // Se estiver editando, carregar auxiliares primeiro para garantir que os itens estejam disponíveis
+      await carregarAuxiliares();
+      if (id) {
+        // Aguardar um tick para garantir que os dropdowns estão prontos
+        await carregar();
+      }
     });
 
     return {
