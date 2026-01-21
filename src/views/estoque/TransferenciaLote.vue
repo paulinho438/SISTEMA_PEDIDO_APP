@@ -110,7 +110,7 @@
             selectionMode="multiple"
             :selectAll="false"
             @rowSelect="onRowSelect"
-            @rowUnselect="onRowUnselectPrevent"
+            @rowUnselect="onRowUnselect"
             @selectAllChange="onSelectAll"
             :rowClass="getRowClass"
           >
@@ -402,16 +402,11 @@ export default {
       }
     };
 
-    const onRowUnselectPrevent = (event) => {
-      // Prevenir desmarcação direta - só permite desmarcar removendo da lista da direita
+    const onRowUnselect = (event) => {
       const estoque = event.data;
-      if (isItemSelecionado(estoque)) {
-        // Reverter a desmarcação - manter o item selecionado
-        setTimeout(() => {
-          if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
-            selecaoEstoques.value.push(estoque);
-          }
-        }, 0);
+      const index = itensSelecionados.value.findIndex(item => item.id === estoque.id);
+      if (index !== -1) {
+        itensSelecionados.value.splice(index, 1);
       }
     };
 
@@ -634,7 +629,7 @@ export default {
       carregarEstoques,
       aplicarFiltro,
       onRowSelect,
-      onRowUnselectPrevent,
+      onRowUnselect,
       onSelectAll,
       removerItem,
       validarQuantidade,
@@ -668,6 +663,15 @@ export default {
 
 :deep(.row-selected:hover td) {
   color: #ef6c00 !important;
+}
+
+/* Remover hover azul padrão do PrimeVue */
+:deep(.p-datatable-tbody > tr:not(.row-selected):hover) {
+  background-color: transparent !important;
+}
+
+:deep(.p-datatable-tbody > tr:not(.row-selected):hover td) {
+  background-color: transparent !important;
 }
 </style>
 
