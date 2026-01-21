@@ -411,10 +411,12 @@ export default {
     };
 
     const isItemSelecionado = (estoque) => {
+      // Verificar se o item está na lista de itens selecionados (lista da direita)
       return itensSelecionados.value.some(item => item.id === estoque.id);
     };
 
     const getRowClass = (data) => {
+      // Apenas aplicar classe se o item estiver realmente na lista da direita
       if (isItemSelecionado(data)) {
         return 'row-selected';
       }
@@ -647,6 +649,7 @@ export default {
   font-size: 0.875rem;
 }
 
+/* Apenas linhas selecionadas (que estão na lista da direita) */
 :deep(.row-selected) {
   background-color: #fff3e0 !important;
   border-left: 3px solid #ff9800 !important;
@@ -665,12 +668,51 @@ export default {
   color: #ef6c00 !important;
 }
 
-/* Remover hover azul padrão do PrimeVue */
+/* Remover TODOS os hovers e cores padrão do PrimeVue */
+:deep(.p-datatable-tbody > tr) {
+  background-color: transparent !important;
+}
+
+:deep(.p-datatable-tbody > tr:hover) {
+  background-color: transparent !important;
+}
+
+:deep(.p-datatable-tbody > tr:hover td) {
+  background-color: transparent !important;
+}
+
+/* Remover fundo azul do PrimeVue quando checkbox está marcado */
+:deep(.p-datatable-tbody > tr.p-highlight) {
+  background-color: transparent !important;
+}
+
+:deep(.p-datatable-tbody > tr.p-highlight:hover) {
+  background-color: transparent !important;
+}
+
+:deep(.p-datatable-tbody > tr.p-highlight td) {
+  background-color: transparent !important;
+}
+
+/* Garantir que apenas row-selected tenha cor - remover qualquer outra cor */
+:deep(.p-datatable-tbody > tr:not(.row-selected)) {
+  background-color: transparent !important;
+}
+
 :deep(.p-datatable-tbody > tr:not(.row-selected):hover) {
   background-color: transparent !important;
 }
 
-:deep(.p-datatable-tbody > tr:not(.row-selected):hover td) {
+:deep(.p-datatable-tbody > tr:not(.row-selected) td) {
+  background-color: transparent !important;
+}
+
+/* Remover qualquer estilo de seleção padrão */
+:deep(.p-datatable-tbody > tr[aria-selected="true"]:not(.row-selected)) {
+  background-color: transparent !important;
+}
+
+:deep(.p-datatable-tbody > tr[aria-selected="true"]:not(.row-selected) td) {
   background-color: transparent !important;
 }
 </style>
