@@ -110,8 +110,9 @@
             selectionMode="multiple"
             :selectAll="false"
             @rowSelect="onRowSelect"
-            @rowUnselect="onRowUnselect"
+            @rowUnselect="onRowUnselectPrevent"
             @selectAllChange="onSelectAll"
+            :rowClass="getRowClass"
           >
             <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
             <Column field="product.code" header="Código" sortable>
@@ -401,17 +402,28 @@ export default {
       }
     };
 
-    const onRowUnselect = (event) => {
+    const onRowUnselectPrevent = (event) => {
+      // Prevenir desmarcação direta - só permite desmarcar removendo da lista da direita
       const estoque = event.data;
-      const index = itensSelecionados.value.findIndex(item => item.id === estoque.id);
-      if (index !== -1) {
-        itensSelecionados.value.splice(index, 1);
+      if (isItemSelecionado(estoque)) {
+        // Reverter a desmarcação - manter o item selecionado
+        setTimeout(() => {
+          if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
+            selecaoEstoques.value.push(estoque);
+          }
+        }, 0);
       }
-      // Remover da seleção da tabela (desmarcar checkbox)
-      const indexSelecao = selecaoEstoques.value.findIndex(e => e.id === estoque.id);
-      if (indexSelecao !== -1) {
-        selecaoEstoques.value.splice(indexSelecao, 1);
+    };
+
+    const isItemSelecionado = (estoque) => {
+      return itensSelecionados.value.some(item => item.id === estoque.id);
+    };
+
+    const getRowClass = (data) => {
+      if (isItemSelecionado(data)) {
+        return 'row-selected';
       }
+      return '';
     };
 
     const onSelectAll = (event) => {
@@ -438,7 +450,7 @@ export default {
       const item = itensSelecionados.value[index];
       itensSelecionados.value.splice(index, 1);
       
-      // Remover da seleção da tabela (isso desmarca o checkbox)
+      // Remover da seleção da tabela (isso desmarca o checkbox) - ÚNICA FORMA DE DESMARCAR
       const indexSelecao = selecaoEstoques.value.findIndex(e => e.id === item.id);
       if (indexSelecao !== -1) {
         selecaoEstoques.value.splice(indexSelecao, 1);
@@ -622,12 +634,14 @@ export default {
       carregarEstoques,
       aplicarFiltro,
       onRowSelect,
-      onRowUnselect,
+      onRowUnselectPrevent,
       onSelectAll,
       removerItem,
       validarQuantidade,
       confirmarTransferencia,
       gerarDocumento,
+      isItemSelecionado,
+      getRowClass,
     };
   },
 };
@@ -636,6 +650,14 @@ export default {
 <style scoped>
 .p-datatable-sm {
   font-size: 0.875rem;
+}
+
+:deep(.row-selected) {
+  background-color: #e3f2fd !important;
+}
+
+:deep(.row-selected:hover) {
+  background-color: #bbdefb !important;
 }
 </style>
 
