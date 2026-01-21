@@ -43,11 +43,11 @@
       </div>
       <div class="col-12 md:col-3">
         <label for="dataDe">Data De</label>
-        <Calendar id="dataDe" v-model="filtros.date_from" dateFormat="yy-mm-dd" class="w-full" showClear />
+        <Calendar id="dataDe" v-model="filtros.date_from" dateFormat="dd/mm/yy" class="w-full" showClear />
       </div>
       <div class="col-12 md:col-3">
         <label for="dataAte">Data Até</label>
-        <Calendar id="dataAte" v-model="filtros.date_to" dateFormat="yy-mm-dd" class="w-full" showClear />
+        <Calendar id="dataAte" v-model="filtros.date_to" dateFormat="dd/mm/yy" class="w-full" showClear />
       </div>
       <div class="col-12 md:col-3">
         <label>&nbsp;</label>
@@ -658,7 +658,7 @@ export default {
     };
 
     const ehTransferencia = computed(() => {
-      const tipo = filtros.value.movement_type;
+      const tipo = filtrosAplicados.value.movement_type;
       // Pode ser string ou objeto, então verificamos ambos
       if (typeof tipo === 'string') {
         return tipo === 'transferencia';
@@ -673,11 +673,28 @@ export default {
       try {
         carregando.value = true;
         
+        // Atualizar filtros aplicados com os valores atuais dos filtros
+        filtrosAplicados.value = {
+          movement_type: filtros.value.movement_type,
+          date_from: filtros.value.date_from,
+          date_to: filtros.value.date_to,
+        };
+        
         // Sempre buscar transferências em lote (para mostrar o ícone de olho quando necessário)
         const paramsTransferencias = {};
         // Aplicar filtro de data se houver
-        if (filtros.value.date_from) paramsTransferencias.date_from = new Date(filtros.value.date_from).toISOString().split('T')[0];
-        if (filtros.value.date_to) paramsTransferencias.date_to = new Date(filtros.value.date_to).toISOString().split('T')[0];
+        if (filtrosAplicados.value.date_from) {
+          const dateFrom = filtrosAplicados.value.date_from instanceof Date 
+            ? filtrosAplicados.value.date_from 
+            : new Date(filtrosAplicados.value.date_from);
+          paramsTransferencias.date_from = dateFrom.toISOString().split('T')[0];
+        }
+        if (filtrosAplicados.value.date_to) {
+          const dateTo = filtrosAplicados.value.date_to instanceof Date 
+            ? filtrosAplicados.value.date_to 
+            : new Date(filtrosAplicados.value.date_to);
+          paramsTransferencias.date_to = dateTo.toISOString().split('T')[0];
+        }
         
         try {
           const { data } = await transferService.getAll({ ...paramsTransferencias, per_page: 100 });
@@ -689,9 +706,19 @@ export default {
         }
         
         // Buscar movimentações normais
-        const params = { ...filtros.value, per_page: 100 };
-        if (params.date_from) params.date_from = new Date(params.date_from).toISOString().split('T')[0];
-        if (params.date_to) params.date_to = new Date(params.date_to).toISOString().split('T')[0];
+        const params = { ...filtrosAplicados.value, per_page: 100 };
+        if (params.date_from) {
+          const dateFrom = params.date_from instanceof Date 
+            ? params.date_from 
+            : new Date(params.date_from);
+          params.date_from = dateFrom.toISOString().split('T')[0];
+        }
+        if (params.date_to) {
+          const dateTo = params.date_to instanceof Date 
+            ? params.date_to 
+            : new Date(params.date_to);
+          params.date_to = dateTo.toISOString().split('T')[0];
+        }
         
         // Se o filtro for transferência, não buscar movimentações individuais
         if (!ehTransferencia.value) {
@@ -807,7 +834,7 @@ export default {
       }
       
       // Verificar se há filtro de tipo ativo (mas não é transferência)
-      const temFiltroTipo = filtros.value.movement_type && !ehTransferencia.value;
+      const temFiltroTipo = filtrosAplicados.value.movement_type && !ehTransferencia.value;
       
       // Combinar tudo: movimentações normais, transferências antigas agrupadas e transferências em lote
       // Incluir transferências apenas se NÃO houver filtro de tipo ativo
