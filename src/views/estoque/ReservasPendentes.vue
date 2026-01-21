@@ -99,115 +99,151 @@
     </DataTable>
 
     <!-- Modal de Dar Saída -->
-    <Dialog v-model:visible="modalSaida.visivel" header="Dar Saída - Reservas do Solicitante" :modal="true" :style="{ width: '900px' }">
-      <div v-if="carregandoReservasSolicitante" class="flex justify-content-center align-items-center" style="min-height: 200px;">
-        <ProgressSpinner />
-      </div>
-      <div v-else-if="reservasSolicitante.length === 0" class="text-center p-4">
-        <p>Nenhuma reserva encontrada para este solicitante.</p>
-      </div>
-      <div v-else>
-        <div class="mb-4">
+    <Dialog v-model:visible="modalSaida.visivel" header="Dar Saída do Produto" :modal="true" :style="{ width: '600px' }">
+      <div class="grid">
+        <div class="col-12">
+          <div class="mb-2">
+            <strong>Produto:</strong> {{ estoqueSelecionado?.product?.description }}
+          </div>
+          <div class="mb-2">
+            <strong>Local:</strong> {{ estoqueSelecionado?.location?.name }}
+          </div>
+          <div class="mb-3">
+            <strong>Reservado:</strong> <span class="text-orange-600">{{ formatarQuantidade(estoqueSelecionado?.quantity_reserved) }}</span>
+          </div>
+        </div>
+        <div class="col-12">
+          <label>Quantidade a Dar Saída *</label>
+          <InputNumber
+            v-model="formSaida.quantidade"
+            :min="0.0001"
+            :max="estoqueSelecionado?.quantity_reserved || 0"
+            :step="0.0001"
+            class="w-full"
+            :useGrouping="false"
+          />
+          <small class="text-500">Máximo reservado: {{ formatarQuantidade(estoqueSelecionado?.quantity_reserved) }}</small>
+        </div>
+        <div class="col-12">
           <div class="flex align-items-center gap-2 mb-3">
-            <i class="pi pi-user text-primary" style="font-size: 1.5rem;"></i>
-            <div>
-              <strong>Solicitante:</strong> {{ solicitanteAtual?.user_name || 'N/A' }}
+            <Checkbox v-model="formSaida.criarAtivo" inputId="criarAtivo" :binary="true" />
+            <label for="criarAtivo" class="cursor-pointer">Criar ativo ao dar saída</label>
+          </div>
+        </div>
+
+        <!-- Formulário de Ativo (se criarAtivo estiver marcado) -->
+        <template v-if="formSaida.criarAtivo">
+          <div class="col-12">
+            <Divider />
+            <h6 class="mb-3">Dados do Ativo</h6>
+          </div>
+          <div class="col-12 md:col-6">
+            <label>Filial</label>
+            <Dropdown
+              v-model="formSaida.assetData.branch_id"
+              :options="filiais"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Selecione"
+              class="w-full"
+              :filter="true"
+              filterPlaceholder="Buscar filial"
+              showClear
+            >
+              <template #empty>Nenhuma filial encontrada</template>
+            </Dropdown>
+          </div>
+          <div class="col-12 md:col-6">
+            <label>Local do Ativo</label>
+            <Dropdown
+              v-model="formSaida.assetData.location_id"
+              :options="locais"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Selecione"
+              class="w-full"
+              showClear
+            />
+          </div>
+          <div class="col-12 md:col-6">
+            <label>Responsável</label>
+            <Dropdown
+              v-model="formSaida.assetData.responsible_id"
+              :options="usuarios || []"
+              optionLabel="nome_completo"
+              optionValue="id"
+              placeholder="Selecione"
+              class="w-full"
+              showClear
+            />
+          </div>
+          <div class="col-12 md:col-6">
+            <label>Centro de Custo</label>
+            <div class="p-inputgroup">
+              <InputText
+                :value="centroCustoLabel(formSaida.assetData.cost_center_selected)"
+                placeholder="Selecione o centro de custo"
+                readonly
+                class="w-full"
+              />
+              <Button
+                icon="pi pi-search"
+                class="p-button-outlined"
+                @click="abrirModalCentroCusto"
+              />
+              <Button
+                v-if="formSaida.assetData.cost_center_selected"
+                icon="pi pi-times"
+                class="p-button-outlined p-button-danger"
+                @click="limparCentroCusto"
+              />
             </div>
           </div>
-          <div class="text-500">
-            Selecione os itens e quantidades que deseja dar saída. O termo de responsabilidade será gerado automaticamente.
+          <div class="col-12 md:col-6">
+            <label>Valor (R$) *</label>
+            <InputNumber
+              v-model="formSaida.assetData.value_brl"
+              mode="currency"
+              currency="BRL"
+              locale="pt-BR"
+              :min="0"
+              class="w-full"
+            />
           </div>
-        </div>
+          <div class="col-12 md:col-6">
+            <label>Data de Aquisição *</label>
+            <Calendar
+              v-model="formSaida.assetData.acquisition_date"
+              dateFormat="yy-mm-dd"
+              class="w-full"
+              :showIcon="true"
+            />
+          </div>
+          <div class="col-12">
+            <label>Descrição do Ativo</label>
+            <Textarea
+              v-model="formSaida.assetData.description"
+              class="w-full"
+              rows="2"
+              :placeholder="estoqueSelecionado?.product?.description || 'Descrição do ativo'"
+            />
+          </div>
+        </template>
 
-        <DataTable 
-          :value="reservasSolicitante" 
-          responsiveLayout="scroll"
-          :paginator="false"
-          class="p-datatable-sm"
-        >
-          <Column style="width: 50px">
-            <template #header>
-              <Checkbox 
-                :modelValue="todosSelecionados" 
-                :binary="true"
-                @update:modelValue="selecionarTodos"
-              />
-            </template>
-            <template #body="slotProps">
-              <Checkbox 
-                :modelValue="itemSelecionado(slotProps.data.id)" 
-                :binary="true"
-                @update:modelValue="(value) => toggleSelecionarItem(slotProps.data.id, value)"
-              />
-            </template>
-          </Column>
-          
-          <Column field="product.description" header="Produto" sortable>
-            <template #body="slotProps">
-              <div>
-                <strong>{{ slotProps.data.product?.description }}</strong>
-                <div class="text-500 text-sm" v-if="slotProps.data.product?.code">
-                  Código: {{ slotProps.data.product.code }}
-                </div>
-              </div>
-            </template>
-          </Column>
-          
-          <Column field="location.name" header="Local" sortable>
-            <template #body="slotProps">
-              {{ slotProps.data.location?.name }}
-            </template>
-          </Column>
-          
-          <Column field="reservation_date" header="Data da Reserva" sortable>
-            <template #body="slotProps">
-              {{ slotProps.data.reservation_date }}
-            </template>
-          </Column>
-          
-          <Column field="quantity_reserved" header="Reservado" sortable>
-            <template #body="slotProps">
-              <span class="text-orange-600 font-semibold">{{ formatarQuantidade(slotProps.data.quantity_reserved) }}</span>
-            </template>
-          </Column>
-          
-          <Column header="Quantidade a Dar Saída" style="width: 200px">
-            <template #body="slotProps">
-              <InputNumber
-                v-model="formSaida.itensSelecionados[slotProps.data.id]"
-                :min="0.0001"
-                :max="slotProps.data.quantity_reserved || 0"
-                :step="0.0001"
-                :disabled="!itemSelecionado(slotProps.data.id)"
-                class="w-full"
-                :useGrouping="false"
-                @update:modelValue="atualizarQuantidade(slotProps.data.id, $event)"
-                @blur="validarQuantidade(slotProps.data.id, $event)"
-              />
-            </template>
-          </Column>
-        </DataTable>
-
-        <div class="mt-4">
-          <label>Observação Geral</label>
-          <Textarea 
-            v-model="formSaida.observacao" 
-            class="w-full" 
-            rows="3" 
-            placeholder="Informe observações sobre esta saída (opcional)..." 
-          />
+        <div class="col-12">
+          <label>Observação</label>
+          <Textarea v-model="formSaida.observacao" class="w-full" rows="3" placeholder="Informe observações sobre esta saída..." />
         </div>
       </div>
-      
       <template #footer>
         <Button label="Cancelar" class="p-button-outlined" @click="modalSaida.visivel = false" />
         <Button
-          label="Confirmar Saída e Gerar Termo"
+          :label="formSaida.criarAtivo ? 'Dar Saída e Criar Ativo' : 'Confirmar Saída'"
           icon="pi pi-check"
           class="p-button-success"
           :loading="processando"
-          :disabled="!podeConfirmarSaidaMultipla"
-          @click="confirmarSaidaMultipla"
+          :disabled="!formSaida.quantidade || formSaida.quantidade <= 0 || formSaida.quantidade > estoqueSelecionado?.quantity_reserved || (formSaida.criarAtivo && (!formSaida.assetData.value_brl || !formSaida.assetData.acquisition_date))"
+          @click="confirmarSaida"
         />
       </template>
     </Dialog>
@@ -366,6 +402,7 @@
 <script>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
+import Divider from 'primevue/divider';
 import StockService from '@/service/StockService';
 import StockLocationService from '@/service/StockLocationService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
@@ -410,12 +447,18 @@ export default {
     const formSaida = ref({
       quantidade: null,
       observacao: '',
-      itensSelecionados: {},
+      criarAtivo: false,
+      assetData: {
+        branch_id: null,
+        location_id: null,
+        responsible_id: null,
+        cost_center_id: null,
+        cost_center_selected: null,
+        value_brl: 0,
+        acquisition_date: new Date(),
+        description: '',
+      },
     });
-
-    const reservasSolicitante = ref([]);
-    const solicitanteAtual = ref(null);
-    const carregandoReservasSolicitante = ref(false);
 
     const modalCentroCusto = reactive({
       visivel: false,
@@ -451,83 +494,6 @@ export default {
         && quantidade <= quantidadeReservada 
         && motivo.length >= 10;
     });
-
-    const itemSelecionado = (stockId) => {
-      return formSaida.value.itensSelecionados.hasOwnProperty(stockId) 
-        && formSaida.value.itensSelecionados[stockId] > 0;
-    };
-
-    const todosSelecionados = computed(() => {
-      if (reservasSolicitante.value.length === 0) return false;
-      return reservasSolicitante.value.every(reserva => 
-        itemSelecionado(reserva.id) && 
-        formSaida.value.itensSelecionados[reserva.id] > 0
-      );
-    });
-
-    const podeConfirmarSaidaMultipla = computed(() => {
-      const itensComQuantidade = Object.values(formSaida.value.itensSelecionados).filter(qtd => qtd > 0);
-      return itensComQuantidade.length > 0;
-    });
-
-    const selecionarTodos = (value) => {
-      reservasSolicitante.value.forEach(reserva => {
-        if (value) {
-          formSaida.value.itensSelecionados[reserva.id] = reserva.quantity_reserved;
-        } else {
-          delete formSaida.value.itensSelecionados[reserva.id];
-        }
-      });
-    };
-
-    const toggleSelecionarItem = (stockId, value) => {
-      if (value) {
-        const reserva = reservasSolicitante.value.find(r => r.id === stockId);
-        if (reserva) {
-          formSaida.value.itensSelecionados[stockId] = reserva.quantity_reserved;
-        }
-      } else {
-        delete formSaida.value.itensSelecionados[stockId];
-      }
-    };
-
-    const atualizarQuantidade = (stockId, quantidade) => {
-      if (quantidade && quantidade > 0) {
-        const reserva = reservasSolicitante.value.find(r => r.id === parseInt(stockId));
-        if (reserva) {
-          // Limitar ao máximo reservado
-          const qtdMaxima = parseFloat(reserva.quantity_reserved);
-          const qtdInformada = parseFloat(quantidade);
-          formSaida.value.itensSelecionados[stockId] = qtdInformada > qtdMaxima ? qtdMaxima : qtdInformada;
-        } else {
-          formSaida.value.itensSelecionados[stockId] = quantidade;
-        }
-      } else {
-        delete formSaida.value.itensSelecionados[stockId];
-      }
-    };
-
-    const validarQuantidade = (stockId, quantidade) => {
-      if (!quantidade || quantidade <= 0) {
-        return;
-      }
-
-      const reserva = reservasSolicitante.value.find(r => r.id === parseInt(stockId));
-      if (reserva) {
-        const qtdMaxima = parseFloat(reserva.quantity_reserved);
-        const qtdInformada = parseFloat(quantidade);
-        
-        if (qtdInformada > qtdMaxima) {
-          toast.add({
-            severity: 'warn',
-            summary: 'Quantidade Ajustada',
-            detail: `A quantidade para "${reserva.product?.description}" foi ajustada para o máximo disponível (${formatarQuantidade(qtdMaxima)}).`,
-            life: 3000
-          });
-          formSaida.value.itensSelecionados[stockId] = qtdMaxima;
-        }
-      }
-    };
 
     const locaisDestino = computed(() => {
       if (!estoqueSelecionado.value) return locais.value;
@@ -646,115 +612,74 @@ export default {
     const abrirModalSaida = async (estoque) => {
       estoqueSelecionado.value = estoque;
       formSaida.value = {
-        quantidade: null,
+        quantidade: estoque.quantity_reserved,
         observacao: '',
-        itensSelecionados: {},
+        criarAtivo: false,
+        assetData: {
+          branch_id: null,
+          location_id: estoque.stock_location_id || null,
+          responsible_id: null,
+          cost_center_id: null,
+          cost_center_selected: null,
+          value_brl: 0,
+          acquisition_date: new Date(),
+          description: estoque.product?.description || '',
+        },
       };
       
-      // Buscar todas as reservas do solicitante
-      carregandoReservasSolicitante.value = true;
-      reservasSolicitante.value = [];
-      solicitanteAtual.value = null;
-      
-      try {
-        const response = await stockService.reservasPorSolicitante();
-        const todasReservas = response.data?.data || [];
-        
-        // Encontrar o solicitante da reserva atual
-        const solicitanteId = estoque.reservation_user?.id;
-        
-        if (solicitanteId) {
-          const solicitanteData = todasReservas.find(s => s.user_id === solicitanteId);
-          if (solicitanteData) {
-            solicitanteAtual.value = solicitanteData;
-            reservasSolicitante.value = solicitanteData.reservas || [];
-            
-            // Pré-selecionar o item atual
-            formSaida.value.itensSelecionados[estoque.id] = estoque.quantity_reserved;
-          }
-        }
-      } catch (error) {
-        toast.add({
-          severity: 'error',
-          summary: 'Erro',
-          detail: error.response?.data?.message || 'Erro ao carregar reservas do solicitante',
-          life: 3000
-        });
-      } finally {
-        carregandoReservasSolicitante.value = false;
+      // Garantir que os dados auxiliares estejam carregados antes de abrir o modal
+      if (filiais.value.length === 0 || usuarios.value.length === 0) {
+        await carregarDadosAuxiliares();
       }
       
       modalSaida.visivel = true;
     };
 
-    const confirmarSaidaMultipla = async () => {
-      // Validar quantidades antes de enviar
-      const itens = [];
-      const erros = [];
-      
-      for (const [stockId, quantidade] of Object.entries(formSaida.value.itensSelecionados)) {
-        if (quantidade && quantidade > 0) {
-          const reserva = reservasSolicitante.value.find(r => r.id === parseInt(stockId));
-          if (reserva) {
-            const qtd = parseFloat(quantidade);
-            if (qtd > reserva.quantity_reserved) {
-              erros.push(`A quantidade para "${reserva.product?.description}" (${formatarQuantidade(qtd)}) excede a quantidade reservada (${formatarQuantidade(reserva.quantity_reserved)}).`);
-            } else {
-              itens.push({
-                stock_id: parseInt(stockId),
-                quantity: qtd,
-                observation: formSaida.value.observacao || null,
-              });
-            }
-          }
-        }
-      }
-
-      if (erros.length > 0) {
-        toast.add({
-          severity: 'error',
-          summary: 'Erro de Validação',
-          detail: erros.join(' '),
-          life: 5000
-        });
-        return;
-      }
-
-      if (itens.length === 0) {
-        toast.add({
-          severity: 'warn',
-          summary: 'Aviso',
-          detail: 'Selecione pelo menos um item para dar saída.',
-          life: 3000
-        });
+    const confirmarSaida = async () => {
+      if (!formSaida.value.quantidade || formSaida.value.quantidade <= 0) {
         return;
       }
 
       try {
         processando.value = true;
 
-        // Dar saída múltipla
-        await stockService.darSaidaMultipla({ items: itens });
+        if (formSaida.value.criarAtivo) {
+          // Dar saída e criar ativo
+          const assetData = { ...formSaida.value.assetData };
+          if (assetData.acquisition_date instanceof Date) {
+            assetData.acquisition_date = assetData.acquisition_date.toISOString().split('T')[0];
+          }
 
-        // Gerar termo de responsabilidade
-        const blob = await stockService.gerarTermoResponsabilidade({ items: itens });
-        
-        // Criar link temporário para download
-        const url = window.URL.createObjectURL(new Blob([blob.data], { type: 'application/pdf' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `termo-responsabilidade-${solicitanteAtual.value?.user_name || 'termo'}-${new Date().toISOString().split('T')[0]}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
+          const dados = {
+            quantity: formSaida.value.quantidade,
+            observation: formSaida.value.observacao || null,
+            asset_data: assetData,
+          };
 
-        toast.add({
-          severity: 'success',
-          summary: 'Sucesso',
-          detail: `${itens.length} ${itens.length === 1 ? 'item' : 'itens'} ${itens.length === 1 ? 'dado' : 'dados'} saída com sucesso! O termo de responsabilidade foi gerado.`,
-          life: 5000
-        });
+          const response = await stockService.darSaidaECriarAtivo(estoqueSelecionado.value.id, dados);
+
+          toast.add({
+            severity: 'success',
+            summary: 'Sucesso',
+            detail: `Saída realizada e ativo ${response.data?.data?.asset?.asset_number || ''} criado com sucesso!`,
+            life: 4000
+          });
+        } else {
+          // Apenas dar saída
+          const dados = {
+            quantity: formSaida.value.quantidade,
+            observation: formSaida.value.observacao || null,
+          };
+
+          await stockService.darSaida(estoqueSelecionado.value.id, dados);
+
+          toast.add({
+            severity: 'success',
+            summary: 'Sucesso',
+            detail: 'Saída realizada com sucesso!',
+            life: 3000
+          });
+        }
 
         modalSaida.visivel = false;
         await carregar();
@@ -762,8 +687,8 @@ export default {
         toast.add({
           severity: 'error',
           summary: 'Erro',
-          detail: error.response?.data?.message || 'Erro ao dar saída múltipla',
-          life: 4000
+          detail: error.response?.data?.message || 'Erro ao dar saída do produto',
+          life: 3000
         });
       } finally {
         processando.value = false;
@@ -1025,17 +950,7 @@ export default {
       formatarQuantidade,
       carregar,
       abrirModalSaida,
-      confirmarSaidaMultipla,
-      itemSelecionado,
-      todosSelecionados,
-      podeConfirmarSaidaMultipla,
-      selecionarTodos,
-      toggleSelecionarItem,
-      atualizarQuantidade,
-      validarQuantidade,
-      reservasSolicitante,
-      solicitanteAtual,
-      carregandoReservasSolicitante,
+      confirmarSaida,
       abrirModalTransferirESair,
       confirmarTransferirESair,
       abrirModalCancelarReserva,

@@ -47,5 +47,15 @@ export default class AssetService {
     removeImage = async (id) => {
         return await axios.delete(`${apiPath}/ativos/${id}/remove-image`);
     };
+
+    gerarTermoResponsabilidade = async (responsibleId) => {
+        return await axios.get(`${apiPath}/ativos/gerar-termo-responsabilidade`, {
+            params: { responsible_id: responsibleId },
+            responseType: 'blob',
+            headers: {
+                'Accept': 'application/pdf'
+            }
+        });
+    };
 }
 

@@ -31,6 +31,17 @@
         <label>&nbsp;</label>
         <Button label="Filtrar" icon="pi pi-filter" class="w-full" @click="carregar" />
       </div>
+      <div class="col-12 md:col-2">
+        <label>&nbsp;</label>
+        <Button 
+          label="Gerar Termo" 
+          icon="pi pi-file-pdf" 
+          class="w-full p-button-success" 
+          :disabled="!filtros.responsible_id"
+          @click="gerarTermoResponsabilidade"
+          :loading="gerandoTermo"
+        />
+      </div>
     </div>
 
     <DataTable
@@ -135,6 +146,7 @@ export default {
     const responsaveis = ref([]);
     const carregando = ref(false);
     const processando = ref(false);
+    const gerandoTermo = ref(false);
     const modalBaixar = ref(false);
     const ativoSelecionado = ref(null);
 
@@ -235,6 +247,37 @@ export default {
       }
     };
 
+    const gerarTermoResponsabilidade = async () => {
+      if (!filtros.value.responsible_id) {
+        toast.add({ severity: 'warn', summary: 'Atenção', detail: 'Selecione um responsável para gerar o termo', life: 3000 });
+        return;
+      }
+
+      try {
+        gerandoTermo.value = true;
+        const responsavel = responsaveis.value.find(r => r.id === filtros.value.responsible_id);
+        const responsavelNome = responsavel?.nome_completo || 'termo';
+
+        const response = await service.gerarTermoResponsabilidade(filtros.value.responsible_id);
+        
+        // Criar link temporário para download
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `termo-responsabilidade-${responsavelNome}-${new Date().toISOString().split('T')[0]}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Termo de responsabilidade gerado com sucesso!', life: 3000 });
+      } catch (error) {
+        toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao gerar termo de responsabilidade', life: 3000 });
+      } finally {
+        gerandoTermo.value = false;
+      }
+    };
+
     onMounted(() => {
       carregar();
       carregarFiliais();
@@ -261,6 +304,8 @@ export default {
       carregar,
       abrirModalBaixar,
       baixarAtivo,
+      gerarTermoResponsabilidade,
+      gerandoTermo,
     };
   },
 };
