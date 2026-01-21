@@ -106,7 +106,7 @@
             dataKey="id"
             responsiveLayout="scroll"
             class="p-datatable-sm"
-            :selection.sync="selecaoEstoques"
+            v-model:selection="selecaoEstoques"
             selectionMode="multiple"
             :selectAll="false"
             @rowSelect="onRowSelect"
@@ -310,6 +310,8 @@ export default {
       if (!localOrigem.value) {
         estoques.value = [];
         estoquesFiltrados.value = [];
+        itensSelecionados.value = [];
+        selecaoEstoques.value = [];
         return;
       }
 
@@ -323,7 +325,24 @@ export default {
         
         const data = response?.data?.data || response?.data || [];
         estoques.value = Array.isArray(data) ? data : [];
+        
+        // Manter apenas itens selecionados que ainda existem na nova lista
+        const idsDisponiveis = new Set(estoques.value.map(e => e.id));
+        itensSelecionados.value = itensSelecionados.value.filter(item => idsDisponiveis.has(item.id));
+        selecaoEstoques.value = selecaoEstoques.value.filter(sel => idsDisponiveis.has(sel.id));
+        
         aplicarFiltro();
+        
+        // Sincronizar checkboxes: marcar checkboxes dos itens já selecionados
+        const idsSelecionados = new Set(itensSelecionados.value.map(item => item.id));
+        estoquesFiltrados.value.forEach(estoque => {
+          if (idsSelecionados.has(estoque.id)) {
+            // Se o item está selecionado, garantir que está na seleção da tabela
+            if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
+              selecaoEstoques.value.push(estoque);
+            }
+          }
+        });
       } catch (error) {
         console.error('Erro ao carregar estoques:', error);
         toast.add({ 
@@ -340,15 +359,30 @@ export default {
     const aplicarFiltro = () => {
       if (!filtroBusca.value || filtroBusca.value.trim() === '') {
         estoquesFiltrados.value = estoques.value;
-        return;
+      } else {
+        const busca = filtroBusca.value.toLowerCase().trim();
+        estoquesFiltrados.value = estoques.value.filter(estoque => {
+          const codigo = estoque.product?.code?.toLowerCase() || '';
+          const descricao = estoque.product?.description?.toLowerCase() || '';
+          const local = estoque.location?.name?.toLowerCase() || '';
+          return codigo.includes(busca) || descricao.includes(busca) || local.includes(busca);
+        });
       }
-
-      const busca = filtroBusca.value.toLowerCase().trim();
-      estoquesFiltrados.value = estoques.value.filter(estoque => {
-        const codigo = estoque.product?.code?.toLowerCase() || '';
-        const descricao = estoque.product?.description?.toLowerCase() || '';
-        const local = estoque.location?.name?.toLowerCase() || '';
-        return codigo.includes(busca) || descricao.includes(busca) || local.includes(busca);
+      
+      // Sincronizar seleção: manter apenas os itens que estão na lista filtrada
+      selecaoEstoques.value = selecaoEstoques.value.filter(selecionado => 
+        estoquesFiltrados.value.some(filtrado => filtrado.id === selecionado.id)
+      );
+      
+      // Garantir que itens já selecionados tenham checkbox marcado na lista filtrada
+      const idsSelecionados = new Set(itensSelecionados.value.map(item => item.id));
+      estoquesFiltrados.value.forEach(estoque => {
+        if (idsSelecionados.has(estoque.id)) {
+          // Se o item está selecionado, garantir que está na seleção da tabela
+          if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
+            selecaoEstoques.value.push(estoque);
+          }
+        }
       });
     };
 
@@ -361,6 +395,10 @@ export default {
           quantidade: Math.min(1, estoque.quantity_available)
         });
       }
+      // Garantir que está na seleção da tabela (checkbox marcado)
+      if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
+        selecaoEstoques.value.push(estoque);
+      }
     };
 
     const onRowUnselect = (event) => {
@@ -368,6 +406,11 @@ export default {
       const index = itensSelecionados.value.findIndex(item => item.id === estoque.id);
       if (index !== -1) {
         itensSelecionados.value.splice(index, 1);
+      }
+      // Remover da seleção da tabela (desmarcar checkbox)
+      const indexSelecao = selecaoEstoques.value.findIndex(e => e.id === estoque.id);
+      if (indexSelecao !== -1) {
+        selecaoEstoques.value.splice(indexSelecao, 1);
       }
     };
 
@@ -395,7 +438,7 @@ export default {
       const item = itensSelecionados.value[index];
       itensSelecionados.value.splice(index, 1);
       
-      // Remover da seleção da tabela
+      // Remover da seleção da tabela (isso desmarca o checkbox)
       const indexSelecao = selecaoEstoques.value.findIndex(e => e.id === item.id);
       if (indexSelecao !== -1) {
         selecaoEstoques.value.splice(indexSelecao, 1);

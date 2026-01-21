@@ -703,10 +703,30 @@ export default {
       try {
         salvando.value = true;
 
+        // Preparar dados para envio, removendo campos null/undefined/vazios que podem causar problemas
         const dataToSend = {
-          ...form.value,
+          invoice_number: form.value.invoice_number,
+          invoice_series: form.value.invoice_series || null,
+          invoice_date: form.value.invoice_date ? (typeof form.value.invoice_date === 'string' ? form.value.invoice_date : form.value.invoice_date.toISOString().split('T')[0]) : null,
+          received_date: form.value.received_date ? (typeof form.value.received_date === 'string' ? form.value.received_date : form.value.received_date.toISOString().split('T')[0]) : (form.value.invoice_date ? (typeof form.value.invoice_date === 'string' ? form.value.invoice_date : form.value.invoice_date.toISOString().split('T')[0]) : null),
+          purchase_quote_id: form.value.purchase_quote_id || null,
+          purchase_order_id: form.value.purchase_order_id || null,
+          supplier_name: form.value.supplier_name || null,
+          supplier_document: form.value.supplier_document || null,
           total_amount: totalNota.value,
-          received_date: form.value.received_date || form.value.invoice_date,
+          observation: form.value.observation || null,
+          items: form.value.items.map(item => ({
+            product_code: item.product_code || null,
+            product_description: item.product_description,
+            quantity: parseFloat(item.quantity) || 0,
+            unit: item.unit || 'UN',
+            unit_price: parseFloat(item.unit_price) || 0,
+            total_price: parseFloat(item.total_price) || 0,
+            purchase_quote_item_id: item.purchase_quote_item_id || null,
+            purchase_order_item_id: item.purchase_order_item_id || null,
+            stock_location_id: parseInt(item.stock_location_id),
+            observation: item.observation || null,
+          })),
         };
 
         await invoiceService.create(dataToSend);
