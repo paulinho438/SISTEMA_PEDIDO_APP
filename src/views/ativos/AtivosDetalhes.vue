@@ -137,7 +137,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
-import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
 import UserService from '@/service/UserService';
 
 export default {
