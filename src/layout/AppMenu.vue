@@ -72,7 +72,8 @@ const model = ref([
                         icon: 'pi pi-fw pi-database',
                         permission: 'view_ativos_filiais',
                         items: [
-                            { label: 'Filiais', icon: 'pi pi-fw pi-building', to: '/ativos/filiais', permission: 'view_ativos_filiais' }
+                            { label: 'Filiais', icon: 'pi pi-fw pi-building', to: '/ativos/filiais', permission: 'view_ativos_filiais' },
+                            { label: 'Locais', icon: 'pi pi-fw pi-map-marker', to: '/ativos/locais', permission: 'view_ativos_filiais' }
                         ]
                     }
                 ]

@@ -137,7 +137,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
-import StockLocationService from '@/service/StockLocationService';
+import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
 import UserService from '@/service/UserService';
 
 export default {
@@ -206,7 +206,7 @@ export default {
       try {
         const [filiaisRes, locaisRes, usuariosRes] = await Promise.all([
           new AssetAuxiliaryService('filiais').getAll(),
-          new StockLocationService().getAll(),
+          new AssetAuxiliaryService('locais').getAll(),
           new UserService().getAll(),
         ]);
 

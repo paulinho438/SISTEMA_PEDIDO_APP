@@ -171,7 +171,7 @@ import { useToast } from 'primevue/usetoast';
 import PermissionsService from '@/service/PermissionsService';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
-import StockLocationService from '@/service/StockLocationService';
+import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
 import CostcenterService from '@/service/CostcenterService';
 import UserService from '@/service/UserService';
 
@@ -335,7 +335,7 @@ export default {
       try {
         const [filiaisRes, locaisRes, usuariosRes, centrosRes, condicoesRes, descricoesRes, contasRes, projetosRes] = await Promise.all([
           new AssetAuxiliaryService('filiais').getAll(),
-          new StockLocationService().getAll(),
+          new AssetAuxiliaryService('locais').getAll(),
           new UserService().getAll(),
           new CostcenterService().getAll(),
           new AssetAuxiliaryService('condicoes-uso').getAll(),

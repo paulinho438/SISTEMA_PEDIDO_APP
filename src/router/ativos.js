@@ -38,6 +38,22 @@ const ativosRoutes = [
                 path: 'filiais/:id',
                 name: 'ativosFiliaisEdit',
                 component: () => import('@/views/ativos/FiliaisForm.vue')
+            },
+            // Cadastros Auxiliares - Locais
+            {
+                path: 'locais',
+                name: 'ativosLocaisList',
+                component: () => import('@/views/ativos/LocaisList.vue')
+            },
+            {
+                path: 'locais/add',
+                name: 'ativosLocaisAdd',
+                component: () => import('@/views/ativos/LocaisForm.vue')
+            },
+            {
+                path: 'locais/:id',
+                name: 'ativosLocaisEdit',
+                component: () => import('@/views/ativos/LocaisForm.vue')
             }
         ]
     }
