@@ -191,13 +191,84 @@
       </DataTable>
 
       <template #footer>
-        <Button label="Cancelar" class="p-button-outlined" @click="modalProduto.visivel = false" />
-        <Button
-          label="Selecionar"
-          class="p-button-success"
-          @click="selecionarProduto"
-          :disabled="!modalProduto.produtoSelecionado"
-        />
+        <div class="flex justify-content-between align-items-center mt-3 w-full">
+          <Button 
+            label="Cadastrar Produto" 
+            icon="pi pi-plus" 
+            class="p-button-outlined p-button-success" 
+            @click="abrirModalCadastroProduto" 
+          />
+          <div class="flex gap-2">
+            <Button label="Cancelar" class="p-button-outlined" @click="modalProduto.visivel = false" />
+            <Button
+              label="Selecionar"
+              class="p-button-success"
+              @click="selecionarProduto"
+              :disabled="!modalProduto.produtoSelecionado"
+            />
+          </div>
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- Modal de Cadastro de Produto -->
+    <Dialog 
+      v-model:visible="modalCadastroProduto.visivel" 
+      modal 
+      header="Cadastrar Novo Produto" 
+      :style="{ width: '50vw', maxWidth: '700px' }" 
+      appendTo="body"
+    >
+      <div class="grid formgrid">
+        <div class="col-12">
+          <label class="block text-600 mb-2">Descrição <span class="text-red-500">*</span></label>
+          <InputText 
+            v-model="modalCadastroProduto.form.description" 
+            placeholder="Digite a descrição do produto" 
+            class="w-full" 
+            :disabled="modalCadastroProduto.saving"
+          />
+          <small class="text-500">O código será gerado automaticamente pelo sistema</small>
+        </div>
+
+        <div class="col-12 md:col-6">
+          <label class="block text-600 mb-2">Referência</label>
+          <InputText 
+            v-model="modalCadastroProduto.form.reference" 
+            placeholder="Referência do produto" 
+            class="w-full" 
+            :disabled="modalCadastroProduto.saving"
+          />
+        </div>
+
+        <div class="col-12 md:col-6">
+          <label class="block text-600 mb-2">Unidade de Medida <span class="text-red-500">*</span></label>
+          <InputText 
+            v-model="modalCadastroProduto.form.unit" 
+            placeholder="Ex: UN, KG, PC" 
+            class="w-full" 
+            :disabled="modalCadastroProduto.saving"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-content-end gap-2 mt-3">
+          <Button 
+            label="Cancelar" 
+            class="p-button-text" 
+            @click="fecharModalCadastroProduto" 
+            :disabled="modalCadastroProduto.saving"
+          />
+          <Button 
+            label="Cadastrar e Selecionar" 
+            icon="pi pi-check" 
+            class="p-button-success" 
+            @click="cadastrarProduto" 
+            :loading="modalCadastroProduto.saving"
+            :disabled="modalCadastroProduto.saving || !validarFormProduto()"
+          />
+        </div>
       </template>
     </Dialog>
 
@@ -247,6 +318,16 @@ export default {
       produtoSelecionado: null,
       carregando: false,
       itemIndex: null,
+    });
+
+    const modalCadastroProduto = ref({
+      visivel: false,
+      saving: false,
+      form: {
+        description: '',
+        reference: '',
+        unit: 'UN'
+      }
     });
 
     let buscaTimeout = null;
@@ -361,6 +442,104 @@ export default {
 
       modalProduto.value.visivel = false;
       modalProduto.value.produtoSelecionado = null;
+    };
+
+    const abrirModalCadastroProduto = () => {
+      modalCadastroProduto.value.form = {
+        description: modalProduto.value.busca || '',
+        reference: '',
+        unit: 'UN'
+      };
+      modalCadastroProduto.value.visivel = true;
+    };
+
+    const fecharModalCadastroProduto = () => {
+      modalCadastroProduto.value.visivel = false;
+      modalCadastroProduto.value.form = {
+        description: '',
+        reference: '',
+        unit: 'UN'
+      };
+    };
+
+    const validarFormProduto = () => {
+      return modalCadastroProduto.value.form.description?.trim() && 
+             modalCadastroProduto.value.form.unit?.trim();
+    };
+
+    const cadastrarProduto = async () => {
+      if (!validarFormProduto()) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Campos obrigatórios',
+          detail: 'Preencha todos os campos obrigatórios (Descrição e Unidade)',
+          life: 3000
+        });
+        return;
+      }
+
+      try {
+        modalCadastroProduto.value.saving = true;
+
+        // Cadastrar produto no sistema e no Protheus
+        const response = await productService.saveWithProtheus(modalCadastroProduto.value.form);
+
+        const produto = response.data?.data || response.data;
+
+        // Fechar modal de cadastro
+        fecharModalCadastroProduto();
+
+        // Preencher o item da nota fiscal com o produto cadastrado
+        if (modalProduto.value.itemIndex !== null) {
+          const item = form.value.items[modalProduto.value.itemIndex];
+          item.product_code = produto.code || '';
+          item.product_description = produto.description || '';
+          item.unit = produto.unit || 'UN';
+        }
+
+        // Atualizar lista de produtos para incluir o recém-cadastrado
+        if (modalProduto.value.busca && modalProduto.value.busca.length >= 2) {
+          // Se houver busca, atualizar a lista
+          if (buscaTimeout) {
+            clearTimeout(buscaTimeout);
+          }
+          buscaTimeout = setTimeout(async () => {
+            try {
+              modalProduto.value.carregando = true;
+              const { data } = await productService.buscar({
+                search: modalProduto.value.busca,
+                per_page: 20,
+              });
+              modalProduto.value.produtos = data.data || [];
+            } catch (error) {
+              console.error('Erro ao buscar produtos:', error);
+            } finally {
+              modalProduto.value.carregando = false;
+            }
+          }, 100);
+        }
+
+        // Fechar modal de busca de produto
+        modalProduto.value.visivel = false;
+        modalProduto.value.produtoSelecionado = null;
+
+        toast.add({
+          severity: 'success',
+          summary: 'Produto cadastrado e selecionado',
+          detail: `Produto ${produto.code} cadastrado e adicionado ao item!`,
+          life: 3000
+        });
+      } catch (error) {
+        console.error('Erro ao cadastrar produto', error);
+        toast.add({
+          severity: 'error',
+          summary: 'Erro ao cadastrar produto',
+          detail: error?.response?.data?.message || error?.response?.data?.error || 'Não foi possível cadastrar o produto.',
+          life: 4000
+        });
+      } finally {
+        modalCadastroProduto.value.saving = false;
+      }
     };
 
     const buscarPedido = async () => {
@@ -572,6 +751,7 @@ export default {
       locais,
       salvando,
       modalProduto,
+      modalCadastroProduto,
       totalNota,
       formatarMoeda,
       adicionarItem,
@@ -583,6 +763,10 @@ export default {
       buscarPedido,
       carregandoPedido,
       salvar,
+      abrirModalCadastroProduto,
+      fecharModalCadastroProduto,
+      validarFormProduto,
+      cadastrarProduto,
     };
   },
 };
