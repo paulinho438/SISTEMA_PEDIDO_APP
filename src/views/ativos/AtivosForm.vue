@@ -171,7 +171,6 @@ import { useToast } from 'primevue/usetoast';
 import PermissionsService from '@/service/PermissionsService';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
-import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
 import CostcenterService from '@/service/CostcenterService';
 import UserService from '@/service/UserService';
 
