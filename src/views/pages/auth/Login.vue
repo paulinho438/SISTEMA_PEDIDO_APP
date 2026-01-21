@@ -100,7 +100,7 @@ export default {
                         this.$store.commit('setPermissions', []);
                     }
 
-                    // Verificar permissões de dashboard (prioridade: estoque > compras > welcome)
+                    // Verificar permissões de dashboard (prioridade: compras > estoque > welcome)
                     // As permissões vêm no formato: [{ company_id: X, permissions: ['slug1', 'slug2', ...] }]
                     let hasStockDashboardPermission = false;
                     let hasPurchaseDashboardPermission = false;
@@ -111,10 +111,11 @@ export default {
                         hasPurchaseDashboardPermission = permissions.includes('view_dashboard');
                     }
                     
-                    if (hasStockDashboardPermission) {
-                        this.router.push({ name: 'estoqueDashboard' });
-                    } else if (hasPurchaseDashboardPermission) {
+                    // Priorizar dashboard de compras se tiver ambas as permissões
+                    if (hasPurchaseDashboardPermission) {
                         this.router.push({ name: 'dashboard' });
+                    } else if (hasStockDashboardPermission) {
+                        this.router.push({ name: 'estoqueDashboard' });
                     } else {
                         this.router.push({ name: 'welcome' });
                     }
@@ -175,14 +176,15 @@ export default {
                     this.$store.commit('setPermissions', []);
                 }
 
-                // Verificar permissões de dashboard (prioridade: estoque > compras > welcome)
+                // Verificar permissões de dashboard (prioridade: compras > estoque > welcome)
                 const hasStockDashboardPermission = companyPermissions.includes('view_estoque_dashboard');
                 const hasPurchaseDashboardPermission = companyPermissions.includes('view_dashboard');
                 
-                if (hasStockDashboardPermission) {
-                    this.router.push({ name: 'estoqueDashboard' });
-                } else if (hasPurchaseDashboardPermission) {
+                // Priorizar dashboard de compras se tiver ambas as permissões
+                if (hasPurchaseDashboardPermission) {
                     this.router.push({ name: 'dashboard' });
+                } else if (hasStockDashboardPermission) {
+                    this.router.push({ name: 'estoqueDashboard' });
                 } else {
                     this.router.push({ name: 'welcome' });
                 }
