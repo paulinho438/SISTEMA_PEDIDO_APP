@@ -76,12 +76,7 @@
       </Column>
       <Column field="product.description" header="Produto" sortable>
         <template #body="slotProps">
-          <template v-if="slotProps.data.tipo !== 'transferencia'">
-            {{ slotProps.data.product?.description || '-' }}
-          </template>
-          <template v-else>
-            -
-          </template>
+          {{ slotProps.data.product?.description || '-' }}
         </template>
       </Column>
       <Column field="numero" header="Número" sortable>
@@ -241,8 +236,9 @@
             :min="0"
             :step="0.01"
             class="w-full"
-            :useGrouping="false"
-            mode="decimal"
+            mode="currency"
+            currency="BRL"
+            locale="pt-BR"
           />
         </div>
 
@@ -442,8 +438,9 @@
             :min="0"
             :step="0.01"
             class="w-full"
-            :useGrouping="false"
-            mode="decimal"
+            mode="currency"
+            currency="BRL"
+            locale="pt-BR"
           />
         </div>
 
@@ -789,9 +786,10 @@ export default {
             data: mov.movement_date || mov.created_at,
             tipo: 'transferencia',
             tipo_label: 'Transferência',
-            numero: '-',
+            numero: mov.transfer_number || movDestino?.transfer_number || '-',
             origem: mov.location?.name || '-',
             destino: movDestino?.location?.name || '-',
+            product: mov.product || movDestino?.product || null,
             observation: obsBase || mov.observation || '-',
             user: mov.user || { nome_completo: '-' },
             itens_count: 1,

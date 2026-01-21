@@ -54,6 +54,22 @@ const ativosRoutes = [
                 path: 'locais/:id',
                 name: 'ativosLocaisEdit',
                 component: () => import('@/views/ativos/LocaisForm.vue')
+            },
+            // Cadastros Auxiliares - Descrições Padrão
+            {
+                path: 'descricoes-padrao',
+                name: 'ativosDescricoesPadraoList',
+                component: () => import('@/views/ativos/DescricoesPadraoList.vue')
+            },
+            {
+                path: 'descricoes-padrao/add',
+                name: 'ativosDescricoesPadraoAdd',
+                component: () => import('@/views/ativos/DescricoesPadraoForm.vue')
+            },
+            {
+                path: 'descricoes-padrao/:id',
+                name: 'ativosDescricoesPadraoEdit',
+                component: () => import('@/views/ativos/DescricoesPadraoForm.vue')
             }
         ]
     }

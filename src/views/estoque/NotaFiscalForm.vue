@@ -94,7 +94,12 @@
           </Column>
           <Column header="Unidade" style="min-width: 100px">
             <template #body="slotProps">
-              <InputText v-model="slotProps.data.unit" class="w-full" placeholder="UN" />
+              <InputText 
+                v-model="slotProps.data.unit" 
+                class="w-full" 
+                placeholder="UN"
+                :disabled="!!slotProps.data.purchase_order_item_id"
+              />
             </template>
           </Column>
           <Column header="Preço Unitário" style="min-width: 150px">
@@ -106,6 +111,7 @@
                 locale="pt-BR"
                 :min="0"
                 class="w-full"
+                :disabled="!!slotProps.data.purchase_order_item_id"
                 @update:modelValue="calcularTotalItem(slotProps.index)"
               />
             </template>

@@ -21,7 +21,7 @@
             </div>
             <div class="col-12 md:col-6">
               <label>Data de Aquisição *</label>
-              <Calendar v-model="form.acquisition_date" dateFormat="yy-mm-dd" class="w-full" :showIcon="true" :disabled="isViewMode || !podeEditar" />
+              <Calendar v-model="form.acquisition_date" dateFormat="dd/mm/yy" class="w-full" :showIcon="true" :disabled="isViewMode || !podeEditar" />
             </div>
             <div class="col-12 md:col-6">
               <label>Descrição Padrão</label>
