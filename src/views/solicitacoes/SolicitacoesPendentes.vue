@@ -82,9 +82,12 @@ export default {
       try {
         carregando.value = true;
         const { data } = await SolicitacaoService.list({ per_page: 100 });
-        const pendentes = (data?.data || []).filter((item) =>
-          ['aguardando', 'autorizado', 'analisada', 'analisada_aguardando', 'analise_gerencia'].includes(item.status?.slug)
-        );
+        
+        // Filtrar apenas solicitações com status "aguardando" ou "autorizado"
+        const pendentes = (data?.data || []).filter((item) => {
+          const statusSlug = item.status?.slug?.toLowerCase() || '';
+          return statusSlug === 'aguardando' || statusSlug === 'autorizado';
+        });
 
         solicitacoes.value = pendentes.map((item) => ({
           id: Number(item.id),
