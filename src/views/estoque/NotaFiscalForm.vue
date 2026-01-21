@@ -17,11 +17,11 @@
           </div>
           <div class="col-12 md:col-4">
             <label>Data de Emissão *</label>
-            <Calendar v-model="form.invoice_date" dateFormat="yy-mm-dd" class="w-full" :showIcon="true" required />
+            <Calendar v-model="form.invoice_date" dateFormat="dd/mm/yy" class="w-full" :showIcon="true" required />
           </div>
           <div class="col-12 md:col-4">
             <label>Data de Recebimento</label>
-            <Calendar v-model="form.received_date" dateFormat="yy-mm-dd" class="w-full" :showIcon="true" />
+            <Calendar v-model="form.received_date" dateFormat="dd/mm/yy" class="w-full" :showIcon="true" />
           </div>
           <div class="col-12 md:col-4">
             <label>Fornecedor</label>
