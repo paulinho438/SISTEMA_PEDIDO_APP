@@ -66,7 +66,6 @@ import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { ToastSeverity } from 'primevue/api';
 import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
 import SolicitacaoService from '@/service/SolicitacaoService';
 
 export default {
@@ -83,8 +82,7 @@ export default {
     const carregar = async () => {
       try {
         carregando.value = true;
-        // Filtrar apenas solicitações do usuário logado
-        const { data } = await SolicitacaoService.list({ per_page: 100, my_requests: 'true' });
+        const { data } = await SolicitacaoService.list({ per_page: 100 });
         const pendentes = (data?.data || []).filter((item) =>
           ['aguardando', 'autorizado', 'analisada', 'analisada_aguardando', 'analise_gerencia'].includes(item.status?.slug)
         );
