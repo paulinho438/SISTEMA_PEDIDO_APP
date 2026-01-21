@@ -653,11 +653,21 @@ export default {
 }
 
 :deep(.row-selected) {
-  background-color: #e3f2fd !important;
+  background-color: #fff3e0 !important;
+  border-left: 3px solid #ff9800 !important;
 }
 
 :deep(.row-selected:hover) {
-  background-color: #bbdefb !important;
+  background-color: #ffe0b2 !important;
+}
+
+:deep(.row-selected td) {
+  color: #e65100 !important;
+  font-weight: 500 !important;
+}
+
+:deep(.row-selected:hover td) {
+  color: #ef6c00 !important;
 }
 </style>
 
