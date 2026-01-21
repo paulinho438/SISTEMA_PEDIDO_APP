@@ -106,15 +106,18 @@
             dataKey="id"
             responsiveLayout="scroll"
             class="p-datatable-sm"
-            v-model:selection="selecaoEstoques"
-            selectionMode="multiple"
-            :selectAll="false"
-            @rowSelect="onRowSelect"
-            @rowUnselect="onRowUnselect"
-            @selectAllChange="onSelectAll"
             :rowClass="getRowClass"
           >
-            <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+            <Column headerStyle="width: 3rem">
+              <template #body="slotProps">
+                <Button
+                  :icon="isItemSelecionado(slotProps.data) ? 'pi pi-check' : 'pi pi-plus'"
+                  :class="isItemSelecionado(slotProps.data) ? 'p-button-text p-button-sm p-button-success' : 'p-button-text p-button-sm'"
+                  @click="toggleItemSelecao(slotProps.data)"
+                  v-tooltip.top="isItemSelecionado(slotProps.data) ? 'Remover da seleção' : 'Adicionar à seleção'"
+                />
+              </template>
+            </Column>
             <Column field="product.code" header="Código" sortable>
               <template #body="slotProps">
                 {{ slotProps.data.product?.code || '-' }}
@@ -253,7 +256,6 @@ export default {
     const locaisDestino = ref([]);
     const estoques = ref([]);
     const estoquesFiltrados = ref([]);
-    const selecaoEstoques = ref([]);
     const itensSelecionados = ref([]);
     const filtroBusca = ref('');
     const carregandoEstoques = ref(false);
@@ -312,7 +314,6 @@ export default {
         estoques.value = [];
         estoquesFiltrados.value = [];
         itensSelecionados.value = [];
-        selecaoEstoques.value = [];
         return;
       }
 
@@ -330,20 +331,8 @@ export default {
         // Manter apenas itens selecionados que ainda existem na nova lista
         const idsDisponiveis = new Set(estoques.value.map(e => e.id));
         itensSelecionados.value = itensSelecionados.value.filter(item => idsDisponiveis.has(item.id));
-        selecaoEstoques.value = selecaoEstoques.value.filter(sel => idsDisponiveis.has(sel.id));
         
         aplicarFiltro();
-        
-        // Sincronizar checkboxes: marcar checkboxes dos itens já selecionados
-        const idsSelecionados = new Set(itensSelecionados.value.map(item => item.id));
-        estoquesFiltrados.value.forEach(estoque => {
-          if (idsSelecionados.has(estoque.id)) {
-            // Se o item está selecionado, garantir que está na seleção da tabela
-            if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
-              selecaoEstoques.value.push(estoque);
-            }
-          }
-        });
       } catch (error) {
         console.error('Erro ao carregar estoques:', error);
         toast.add({ 
@@ -370,45 +359,8 @@ export default {
         });
       }
       
-      // Sincronizar seleção: manter apenas os itens que estão na lista filtrada
-      selecaoEstoques.value = selecaoEstoques.value.filter(selecionado => 
-        estoquesFiltrados.value.some(filtrado => filtrado.id === selecionado.id)
-      );
-      
-      // Garantir que itens já selecionados tenham checkbox marcado na lista filtrada
-      const idsSelecionados = new Set(itensSelecionados.value.map(item => item.id));
-      estoquesFiltrados.value.forEach(estoque => {
-        if (idsSelecionados.has(estoque.id)) {
-          // Se o item está selecionado, garantir que está na seleção da tabela
-          if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
-            selecaoEstoques.value.push(estoque);
-          }
-        }
-      });
     };
 
-    const onRowSelect = (event) => {
-      const estoque = event.data;
-      // Verificar se já está selecionado
-      if (!itensSelecionados.value.find(item => item.id === estoque.id)) {
-        itensSelecionados.value.push({
-          ...estoque,
-          quantidade: Math.min(1, estoque.quantity_available)
-        });
-      }
-      // Garantir que está na seleção da tabela (checkbox marcado)
-      if (!selecaoEstoques.value.find(e => e.id === estoque.id)) {
-        selecaoEstoques.value.push(estoque);
-      }
-    };
-
-    const onRowUnselect = (event) => {
-      const estoque = event.data;
-      const index = itensSelecionados.value.findIndex(item => item.id === estoque.id);
-      if (index !== -1) {
-        itensSelecionados.value.splice(index, 1);
-      }
-    };
 
     const isItemSelecionado = (estoque) => {
       // Verificar se o item está na lista de itens selecionados (lista da direita)
@@ -423,35 +375,9 @@ export default {
       return '';
     };
 
-    const onSelectAll = (event) => {
-      if (event.checked) {
-        estoquesFiltrados.value.forEach(estoque => {
-          if (!itensSelecionados.value.find(item => item.id === estoque.id)) {
-            itensSelecionados.value.push({
-              ...estoque,
-              quantidade: Math.min(1, estoque.quantity_available)
-            });
-          }
-        });
-      } else {
-        estoquesFiltrados.value.forEach(estoque => {
-          const index = itensSelecionados.value.findIndex(item => item.id === estoque.id);
-          if (index !== -1) {
-            itensSelecionados.value.splice(index, 1);
-          }
-        });
-      }
-    };
 
     const removerItem = (index) => {
-      const item = itensSelecionados.value[index];
       itensSelecionados.value.splice(index, 1);
-      
-      // Remover da seleção da tabela (isso desmarca o checkbox) - ÚNICA FORMA DE DESMARCAR
-      const indexSelecao = selecaoEstoques.value.findIndex(e => e.id === item.id);
-      if (indexSelecao !== -1) {
-        selecaoEstoques.value.splice(indexSelecao, 1);
-      }
     };
 
     const validarQuantidade = (item) => {
@@ -505,7 +431,6 @@ export default {
 
         // Limpar formulário
         itensSelecionados.value = [];
-        selecaoEstoques.value = [];
         motorista.value = '';
         placa.value = '';
         observacao.value = '';
@@ -581,7 +506,6 @@ export default {
 
         // Limpar formulário
         itensSelecionados.value = [];
-        selecaoEstoques.value = [];
         motorista.value = '';
         placa.value = '';
         observacao.value = '';
@@ -619,7 +543,6 @@ export default {
       locaisDestino,
       estoques,
       estoquesFiltrados,
-      selecaoEstoques,
       itensSelecionados,
       filtroBusca,
       carregandoEstoques,
@@ -630,9 +553,7 @@ export default {
       formatarQuantidade,
       carregarEstoques,
       aplicarFiltro,
-      onRowSelect,
-      onRowUnselect,
-      onSelectAll,
+      toggleItemSelecao,
       removerItem,
       validarQuantidade,
       confirmarTransferencia,
@@ -651,21 +572,21 @@ export default {
 
 /* Apenas linhas selecionadas (que estão na lista da direita) */
 :deep(.row-selected) {
-  background-color: #fff3e0 !important;
-  border-left: 3px solid #ff9800 !important;
+  background-color: #fff8e1 !important;
+  border-left: 3px solid #ffc107 !important;
 }
 
 :deep(.row-selected:hover) {
-  background-color: #ffe0b2 !important;
+  background-color: #ffecb3 !important;
 }
 
 :deep(.row-selected td) {
-  color: #e65100 !important;
+  color: #f57c00 !important;
   font-weight: 500 !important;
 }
 
 :deep(.row-selected:hover td) {
-  color: #ef6c00 !important;
+  color: #ff8f00 !important;
 }
 
 /* Remover TODOS os hovers e cores padrão do PrimeVue */
