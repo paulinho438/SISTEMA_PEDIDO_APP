@@ -182,6 +182,7 @@
                 class="w-full"
                 :useGrouping="false"
                 @update:modelValue="atualizarQuantidade(slotProps.data.id, $event)"
+                @blur="validarQuantidade(slotProps.data.id, $event)"
               />
             </template>
           </Column>
@@ -492,9 +493,39 @@ export default {
 
     const atualizarQuantidade = (stockId, quantidade) => {
       if (quantidade && quantidade > 0) {
-        formSaida.value.itensSelecionados[stockId] = quantidade;
+        const reserva = reservasSolicitante.value.find(r => r.id === parseInt(stockId));
+        if (reserva) {
+          // Limitar ao máximo reservado
+          const qtdMaxima = parseFloat(reserva.quantity_reserved);
+          const qtdInformada = parseFloat(quantidade);
+          formSaida.value.itensSelecionados[stockId] = qtdInformada > qtdMaxima ? qtdMaxima : qtdInformada;
+        } else {
+          formSaida.value.itensSelecionados[stockId] = quantidade;
+        }
       } else {
         delete formSaida.value.itensSelecionados[stockId];
+      }
+    };
+
+    const validarQuantidade = (stockId, quantidade) => {
+      if (!quantidade || quantidade <= 0) {
+        return;
+      }
+
+      const reserva = reservasSolicitante.value.find(r => r.id === parseInt(stockId));
+      if (reserva) {
+        const qtdMaxima = parseFloat(reserva.quantity_reserved);
+        const qtdInformada = parseFloat(quantidade);
+        
+        if (qtdInformada > qtdMaxima) {
+          toast.add({
+            severity: 'warn',
+            summary: 'Quantidade Ajustada',
+            detail: `A quantidade para "${reserva.product?.description}" foi ajustada para o máximo disponível (${formatarQuantidade(qtdMaxima)}).`,
+            life: 3000
+          });
+          formSaida.value.itensSelecionados[stockId] = qtdMaxima;
+        }
       }
     };
 
@@ -657,13 +688,37 @@ export default {
     };
 
     const confirmarSaidaMultipla = async () => {
-      const itens = Object.entries(formSaida.value.itensSelecionados)
-        .filter(([_, quantidade]) => quantidade > 0)
-        .map(([stockId, quantidade]) => ({
-          stock_id: parseInt(stockId),
-          quantity: parseFloat(quantidade),
-          observation: formSaida.value.observacao || null,
-        }));
+      // Validar quantidades antes de enviar
+      const itens = [];
+      const erros = [];
+      
+      for (const [stockId, quantidade] of Object.entries(formSaida.value.itensSelecionados)) {
+        if (quantidade && quantidade > 0) {
+          const reserva = reservasSolicitante.value.find(r => r.id === parseInt(stockId));
+          if (reserva) {
+            const qtd = parseFloat(quantidade);
+            if (qtd > reserva.quantity_reserved) {
+              erros.push(`A quantidade para "${reserva.product?.description}" (${formatarQuantidade(qtd)}) excede a quantidade reservada (${formatarQuantidade(reserva.quantity_reserved)}).`);
+            } else {
+              itens.push({
+                stock_id: parseInt(stockId),
+                quantity: qtd,
+                observation: formSaida.value.observacao || null,
+              });
+            }
+          }
+        }
+      }
+
+      if (erros.length > 0) {
+        toast.add({
+          severity: 'error',
+          summary: 'Erro de Validação',
+          detail: erros.join(' '),
+          life: 5000
+        });
+        return;
+      }
 
       if (itens.length === 0) {
         toast.add({
@@ -977,6 +1032,7 @@ export default {
       selecionarTodos,
       toggleSelecionarItem,
       atualizarQuantidade,
+      validarQuantidade,
       reservasSolicitante,
       solicitanteAtual,
       carregandoReservasSolicitante,
