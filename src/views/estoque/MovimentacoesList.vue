@@ -577,6 +577,13 @@ export default {
       date_to: null,
     });
 
+    // Filtros aplicados (usados para buscar dados)
+    const filtrosAplicados = ref({
+      movement_type: null,
+      date_from: null,
+      date_to: null,
+    });
+
     // Estados dos modais
     const modalEntrada = reactive({
       visivel: false,
