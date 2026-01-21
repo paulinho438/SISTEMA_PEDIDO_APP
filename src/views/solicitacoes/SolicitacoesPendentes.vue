@@ -73,7 +73,6 @@ export default {
   setup() {
     const toast = useToast();
     const router = useRouter();
-    const store = useStore();
 
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
