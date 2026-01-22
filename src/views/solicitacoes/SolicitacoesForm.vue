@@ -43,6 +43,25 @@
             :loading="carregandoEmpresas"
         />
       </div>
+
+      <!-- Campo de Solicitante (apenas para quem tem permissão) -->
+      <div v-if="podeSelecionarSolicitante" class="col-12 md:col-6">
+        <label class="block text-600 mb-2">Solicitante</label>
+        <AutoComplete
+            v-model="form.solicitanteSelecionado"
+            :suggestions="solicitantesFiltrados"
+            @complete="buscarSolicitantes"
+            optionLabel="label"
+            placeholder="Selecione o solicitante"
+            class="w-full"
+            :loading="carregandoSolicitantes"
+            dropdown
+        >
+          <template #option="slotProps">
+            <div>{{ slotProps.option.label }}</div>
+          </template>
+        </AutoComplete>
+      </div>
     </div>
 
     <!-- Mensagem de Reprovação -->
@@ -574,8 +593,11 @@ import SolicitacaoService from '@/service/SolicitacaoService';
 import StockProductService from '@/service/StockProductService';
 import StockService from '@/service/StockService';
 import EmpresaService from '@/service/EmpresaService';
+import UsuarioService from '@/service/UsuarioService';
+import PermissionsService from '@/service/PermissionsService';
 import Dropdown from 'primevue/dropdown';
 import FileUpload from 'primevue/fileupload';
+import AutoComplete from 'primevue/autocomplete';
 
 export default {
   name: 'CadastroSolicitacao',
@@ -597,6 +619,7 @@ export default {
         return new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
       })(),
       solicitante: null,
+      solicitanteSelecionado: null,
       empresa: null,
       local: '',
       workFront: '',
@@ -611,6 +634,16 @@ export default {
     const empresasLocais = ref([]);
     const carregandoEmpresas = ref(false);
     const errors = ref({});
+    const usuarioService = new UsuarioService();
+    const permissionService = new PermissionsService();
+    const solicitantesFiltrados = ref([]);
+    const carregandoSolicitantes = ref(false);
+    const todosSolicitantes = ref([]);
+
+    // Verificar se o usuário pode selecionar solicitante customizado
+    const podeSelecionarSolicitante = computed(() => {
+      return permissionService.hasPermissions('create_solicitacao_custom_solicitante');
+    });
 
     // Carregar dados da solicitação se estiver editando
     const carregarSolicitacao = async () => {
@@ -623,6 +656,19 @@ export default {
         
         if (usuario) {
           form.value.solicitante = usuario.nome_completo || usuario.name || usuario.login;
+          
+          // Se não pode selecionar solicitante customizado, definir o solicitante selecionado como o usuário atual
+          if (!podeSelecionarSolicitante.value) {
+            form.value.solicitanteSelecionado = {
+              id: usuario.id,
+              label: usuario.nome_completo || usuario.name || usuario.login
+            };
+          }
+        }
+        
+        // Carregar lista de usuários se tiver permissão
+        if (podeSelecionarSolicitante.value) {
+          carregarUsuarios();
         }
         
         if (company) {
@@ -727,6 +773,42 @@ export default {
       } finally {
         carregandoEmpresas.value = false;
       }
+    };
+
+    // Função para carregar lista de usuários
+    const carregarUsuarios = async () => {
+      try {
+        carregandoSolicitantes.value = true;
+        const { data } = await usuarioService.getAll();
+        const usuarios = data?.data || [];
+        todosSolicitantes.value = usuarios.map(usuario => ({
+          id: usuario.id,
+          label: usuario.nome_completo || usuario.name || usuario.login || ''
+        })).filter(u => u.label); // Filtrar usuários sem nome
+      } catch (error) {
+        console.error('Erro ao carregar usuários', error);
+        toast.add({
+          severity: 'error',
+          summary: 'Erro ao carregar usuários',
+          detail: 'Não foi possível carregar a lista de usuários.',
+          life: 3000
+        });
+      } finally {
+        carregandoSolicitantes.value = false;
+      }
+    };
+
+    // Função para buscar solicitantes no AutoComplete
+    const buscarSolicitantes = (event) => {
+      const query = event.query?.toLowerCase() || '';
+      if (!query) {
+        solicitantesFiltrados.value = todosSolicitantes.value.slice(0, 20); // Limitar a 20 resultados iniciais
+        return;
+      }
+      
+      solicitantesFiltrados.value = todosSolicitantes.value.filter(solicitante =>
+        solicitante.label.toLowerCase().includes(query)
+      );
     };
 
     // Inicializar formulário
@@ -1445,13 +1527,26 @@ export default {
       const usuario = store.state.usuario;
       const company = store.state.company;
       
+      // Determinar o solicitante: usar o selecionado se tiver permissão, senão usar o usuário atual
+      let solicitantePayload;
+      if (podeSelecionarSolicitante.value && form.value.solicitanteSelecionado) {
+        // Usar o solicitante selecionado
+        solicitantePayload = {
+          id: form.value.solicitanteSelecionado.id || null,
+          label: form.value.solicitanteSelecionado.label || form.value.solicitante || ''
+        };
+      } else {
+        // Usar o usuário atual (comportamento padrão)
+        solicitantePayload = {
+          id: usuario?.id || null,
+          label: form.value.solicitante || usuario?.nome_completo || usuario?.name || usuario?.login || ''
+        };
+      }
+      
       const payload = {
         numero: form.value.numero,
         data_solicitacao: formatDate(form.value.data),
-        solicitante: {
-          id: usuario?.id || null,
-          label: form.value.solicitante || usuario?.nome_completo || usuario?.name || usuario?.login || ''
-        },
+        solicitante: solicitantePayload,
         empresa: {
           id: company?.id || null,
           label: form.value.empresa || company?.company || company?.name || ''
@@ -1551,8 +1646,15 @@ export default {
       carregandoEmpresas,
       errors,
       onImageSelectModalProduto,
-      removerImagemModalProduto
+      removerImagemModalProduto,
+      podeSelecionarSolicitante,
+      solicitantesFiltrados,
+      carregandoSolicitantes,
+      buscarSolicitantes
     };
+  },
+  components: {
+    AutoComplete
   }
 };
 </script>
