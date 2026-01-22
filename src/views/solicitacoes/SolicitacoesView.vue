@@ -106,6 +106,45 @@
       </div>
     </div>
 
+    <!-- Histórico da Solicitação -->
+    <div v-if="historicoFormatado && historicoFormatado.length > 0" class="card shadow-none bg-light p-4">
+      <h5 class="mb-3 text-900">Histórico da Solicitação</h5>
+      <Timeline :value="historicoFormatado" class="p-timeline-vertical">
+        <template #marker="slotProps">
+          <span
+              class="flex w-2rem h-2rem align-items-center justify-content-center text-white border-circle z-1 shadow-2"
+              :style="{ backgroundColor: getCorTipo(slotProps.item.tipo) }"
+          >
+            <i :class="getIconeTipo(slotProps.item.tipo)"></i>
+          </span>
+        </template>
+        <template #content="slotProps">
+          <div class="flex flex-column">
+            <div class="flex align-items-center gap-2 mb-2">
+              <span class="font-semibold text-900">{{ slotProps.item.acao }}</span>
+              <Tag
+                  :value="slotProps.item.status || slotProps.item.nivel_label"
+                  :severity="getSeverityTipo(slotProps.item.tipo)"
+                  :style="getStyleTipo(slotProps.item.tipo)"
+              />
+            </div>
+            <div class="text-600 mb-2">
+              <i class="pi pi-user mr-2"></i>
+              <span>{{ slotProps.item.usuario }}</span>
+            </div>
+            <div class="text-500 mb-2" v-if="slotProps.item.observacao">
+              <i class="pi pi-comment mr-2"></i>
+              <span>{{ slotProps.item.observacao }}</span>
+            </div>
+            <div class="text-500 text-sm">
+              <i class="pi pi-calendar mr-2"></i>
+              <span>{{ slotProps.item.data }}</span>
+            </div>
+          </div>
+        </template>
+      </Timeline>
+    </div>
+
     <Toast />
   </div>
 </template>
@@ -122,6 +161,7 @@ import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import Toast from 'primevue/toast';
 import Message from 'primevue/message';
+import Timeline from 'primevue/timeline';
 
 export default {
   name: 'SolicitacoesView',
@@ -133,6 +173,7 @@ export default {
     ProgressSpinner,
     Toast,
     Message,
+    Timeline,
   },
   setup() {
     const router = useRouter();
@@ -151,7 +192,10 @@ export default {
       itens: [],
       status: null,
       mensagens: [],
+      historico: [],
     });
+
+    const historico = ref([]);
 
     const carregando = ref(false);
     const carregandoPDF = ref(false);
@@ -241,6 +285,7 @@ export default {
         }));
         solicitacao.status = detalhe.status || null;
         solicitacao.mensagens = detalhe.mensagens || [];
+        historico.value = detalhe.historico || [];
       } catch (error) {
         console.error('Erro ao carregar solicitação', error);
         toast.add({
@@ -281,6 +326,49 @@ export default {
 
     const voltar = () => router.push({ name: 'solicitacoesList' });
 
+    const historicoFormatado = computed(() => {
+      return historico.value.map(item => ({
+        ...item,
+        key: `${item.tipo}-${item.timestamp || Date.now()}`,
+      }));
+    });
+
+    const getCorTipo = (tipo) => {
+      const cores = {
+        status: '#6366f1',
+        aprovacao: '#10b981',
+        reprovacao: '#ef4444',
+      };
+      return cores[tipo] || '#6b7280';
+    };
+
+    const getIconeTipo = (tipo) => {
+      const icones = {
+        status: 'pi pi-sync',
+        aprovacao: 'pi pi-check',
+        reprovacao: 'pi pi-times',
+      };
+      return icones[tipo] || 'pi pi-info-circle';
+    };
+
+    const getSeverityTipo = (tipo) => {
+      const severities = {
+        status: 'info',
+        aprovacao: 'success',
+        reprovacao: 'danger',
+      };
+      return severities[tipo] || 'secondary';
+    };
+
+    const getStyleTipo = (tipo) => {
+      const styles = {
+        status: { backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe' },
+        aprovacao: { backgroundColor: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0' },
+        reprovacao: { backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' },
+      };
+      return styles[tipo] || {};
+    };
+
     onMounted(() => {
       carregarDados();
     });
@@ -295,6 +383,12 @@ export default {
       imprimirPDF,
       voltar,
       mensagensReprovacao,
+      historico,
+      historicoFormatado,
+      getCorTipo,
+      getIconeTipo,
+      getSeverityTipo,
+      getStyleTipo,
     };
   }
 };
