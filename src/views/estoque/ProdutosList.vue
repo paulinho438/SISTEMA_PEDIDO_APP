@@ -84,7 +84,7 @@
           <p class="m-0">
             <strong>Instruções:</strong>
             <br />1. Baixe o template Excel abaixo
-            <br />2. Preencha com os dados dos produtos
+            <br />2. Preencha com os dados dos produtos (o código será gerado automaticamente pelo sistema)
             <br />3. Faça o upload do arquivo preenchido
           </p>
         </Message>
