@@ -315,12 +315,17 @@
         </div>
 
         <div class="mb-3">
-          <Message severity="info" :closable="false">
-            <p class="m-0">
-              <strong>Atenção:</strong> Esta transferência foi recebida parcialmente. 
-              A coluna "Estoque Atual no Destino" mostra a quantidade disponível no almoxarifado de destino no momento. 
-              <strong>Nota:</strong> Este valor pode não refletir exatamente o que foi recebido, pois o estoque pode ter sido usado após o recebimento.
-            </p>
+          <Message severity="warn" :closable="false">
+            <div class="m-0">
+              <p class="font-semibold mb-2">Aviso de Transferência Parcial</p>
+              <p class="m-0">
+                Informamos que a transferência realizada do almoxarifado 
+                <strong>{{ modalDetalhesRecebimento.transferencia.origin_location?.name || '-' }}</strong> 
+                para o almoxarifado 
+                <strong>{{ modalDetalhesRecebimento.transferencia.destination_location?.name || '-' }}</strong> 
+                foi recebida parcialmente.
+              </p>
+            </div>
           </Message>
         </div>
 
@@ -346,21 +351,22 @@
               <span class="font-semibold">{{ formatarQuantidade(slotProps.data.quantity) }}</span>
             </template>
           </Column>
-          <Column header="Estoque Atual no Destino" sortable>
+          <Column field="quantity_received" header="Quantidade Recebida" sortable>
             <template #body="slotProps">
-              <span v-if="slotProps.data.destination_stock_available !== null && slotProps.data.destination_stock_available !== undefined" 
-                    class="font-semibold text-green-600">
-                {{ formatarQuantidade(slotProps.data.destination_stock_available) }}
+              <span v-if="slotProps.data.quantity_received !== null && slotProps.data.quantity_received !== undefined" 
+                    class="font-semibold"
+                    :class="slotProps.data.quantity_received >= slotProps.data.quantity ? 'text-green-600' : 'text-orange-600'">
+                {{ formatarQuantidade(slotProps.data.quantity_received) }}
               </span>
-              <span v-else class="text-500">-</span>
+              <span v-else class="text-500 font-semibold">0,00</span>
             </template>
           </Column>
-          <Column header="Status">
+          <Column header="Situação">
             <template #body="slotProps">
               <Tag 
-                v-if="slotProps.data.destination_stock_available !== null && slotProps.data.destination_stock_available !== undefined"
-                :value="slotProps.data.destination_stock_available >= slotProps.data.quantity ? 'Recebido Total' : 'Recebido Parcial'" 
-                :severity="slotProps.data.destination_stock_available >= slotProps.data.quantity ? 'success' : 'warning'" 
+                v-if="slotProps.data.quantity_received !== null && slotProps.data.quantity_received !== undefined"
+                :value="slotProps.data.quantity_received >= slotProps.data.quantity ? 'Recebido Total' : 'Recebimento Parcial'" 
+                :severity="slotProps.data.quantity_received >= slotProps.data.quantity ? 'success' : 'warning'" 
               />
               <Tag v-else value="Pendente" severity="info" />
             </template>
