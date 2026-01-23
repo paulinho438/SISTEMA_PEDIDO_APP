@@ -115,6 +115,13 @@
               @click="imprimirDocumento(slotProps.data.id)"
             />
             <Button
+              v-if="slotProps.data.status === 'recebido_parcial'"
+              icon="pi pi-eye"
+              class="p-button-rounded p-button-text p-button-info p-button-sm"
+              v-tooltip.top="'Ver Detalhes do Recebimento'"
+              @click="verDetalhesRecebimento(slotProps.data.id)"
+            />
+            <Button
               v-if="slotProps.data.status === 'pendente' && podeReceberTransferencia(slotProps.data)"
               icon="pi pi-check"
               class="p-button-rounded p-button-text p-button-success p-button-sm"
@@ -257,6 +264,115 @@
       </template>
     </Dialog>
 
+    <!-- Modal de Detalhes do Recebimento Parcial -->
+    <Dialog 
+      v-model:visible="modalDetalhesRecebimento.visivel" 
+      modal 
+      header="Detalhes do Recebimento Parcial" 
+      :style="{ width: '800px' }" 
+      appendTo="body"
+    >
+      <div v-if="modalDetalhesRecebimento.carregando" class="text-center p-5">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <p class="mt-3">Carregando detalhes...</p>
+      </div>
+      
+      <div v-else-if="modalDetalhesRecebimento.transferencia">
+        <div class="mb-4">
+          <div class="grid">
+            <div class="col-12 md:col-6">
+              <strong>Número da Transferência:</strong><br />
+              {{ modalDetalhesRecebimento.transferencia.transfer_number }}
+            </div>
+            <div class="col-12 md:col-6">
+              <strong>Status:</strong><br />
+              <Tag 
+                :value="modalDetalhesRecebimento.transferencia.status_label" 
+                :severity="getSeverityStatus(modalDetalhesRecebimento.transferencia.status)" 
+              />
+            </div>
+            <div class="col-12 md:col-6">
+              <strong>Origem:</strong><br />
+              {{ modalDetalhesRecebimento.transferencia.origin_location?.name || '-' }}
+            </div>
+            <div class="col-12 md:col-6">
+              <strong>Destino:</strong><br />
+              {{ modalDetalhesRecebimento.transferencia.destination_location?.name || '-' }}
+            </div>
+            <div class="col-12 md:col-6" v-if="modalDetalhesRecebimento.transferencia.driver_name">
+              <strong>Motorista:</strong><br />
+              {{ modalDetalhesRecebimento.transferencia.driver_name }}
+            </div>
+            <div class="col-12 md:col-6" v-if="modalDetalhesRecebimento.transferencia.license_plate">
+              <strong>Placa:</strong><br />
+              {{ modalDetalhesRecebimento.transferencia.license_plate }}
+            </div>
+            <div class="col-12" v-if="modalDetalhesRecebimento.transferencia.observation">
+              <strong>Observação:</strong><br />
+              {{ modalDetalhesRecebimento.transferencia.observation }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <Message severity="info" :closable="false">
+            <p class="m-0">
+              <strong>Atenção:</strong> Esta transferência foi recebida parcialmente. 
+              A coluna "Estoque Atual no Destino" mostra a quantidade disponível no almoxarifado de destino no momento. 
+              <strong>Nota:</strong> Este valor pode não refletir exatamente o que foi recebido, pois o estoque pode ter sido usado após o recebimento.
+            </p>
+          </Message>
+        </div>
+
+        <DataTable
+          :value="modalDetalhesRecebimento.itens"
+          :paginator="true"
+          :rows="10"
+          responsiveLayout="scroll"
+          class="p-datatable-sm"
+        >
+          <Column field="product.code" header="Código" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.product?.code || '-' }}
+            </template>
+          </Column>
+          <Column field="product.description" header="Descrição" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.product?.description || '-' }}
+            </template>
+          </Column>
+          <Column field="quantity" header="Quantidade Enviada" sortable>
+            <template #body="slotProps">
+              <span class="font-semibold">{{ formatarQuantidade(slotProps.data.quantity) }}</span>
+            </template>
+          </Column>
+          <Column header="Estoque Atual no Destino" sortable>
+            <template #body="slotProps">
+              <span v-if="slotProps.data.destination_stock_available !== null && slotProps.data.destination_stock_available !== undefined" 
+                    class="font-semibold text-green-600">
+                {{ formatarQuantidade(slotProps.data.destination_stock_available) }}
+              </span>
+              <span v-else class="text-500">-</span>
+            </template>
+          </Column>
+          <Column header="Status">
+            <template #body="slotProps">
+              <Tag 
+                v-if="slotProps.data.destination_stock_available !== null && slotProps.data.destination_stock_available !== undefined"
+                :value="slotProps.data.destination_stock_available >= slotProps.data.quantity ? 'Recebido Total' : 'Recebido Parcial'" 
+                :severity="slotProps.data.destination_stock_available >= slotProps.data.quantity ? 'success' : 'warning'" 
+              />
+              <Tag v-else value="Pendente" severity="info" />
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+
+      <template #footer>
+        <Button label="Fechar" class="p-button-text" @click="modalDetalhesRecebimento.visivel = false" />
+      </template>
+    </Dialog>
+
     <Toast />
     <ConfirmDialog />
   </div>
@@ -267,6 +383,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useStore } from 'vuex';
+import Message from 'primevue/message';
 import StockTransferService from '@/service/StockTransferService';
 import StockLocationService from '@/service/StockLocationService';
 import StockAlmoxarifeService from '@/service/StockAlmoxarifeService';
@@ -309,6 +426,13 @@ export default {
       tipo: 'total', // 'total' ou 'parcial'
       itens: [],
       todosSelecionados: false,
+    });
+
+    const modalDetalhesRecebimento = ref({
+      visivel: false,
+      carregando: false,
+      transferencia: null,
+      itens: [],
     });
 
     const carregarLocais = async () => {
@@ -595,6 +719,36 @@ export default {
       }
     };
 
+    const verDetalhesRecebimento = async (id) => {
+      modalDetalhesRecebimento.value.visivel = true;
+      modalDetalhesRecebimento.value.carregando = true;
+      modalDetalhesRecebimento.value.transferencia = null;
+      modalDetalhesRecebimento.value.itens = [];
+
+      try {
+        const { data } = await transferService.getById(id);
+        const transferencia = data.data || data;
+        
+        modalDetalhesRecebimento.value.transferencia = transferencia;
+        modalDetalhesRecebimento.value.itens = transferencia.items || [];
+      } catch (error) {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || 'Erro ao carregar detalhes da transferência';
+        
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: errorMessage,
+          life: 4000
+        });
+        modalDetalhesRecebimento.value.visivel = false;
+      } finally {
+        modalDetalhesRecebimento.value.carregando = false;
+      }
+    };
+
     const imprimirDocumento = async (id) => {
       try {
         const response = await transferService.gerarDocumento(id);
@@ -665,6 +819,7 @@ export default {
       filtros,
       statusOptions,
       modalRecebimento,
+      modalDetalhesRecebimento,
       temItensSelecionados,
       carregar,
       carregarLocaisUsuario,
@@ -675,11 +830,15 @@ export default {
       confirmarRecebimento,
       confirmarExclusao,
       excluir,
+      verDetalhesRecebimento,
       imprimirDocumento,
       formatarQuantidade,
       formatarData,
       getSeverityStatus,
     };
+  },
+  components: {
+    Message,
   },
 };
 </script>
