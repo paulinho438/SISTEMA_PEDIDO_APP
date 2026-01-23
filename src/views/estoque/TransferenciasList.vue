@@ -263,7 +263,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useStore } from 'vuex';
@@ -329,7 +329,9 @@ export default {
         const usuario = store.state.usuario;
         if (usuario && usuario.id) {
           const { data } = await almoxarifeService.listByAlmoxarife(usuario.id);
-          locaisUsuario.value = (data.locations || []).map(loc => loc.id);
+          // Converter para números para garantir comparação correta
+          locaisUsuario.value = (data.locations || []).map(loc => parseInt(loc.id));
+          console.log('Locais do usuário carregados:', locaisUsuario.value);
         }
       } catch (error) {
         // Se der erro, apenas logar - não é crítico
@@ -340,16 +342,48 @@ export default {
 
     const podeReceberTransferencia = (transferencia) => {
       if (!transferencia || !transferencia.destination_location) {
+        console.log('Transferência sem destino:', transferencia);
         return false;
       }
       
-      const destinoId = transferencia.destination_location.id;
-      return locaisUsuario.value.includes(destinoId);
+      // Garantir que ambos sejam números para comparação
+      const destinoId = parseInt(transferencia.destination_location.id);
+      
+      // Verificar se locaisUsuario está carregado
+      if (!locaisUsuario.value || locaisUsuario.value.length === 0) {
+        console.log('Locais do usuário não carregados ainda');
+        return false;
+      }
+      
+      // Comparar com diferentes formatos possíveis
+      const podeReceber = locaisUsuario.value.some(localId => {
+        const localIdNum = parseInt(localId);
+        return localIdNum === destinoId;
+      });
+      
+      // Debug apenas quando não pode receber
+      if (!podeReceber) {
+        console.log('Verificação de recebimento - NÃO PODE RECEBER:', {
+          destinoId,
+          tipoDestinoId: typeof destinoId,
+          destinoNome: transferencia.destination_location.name,
+          locaisUsuario: locaisUsuario.value,
+          locaisUsuarioTipos: locaisUsuario.value.map(id => typeof id),
+          transferenciaDestino: transferencia.destination_location
+        });
+      }
+      
+      return podeReceber;
     };
 
     const carregar = async () => {
       carregando.value = true;
       try {
+        // Garantir que os locais do usuário estejam carregados
+        if (locaisUsuario.value.length === 0) {
+          await carregarLocaisUsuario();
+        }
+
         const params = {};
         if (filtros.value.status) params.status = filtros.value.status;
         if (filtros.value.local_origem_id) params.local_origem_id = filtros.value.local_origem_id;
@@ -614,6 +648,13 @@ export default {
       carregarLocaisUsuario();
       carregar();
     });
+
+    // Recarregar locais do usuário quando o usuário mudar
+    watch(() => store.state.usuario, (novoUsuario) => {
+      if (novoUsuario && novoUsuario.id) {
+        carregarLocaisUsuario();
+      }
+    }, { immediate: false });
 
     return {
       transferencias,
