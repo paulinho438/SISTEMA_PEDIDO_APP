@@ -12,13 +12,6 @@
         />
         <Button 
           v-if="podeCriar"
-          label="Transferir entre Locais" 
-          icon="pi pi-arrow-right-arrow-left" 
-          class="p-button-info" 
-          @click="abrirModalTransferencia" 
-        />
-        <Button 
-          v-if="podeCriar"
           label="Ajuste Manual" 
           icon="pi pi-pencil" 
           class="p-button-warning" 
@@ -301,82 +294,6 @@
       </template>
     </Dialog>
 
-    <!-- Modal de Transferência -->
-    <Dialog v-model:visible="modalTransferencia.visivel" modal header="Transferir entre Locais" :style="{ width: '600px' }" appendTo="body">
-      <div class="mb-4">
-        <div class="mb-3">
-          <label class="block text-600 mb-2">Produto e Local de Origem *</label>
-          <AutoComplete
-            v-model="modalTransferencia.estoque"
-            :suggestions="sugestoesEstoque"
-            @complete="buscarEstoque($event)"
-            optionLabel="label"
-            placeholder="Buscar produto no local..."
-            class="w-full"
-            dropdown
-            forceSelection
-          >
-            <template #item="slotProps">
-              <div class="flex flex-column">
-                <div class="font-semibold">{{ slotProps.item.product_description }}</div>
-                <div class="text-sm text-500">Local: {{ slotProps.item.location_name }}</div>
-                <div class="text-sm text-green-600">Disponível: {{ slotProps.item.quantity_available }}</div>
-              </div>
-            </template>
-          </AutoComplete>
-        </div>
-
-        <div class="mb-3">
-          <label class="block text-600 mb-2">Local de Destino *</label>
-          <Dropdown
-            v-model="modalTransferencia.localDestino"
-            :options="locaisDestino"
-            optionLabel="name"
-            optionValue="id"
-            placeholder="Selecione o local de destino"
-            class="w-full"
-            :filter="true"
-            :disabled="!modalTransferencia.estoque"
-          />
-        </div>
-
-        <div class="mb-3">
-          <label class="block text-600 mb-2">Quantidade *</label>
-          <InputNumber
-            v-model="modalTransferencia.quantidade"
-            :min="0.0001"
-            :max="modalTransferencia.estoque?.quantity_available || 0"
-            :step="0.0001"
-            class="w-full"
-            :useGrouping="false"
-            :disabled="!modalTransferencia.estoque || !modalTransferencia.localDestino"
-          />
-          <small v-if="modalTransferencia.estoque" class="text-500">
-            Máximo disponível: {{ modalTransferencia.estoque.quantity_available }}
-          </small>
-        </div>
-
-        <div class="mb-3">
-          <label class="block text-600 mb-2">Observação</label>
-          <Textarea v-model="modalTransferencia.observacao" rows="3" class="w-full" placeholder="Informe observações sobre esta transferência..." />
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-content-end gap-2">
-          <Button label="Cancelar" class="p-button-text" @click="fecharModalTransferencia" />
-          <Button
-            label="Transferir"
-            icon="pi pi-check"
-            class="p-button-info"
-            :disabled="!modalTransferencia.estoque || !modalTransferencia.localDestino || !modalTransferencia.quantidade || modalTransferencia.estoque?.stock_location_id === modalTransferencia.localDestino"
-            :loading="modalTransferencia.loading"
-            @click="confirmarTransferencia"
-          />
-        </div>
-      </template>
-    </Dialog>
-
     <!-- Modal de Ajuste Manual -->
     <Dialog v-model:visible="modalAjuste.visivel" modal header="Ajuste Manual de Estoque" :style="{ width: '600px' }" appendTo="body">
       <div class="mb-4">
@@ -604,15 +521,6 @@ export default {
       loading: false,
     });
 
-    const modalTransferencia = reactive({
-      visivel: false,
-      estoque: null,
-      localDestino: null,
-      quantidade: null,
-      observacao: '',
-      loading: false,
-    });
-
     const modalAjuste = reactive({
       visivel: false,
       estoque: null,
@@ -625,7 +533,6 @@ export default {
 
     // Dados auxiliares
     const locaisDisponiveis = ref([]); // Locais com acesso (para entrada manual)
-    const locaisDestino = ref([]); // Todos os locais ativos (para destino em transferência)
     const sugestoesProdutos = ref([]);
     const sugestoesEstoque = ref([]);
     
@@ -924,15 +831,6 @@ export default {
       }
     };
 
-    const carregarLocaisDestino = async () => {
-      try {
-        const { data } = await locationService.getAllActive({ per_page: 100 });
-        locaisDestino.value = data.data || [];
-      } catch (error) {
-        console.error('Erro ao carregar locais de destino:', error);
-      }
-    };
-
     // Métodos do Modal de Entrada
     const abrirModalEntrada = async () => {
       modalEntrada.visivel = true;
@@ -1069,23 +967,6 @@ export default {
       }
     };
 
-    // Métodos do Modal de Transferência
-    const abrirModalTransferencia = async () => {
-      modalTransferencia.visivel = true;
-      modalTransferencia.estoque = null;
-      modalTransferencia.localDestino = null;
-      modalTransferencia.quantidade = null;
-      modalTransferencia.observacao = '';
-      
-      if (locaisDestino.value.length === 0) {
-        await carregarLocaisDestino();
-      }
-    };
-
-    const fecharModalTransferencia = () => {
-      modalTransferencia.visivel = false;
-    };
-
     const buscarEstoque = async (event) => {
       const query = event.query;
       
@@ -1118,54 +999,6 @@ export default {
           sugestoesEstoque.value = [];
         }
       }, 300);
-    };
-
-    const confirmarTransferencia = async () => {
-      if (!modalTransferencia.estoque || !modalTransferencia.localDestino || !modalTransferencia.quantidade) {
-        return;
-      }
-
-      if (modalTransferencia.estoque.stock_location_id === modalTransferencia.localDestino) {
-        toast.add({
-          severity: 'warn',
-          summary: 'Aviso',
-          detail: 'O local de origem e destino devem ser diferentes.',
-          life: 3000
-        });
-        return;
-      }
-
-      try {
-        modalTransferencia.loading = true;
-
-        const dados = {
-          stock_id: modalTransferencia.estoque.id,
-          to_location_id: modalTransferencia.localDestino,
-          quantity: modalTransferencia.quantidade,
-          observation: modalTransferencia.observacao || null,
-        };
-
-        await service.transferir(dados);
-
-        toast.add({
-          severity: 'success',
-          summary: 'Sucesso',
-          detail: 'Transferência realizada com sucesso!',
-          life: 3000
-        });
-
-        fecharModalTransferencia();
-        await carregar();
-      } catch (error) {
-        toast.add({
-          severity: 'error',
-          summary: 'Erro',
-          detail: error.response?.data?.message || 'Erro ao realizar transferência',
-          life: 3000
-        });
-      } finally {
-        modalTransferencia.loading = false;
-      }
     };
 
     // Métodos do Modal de Ajuste
@@ -1277,10 +1110,8 @@ export default {
       filtros,
       modalEntrada,
       modalCriarProduto,
-      modalTransferencia,
       modalAjuste,
       locaisDisponiveis,
-      locaisDestino,
       sugestoesProdutos,
       sugestoesEstoque,
       podeCriar,
@@ -1295,10 +1126,7 @@ export default {
       fecharModalEntrada,
       buscarProdutos,
       confirmarEntrada,
-      abrirModalTransferencia,
-      fecharModalTransferencia,
       buscarEstoque,
-      confirmarTransferencia,
       abrirModalAjuste,
       fecharModalAjuste,
       confirmarAjuste,

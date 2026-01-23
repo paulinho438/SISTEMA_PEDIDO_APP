@@ -4,12 +4,12 @@
       <h5 class="text-900 m-0">Transferência entre Locais</h5>
       <div class="flex gap-2">
         <Button 
-          label="Gerar Documento" 
-          icon="pi pi-file-pdf" 
+          label="Visualizar Documento" 
+          icon="pi pi-eye" 
           class="p-button-success"
           :disabled="itensSelecionados.length === 0 || !localDestino"
-          @click="gerarDocumento"
-          :loading="gerandoDocumento"
+          @click="visualizarDocumento"
+          :loading="visualizandoDocumento"
         />
       </div>
     </div>
@@ -260,7 +260,7 @@ export default {
     const filtroBusca = ref('');
     const carregandoEstoques = ref(false);
     const processandoTransferencia = ref(false);
-    const gerandoDocumento = ref(false);
+    const visualizandoDocumento = ref(false);
 
     const podeConfirmar = computed(() => {
       if (!localOrigem.value || !localDestino.value || localOrigem.value === localDestino.value) {
@@ -460,20 +460,19 @@ export default {
       }
     };
 
-    const gerarDocumento = async () => {
+    const visualizarDocumento = async () => {
       if (itensSelecionados.value.length === 0 || !localDestino.value) {
         toast.add({
           severity: 'warn',
           summary: 'Aviso',
-          detail: 'Selecione os itens e o local de destino antes de gerar o documento.',
+          detail: 'Selecione os itens e o local de destino antes de visualizar o documento.',
           life: 3000
         });
         return;
       }
 
-      // Primeiro criar a transferência, depois gerar o documento
       try {
-        gerandoDocumento.value = true;
+        visualizandoDocumento.value = true;
 
         const dados = {
           local_origem_id: localOrigem.value,
@@ -487,45 +486,21 @@ export default {
           }))
         };
 
-        // Criar transferência primeiro
-        const response = await transferService.criar(dados);
-        const transferId = response?.data?.data?.id;
+        // Chamar endpoint de visualização (não salva)
+        const docResponse = await transferService.visualizarDocumento(dados);
 
-        if (!transferId) {
-          throw new Error('Transferência criada mas ID não retornado');
-        }
-
-        // Gerar documento da transferência criada
-        const docResponse = await transferService.gerarDocumento(transferId);
-
-        // Criar blob e fazer download
+        // Criar blob e abrir em nova aba para visualização
         const blob = docResponse.data;
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const transferNumber = response?.data?.data?.transfer_number || transferId;
-        a.download = `transferencia-${transferNumber}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        toast.add({
-          severity: 'success',
-          summary: 'Sucesso',
-          detail: 'Transferência criada e documento gerado com sucesso!',
-          life: 3000
-        });
-
-        // Limpar formulário
-        itensSelecionados.value = [];
-        motorista.value = '';
-        placa.value = '';
-        observacao.value = '';
-        await carregarEstoques();
+        window.open(url, '_blank');
+        
+        // Limpar URL após um tempo
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 100);
       } catch (error) {
-        console.error('Erro ao gerar documento:', error);
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Erro ao gerar documento';
+        console.error('Erro ao visualizar documento:', error);
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Erro ao visualizar documento';
         toast.add({
           severity: 'error',
           summary: 'Erro',
@@ -533,7 +508,7 @@ export default {
           life: 5000
         });
       } finally {
-        gerandoDocumento.value = false;
+        visualizandoDocumento.value = false;
       }
     };
 
@@ -560,7 +535,7 @@ export default {
       filtroBusca,
       carregandoEstoques,
       processandoTransferencia,
-      gerandoDocumento,
+      visualizandoDocumento,
       podeConfirmar,
       quantidadeTotal,
       formatarQuantidade,
@@ -570,7 +545,7 @@ export default {
       removerItem,
       validarQuantidade,
       confirmarTransferencia,
-      gerarDocumento,
+      visualizarDocumento,
       isItemSelecionado,
       getRowClass,
     };

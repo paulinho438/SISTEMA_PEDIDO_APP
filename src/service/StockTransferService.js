@@ -27,5 +27,11 @@ export default class StockTransferService {
             responseType: 'blob',
         });
     };
+
+    visualizarDocumento = async (data) => {
+        return await axios.post(`${apiPath}/estoque/transferencias/visualizar-documento`, data, {
+            responseType: 'blob',
+        });
+    };
 }
 
