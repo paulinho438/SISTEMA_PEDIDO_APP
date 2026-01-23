@@ -115,12 +115,19 @@
               @click="imprimirDocumento(slotProps.data.id)"
             />
             <Button
-              v-if="slotProps.data.status === 'pendente'"
+              v-if="slotProps.data.status === 'pendente' && podeReceberTransferencia(slotProps.data)"
               icon="pi pi-check"
               class="p-button-rounded p-button-text p-button-success p-button-sm"
               v-tooltip.top="'Marcar como Recebido'"
               @click="marcarRecebido(slotProps.data.id)"
               :loading="processando === slotProps.data.id"
+            />
+            <Button
+              v-if="slotProps.data.status === 'pendente' && !podeReceberTransferencia(slotProps.data)"
+              icon="pi pi-check"
+              class="p-button-rounded p-button-text p-button-success p-button-sm"
+              v-tooltip.top="'Apenas o dono do almoxarifado de destino pode receber a transferência'"
+              disabled
             />
             <Button
               v-if="slotProps.data.status === 'pendente'"
@@ -259,8 +266,10 @@
 import { ref, onMounted, computed } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
+import { useStore } from 'vuex';
 import StockTransferService from '@/service/StockTransferService';
 import StockLocationService from '@/service/StockLocationService';
+import StockAlmoxarifeService from '@/service/StockAlmoxarifeService';
 import PermissionsService from '@/service/PermissionsService';
 
 export default {
@@ -268,12 +277,15 @@ export default {
   setup() {
     const toast = useToast();
     const confirm = useConfirm();
+    const store = useStore();
     const transferService = new StockTransferService();
     const locationService = new StockLocationService();
+    const almoxarifeService = new StockAlmoxarifeService();
     const permissionsService = new PermissionsService();
 
     const transferencias = ref([]);
     const locais = ref([]);
+    const locaisUsuario = ref([]); // Locais onde o usuário é almoxarife
     const carregando = ref(false);
     const processando = ref(null);
 
@@ -310,6 +322,29 @@ export default {
           || 'Erro ao carregar locais';
         console.error('Erro ao carregar locais:', errorMessage);
       }
+    };
+
+    const carregarLocaisUsuario = async () => {
+      try {
+        const usuario = store.state.usuario;
+        if (usuario && usuario.id) {
+          const { data } = await almoxarifeService.listByAlmoxarife(usuario.id);
+          locaisUsuario.value = (data.locations || []).map(loc => loc.id);
+        }
+      } catch (error) {
+        // Se der erro, apenas logar - não é crítico
+        console.error('Erro ao carregar locais do usuário:', error);
+        locaisUsuario.value = [];
+      }
+    };
+
+    const podeReceberTransferencia = (transferencia) => {
+      if (!transferencia || !transferencia.destination_location) {
+        return false;
+      }
+      
+      const destinoId = transferencia.destination_location.id;
+      return locaisUsuario.value.includes(destinoId);
     };
 
     const carregar = async () => {
@@ -576,12 +611,14 @@ export default {
 
     onMounted(() => {
       carregarLocais();
+      carregarLocaisUsuario();
       carregar();
     });
 
     return {
       transferencias,
       locais,
+      locaisUsuario,
       carregando,
       processando,
       filtros,
@@ -589,6 +626,8 @@ export default {
       modalRecebimento,
       temItensSelecionados,
       carregar,
+      carregarLocaisUsuario,
+      podeReceberTransferencia,
       marcarRecebido,
       fecharModalRecebimento,
       toggleTodosItens,
