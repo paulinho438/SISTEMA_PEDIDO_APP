@@ -5,8 +5,8 @@
     <form @submit.prevent="salvar">
       <div class="grid">
         <div class="col-12 md:col-6">
-          <label for="code">Código do Responsável *</label>
-          <InputText id="code" v-model="form.code" class="w-full" required />
+          <label for="code">Código do Responsável</label>
+          <InputText id="code" v-model="form.code" class="w-full" :disabled="true" placeholder="Gerado automaticamente" />
         </div>
         <div class="col-12 md:col-6">
           <label for="active">Ativo</label>
@@ -51,7 +51,7 @@ export default {
     const service = new AssetAuxiliaryService('responsaveis');
 
     const form = ref({
-      code: '',
+      code: '', // Será gerado automaticamente pelo backend se vazio
       name: '',
       description: '',
       active: true,
@@ -87,7 +87,14 @@ export default {
     const salvar = async () => {
       try {
         salvando.value = true;
-        await service.save({ ...form.value, id: id || undefined });
+        const dataToSave = { ...form.value };
+        
+        // Se estiver criando novo (sem id), não enviar o código (será gerado automaticamente)
+        if (!id) {
+          delete dataToSave.code;
+        }
+        
+        await service.save({ ...dataToSave, id: id || undefined });
         toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Responsável salvo com sucesso', life: 3000 });
         router.push('/ativos/responsaveis');
       } catch (error) {
