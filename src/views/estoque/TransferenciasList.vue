@@ -353,12 +353,10 @@
           </Column>
           <Column field="quantity_received" header="Quantidade Recebida" sortable>
             <template #body="slotProps">
-              <span v-if="slotProps.data.quantity_received !== null && slotProps.data.quantity_received !== undefined" 
-                    class="font-semibold"
-                    :class="slotProps.data.quantity_received >= slotProps.data.quantity ? 'text-green-600' : 'text-orange-600'">
-                {{ formatarQuantidade(slotProps.data.quantity_received) }}
+              <span class="font-semibold"
+                    :class="(parseFloat(slotProps.data.quantity_received) || 0) >= slotProps.data.quantity ? 'text-green-600' : 'text-orange-600'">
+                {{ formatarQuantidade(slotProps.data.quantity_received || 0) }}
               </span>
-              <span v-else class="text-500 font-semibold">0,00</span>
             </template>
           </Column>
           <Column header="Situação">
