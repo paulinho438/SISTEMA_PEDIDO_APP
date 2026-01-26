@@ -47,5 +47,21 @@ export default class StockProductService {
     removeImage = async (id) => {
         return await axios.delete(`${apiPath}/estoque/produtos/${id}/remove-image`);
     };
+
+    importarExcel = async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return await axios.post(`${apiPath}/estoque/produtos/importar-excel`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    };
+
+    baixarTemplate = async () => {
+        return await axios.get(`${apiPath}/estoque/produtos/template-excel`, {
+            responseType: 'blob'
+        });
+    };
 }
 

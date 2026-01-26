@@ -16,9 +16,15 @@
         <!-- Coluna Principal -->
         <div class="col-12 lg:col-8">
           <div class="grid">
-            <div class="col-12 md:col-6">
-              <label for="code">Código *</label>
-              <InputText id="code" v-model="form.code" class="w-full" :disabled="isViewMode || !podeEditar" required />
+            <div class="col-12 md:col-6" v-if="id && isViewMode">
+              <label for="code">Código</label>
+              <InputText id="code" v-model="form.code" class="w-full" disabled />
+              <small class="text-500">Código gerado automaticamente pelo sistema</small>
+            </div>
+            <div class="col-12 md:col-6" v-else-if="id">
+              <label for="code">Código</label>
+              <InputText id="code" v-model="form.code" class="w-full" disabled />
+              <small class="text-500">Código gerado automaticamente pelo sistema</small>
             </div>
             <div class="col-12 md:col-6">
               <label for="reference">Referência</label>
@@ -234,7 +240,7 @@ export default {
     }
 
     const form = ref({
-      code: '',
+      code: '', // Código será gerado automaticamente pelo sistema
       reference: '',
       description: '',
       unit: 'UN',
@@ -382,7 +388,12 @@ export default {
 
       try {
         salvando.value = true;
-        const savedProduct = await service.save({ ...form.value, id: id || undefined });
+        // Remover código ao criar novo produto (será gerado automaticamente pelo sistema)
+        const productData = { ...form.value };
+        if (!id) {
+          delete productData.code; // Não enviar código na criação
+        }
+        const savedProduct = await service.save({ ...productData, id: id || undefined });
         
         // Se houver imagem selecionada e produto foi criado/editado, fazer upload
         if (selectedFile.value) {
