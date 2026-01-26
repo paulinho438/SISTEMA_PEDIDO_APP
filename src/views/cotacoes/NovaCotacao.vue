@@ -267,7 +267,7 @@
 
         <tbody>
         <tr v-for="(prod, p) in produtos" :key="'row-' + p">
-          <td>{{ prod.id }}</td>
+          <td>{{ p + 1 }}</td>
           <td>{{ prod.qtd }}</td>
           <td>{{ prod.medida || '-' }}</td>
           <td style="min-width: 250px;">{{ prod.descricao }}</td>

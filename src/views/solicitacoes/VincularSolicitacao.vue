@@ -128,6 +128,11 @@
           class="p-datatable-sm tabela-vincular mt-4"
           responsiveLayout="scroll"
       >
+        <Column header="N°">
+          <template #body="{ index }">
+            {{ index + 1 }}
+          </template>
+        </Column>
         <Column field="codigo" header="Código" />
         <Column field="referencia" header="Referência" />
         <Column field="mercadoria" header="Mercadoria" />

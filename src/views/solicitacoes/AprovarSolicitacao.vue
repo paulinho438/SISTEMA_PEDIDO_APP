@@ -68,6 +68,11 @@
             class="p-datatable-sm tabela-aprovar mt-4"
             responsiveLayout="scroll"
         >
+          <Column header="N°">
+            <template #body="{ index }">
+              {{ index + 1 }}
+            </template>
+          </Column>
           <Column field="codigo" header="Código">
             <template #body="{ data }">
               <InputText v-if="modoEdicaoHabilitado" v-model="data.codigo" class="w-full p-inputtext-sm" />
