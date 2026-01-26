@@ -87,6 +87,11 @@
       </div>
 
       <DataTable :value="form.itens" class="p-datatable-sm tabela-itens" responsiveLayout="scroll">
+        <Column header="N°">
+          <template #body="{ index }">
+            {{ index + 1 }}
+          </template>
+        </Column>
         <Column field="codigo" header="Código">
           <template #body="{ data }">
             {{ data.codigo }}
