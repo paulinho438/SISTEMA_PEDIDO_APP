@@ -22,18 +22,31 @@
     <div class="flex justify-content-end mb-3">
       <span class="p-input-icon-left">
         <i class="pi pi-search" />
-        <InputText v-model="filtroGlobal" placeholder="Buscar..." class="p-inputtext-sm" style="width: 16rem" />
+        <InputText 
+          v-model="filtroGlobal" 
+          placeholder="Buscar..." 
+          class="p-inputtext-sm" 
+          style="width: 16rem"
+          @input="onSearchChange"
+        />
       </span>
     </div>
 
     <DataTable
-      :value="produtosFiltrados"
+      :value="produtos"
       :paginator="true"
-      :rows="10"
+      :rows="paginacao.perPage"
+      :totalRecords="paginacao.total"
+      :lazy="true"
+      :first="(paginacao.page - 1) * paginacao.perPage"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPageChange"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} produtos"
     >
       <Column field="code" header="Código" sortable></Column>
       <Column field="reference" header="Referência" sortable></Column>
@@ -178,6 +191,17 @@ export default {
     const filtroGlobal = ref('');
     const carregando = ref(false);
     const service = new StockProductService();
+    
+    // Estado de paginação
+    const paginacao = ref({
+      page: 1,
+      perPage: 10,
+      total: 0,
+      lastPage: 1
+    });
+    
+    // Timeout para debounce da busca
+    let searchTimeout = null;
 
     const modalImportacao = ref({
       visivel: false,
@@ -193,26 +217,57 @@ export default {
     const podeDeletar = computed(() => permissionService.hasPermissions('view_estoque_produtos_delete'));
     const podeImportar = computed(() => permissionService.hasPermissions('import_estoque_produtos_excel'));
 
-    const produtosFiltrados = computed(() => {
-      if (!filtroGlobal.value) return produtos.value;
-      const filtro = filtroGlobal.value.toLowerCase();
-      return produtos.value.filter(p =>
-        p.code?.toLowerCase().includes(filtro) ||
-        p.reference?.toLowerCase().includes(filtro) ||
-        p.description?.toLowerCase().includes(filtro)
-      );
-    });
-
     const carregar = async () => {
       try {
         carregando.value = true;
-        const { data } = await service.getAll({ per_page: 100 });
+        
+        const params = {
+          page: paginacao.value.page,
+          per_page: paginacao.value.perPage
+        };
+        
+        // Adicionar busca se houver filtro
+        if (filtroGlobal.value && filtroGlobal.value.trim()) {
+          params.search = filtroGlobal.value.trim();
+        }
+        
+        const response = await service.getAll(params);
+        const data = response.data;
+        
+        // Laravel Resource::collection com paginate retorna:
+        // { data: [...], current_page, per_page, total, last_page, etc }
         produtos.value = data.data || [];
+        
+        // Atualizar informações de paginação
+        paginacao.value.total = data.total || 0;
+        paginacao.value.page = data.current_page || 1;
+        paginacao.value.perPage = data.per_page || 10;
+        paginacao.value.lastPage = data.last_page || 1;
+        
       } catch (error) {
-        toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar produtos', life: 3000 });
+        console.error('Erro ao carregar produtos:', error);
+        toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao carregar produtos', life: 3000 });
       } finally {
         carregando.value = false;
       }
+    };
+    
+    const onPageChange = (event) => {
+      paginacao.value.page = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
+      paginacao.value.perPage = event.rows;
+      carregar();
+    };
+    
+    const onSearchChange = () => {
+      // Debounce: aguardar 500ms após o usuário parar de digitar
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      
+      searchTimeout = setTimeout(() => {
+        paginacao.value.page = 1; // Resetar para primeira página ao buscar
+        carregar();
+      }, 500);
     };
 
     const toggleActive = async (produto) => {
@@ -331,8 +386,8 @@ export default {
     return {
       produtos,
       filtroGlobal,
-      produtosFiltrados,
       carregando,
+      paginacao,
       modalImportacao,
       toggleActive,
       abrirModalImportacao,
@@ -340,6 +395,8 @@ export default {
       onFileSelect,
       baixarTemplate,
       processarImportacao,
+      onPageChange,
+      onSearchChange,
       podeCriar,
       podeVisualizar,
       podeEditar,
