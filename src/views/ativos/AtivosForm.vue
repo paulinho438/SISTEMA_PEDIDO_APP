@@ -449,7 +449,7 @@ export default {
       salvando,
       filiais,
       locais,
-      usuarios,
+      responsaveis,
       centrosCusto,
       condicoesUso,
       descricoesPadrao,
