@@ -118,7 +118,7 @@
             </div>
             <div class="col-12 md:col-6">
               <label>Responsável</label>
-              <Dropdown v-model="form.responsible_id" :options="usuarios" optionLabel="nome_completo" optionValue="id" placeholder="Selecione" class="w-full" showClear :disabled="isViewMode || !podeEditar" />
+              <Dropdown v-model="form.responsible_id" :options="responsaveis" optionLabel="name" optionValue="id" placeholder="Selecione" class="w-full" showClear :disabled="isViewMode || !podeEditar" />
             </div>
             <div class="col-12 md:col-6">
               <label>Centro de Custo</label>
@@ -172,7 +172,6 @@ import PermissionsService from '@/service/PermissionsService';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
 import CostcenterService from '@/service/CostcenterService';
-import UserService from '@/service/UserService';
 
 export default {
   name: 'AtivosForm',
@@ -230,7 +229,7 @@ export default {
     const salvando = ref(false);
     const filiais = ref([]);
     const locais = ref([]);
-    const usuarios = ref([]);
+    const responsaveis = ref([]);
     const centrosCusto = ref([]);
     const condicoesUso = ref([]);
     const descricoesPadrao = ref([]);
@@ -369,10 +368,10 @@ export default {
         // Se estiver editando, carregar todos (incluindo inativos) para garantir que o item selecionado apareça
         const all = id ? { all: true } : {};
         
-        const [filiaisRes, locaisRes, usuariosRes, centrosRes, condicoesRes, descricoesRes, contasRes, projetosRes] = await Promise.all([
+        const [filiaisRes, locaisRes, responsaveisRes, centrosRes, condicoesRes, descricoesRes, contasRes, projetosRes] = await Promise.all([
           new AssetAuxiliaryService('filiais').getAll(all),
           new AssetAuxiliaryService('locais').getAll(all),
-          new UserService().getAll(),
+          new AssetAuxiliaryService('responsaveis').getAll(all),
           new CostcenterService().getAll(),
           new AssetAuxiliaryService('condicoes-uso').getAll(),
           new AssetAuxiliaryService('descricoes-padrao').getAll(),
@@ -382,7 +381,7 @@ export default {
 
         filiais.value = filiaisRes.data?.data || filiaisRes.data || [];
         locais.value = locaisRes.data?.data || locaisRes.data || [];
-        usuarios.value = usuariosRes.data?.data || usuariosRes.data || [];
+        responsaveis.value = responsaveisRes.data?.data || responsaveisRes.data || [];
         centrosCusto.value = centrosRes.data?.data || centrosRes.data || [];
         condicoesUso.value = condicoesRes.data?.data || condicoesRes.data || [];
         descricoesPadrao.value = descricoesRes.data?.data || descricoesRes.data || [];

@@ -75,7 +75,8 @@ const model = ref([
                         items: [
                             { label: 'Filiais', icon: 'pi pi-fw pi-building', to: '/ativos/filiais', permission: 'view_ativos_filiais' },
                             { label: 'Locais', icon: 'pi pi-fw pi-map-marker', to: '/ativos/locais', permission: 'view_ativos_filiais' },
-                            { label: 'Descrições Padrão', icon: 'pi pi-fw pi-tag', to: '/ativos/descricoes-padrao', permission: 'view_ativos_descricoes_padrao' }
+                            { label: 'Descrições Padrão', icon: 'pi pi-fw pi-tag', to: '/ativos/descricoes-padrao', permission: 'view_ativos_descricoes_padrao' },
+                            { label: 'Responsáveis', icon: 'pi pi-fw pi-user', to: '/ativos/responsaveis', permission: 'view_ativos_responsaveis' }
                         ]
                     }
                 ]

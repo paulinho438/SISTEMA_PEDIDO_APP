@@ -70,6 +70,22 @@ const ativosRoutes = [
                 path: 'descricoes-padrao/:id',
                 name: 'ativosDescricoesPadraoEdit',
                 component: () => import('@/views/ativos/DescricoesPadraoForm.vue')
+            },
+            // Cadastros Auxiliares - Responsáveis
+            {
+                path: 'responsaveis',
+                name: 'ativosResponsaveisList',
+                component: () => import('@/views/ativos/ResponsaveisList.vue')
+            },
+            {
+                path: 'responsaveis/add',
+                name: 'ativosResponsaveisAdd',
+                component: () => import('@/views/ativos/ResponsaveisForm.vue')
+            },
+            {
+                path: 'responsaveis/:id',
+                name: 'ativosResponsaveisEdit',
+                component: () => import('@/views/ativos/ResponsaveisForm.vue')
             }
         ]
     }
