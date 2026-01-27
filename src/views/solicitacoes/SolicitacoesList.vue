@@ -302,8 +302,22 @@ export default {
     };
 
     const podeEditar = (statusSlug) => {
-      // Só pode editar solicitações com status "aguardando" ou "reprovado"
-      return statusSlug === 'aguardando' || statusSlug === 'reprovado';
+      // Pode editar solicitações com status:
+      // - "aguardando" ou "reprovado" (sempre pode editar)
+      // - "cotacao" ou "compra_em_andamento" (pode editar quantidade de itens)
+      // Não pode editar quando status for "analisada" ou posterior
+      const statusPermitidos = ['aguardando', 'reprovado', 'cotacao', 'compra_em_andamento'];
+      const statusBloqueados = ['analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado', 'finalizada'];
+      
+      if (!statusSlug) {
+        return true; // Se não tem status, permite editar (criação)
+      }
+      
+      if (statusBloqueados.includes(statusSlug)) {
+        return false; // Status bloqueados não podem editar
+      }
+      
+      return statusPermitidos.includes(statusSlug);
     };
 
     const statusStyle = (slug) => {
