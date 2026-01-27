@@ -8,27 +8,34 @@
       </div>
     </div>
 
-    <!-- Informações da Solicitação -->
-    <div class="card bg-light p-4 mb-4">
+    <!-- Loading -->
+    <div v-if="carregando" class="flex justify-content-center align-items-center" style="min-height: 400px;">
+      <ProgressSpinner />
+    </div>
+
+    <!-- Conteúdo -->
+    <div v-else>
+      <!-- Informações da Solicitação -->
+      <div v-if="solicitacao" class="card bg-light p-4 mb-4">
       <div class="grid">
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Número da Solicitação</label>
-          <p class="text-900 font-semibold m-0">{{ solicitacao.numero || '-' }}</p>
+          <p class="text-900 font-semibold m-0">{{ solicitacao?.numero || '-' }}</p>
         </div>
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Data</label>
-          <p class="text-900 font-semibold m-0">{{ solicitacao.data || '-' }}</p>
+          <p class="text-900 font-semibold m-0">{{ solicitacao?.data || '-' }}</p>
         </div>
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Solicitante</label>
-          <p class="text-900 font-semibold m-0">{{ solicitacao.solicitante || '-' }}</p>
+          <p class="text-900 font-semibold m-0">{{ solicitacao?.solicitante || '-' }}</p>
         </div>
         <div class="col-12 md:col-3">
           <label class="text-600 block mb-1">Status</label>
           <Tag 
-            :value="solicitacao.status?.label || '-'" 
-            :severity="getSeverityStatus(solicitacao.status?.slug)"
-            :style="getStyleStatus(solicitacao.status?.slug)"
+            :value="solicitacao?.status?.label || '-'" 
+            :severity="getSeverityStatus(solicitacao?.status?.slug)"
+            :style="getStyleStatus(solicitacao?.status?.slug)"
           />
         </div>
       </div>
@@ -119,6 +126,8 @@
       />
     </div>
 
+    </div>
+
     <Toast />
   </div>
 </template>
@@ -128,14 +137,26 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import SolicitacaoService from '@/service/SolicitacaoService';
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import InputNumber from 'primevue/inputnumber';
 import Message from 'primevue/message';
 import Tag from 'primevue/tag';
+import Toast from 'primevue/toast';
+import ProgressSpinner from 'primevue/progressspinner';
 
 export default {
   name: 'AlterarQuantidade',
   components: {
+    Button,
+    DataTable,
+    Column,
+    InputNumber,
     Message,
-    Tag
+    Tag,
+    Toast,
+    ProgressSpinner
   },
   setup() {
     const router = useRouter();
