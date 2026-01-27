@@ -33,6 +33,7 @@
                         placeholder="Buscar..."
                         class="p-inputtext-sm"
                         style="width: 16rem"
+                        @input="onSearchChange"
                     />
                 </span>
       </div>
@@ -40,14 +41,21 @@
 
     <!-- Tabela -->
     <DataTable
-        :value="filtrarSolicitacoes"
+        :value="solicitacoes"
         :paginator="true"
-        :rows="perPage"
+        :rows="paginacao.perPage"
+        :totalRecords="paginacao.total"
+        :lazy="true"
+        :first="(paginacao.page - 1) * paginacao.perPage"
         dataKey="id"
         responsiveLayout="scroll"
         v-model:selection="selecionadas"
         selectionMode="checkbox"
         :loading="carregando"
+        @page="onPageChange"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        :rowsPerPageOptions="[10, 20, 50, 100]"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} solicitações"
     >
       <Column selectionMode="multiple" headerStyle="width:3rem"></Column>
       <Column field="numero" header="Nº da Solicitação" sortable></Column>
@@ -107,20 +115,6 @@
     <!-- Modal de Confirmação de Exclusão -->
     <ConfirmDialog />
 
-    <!-- Rodapé -->
-    <div class="flex justify-content-between align-items-center mt-3 text-sm text-500">
-            <span>
-                Mostrando {{ (paginaAtual - 1) * perPage + 1 }} a
-                {{ Math.min(paginaAtual * perPage, solicitacoes.length) }} de
-                {{ solicitacoes.length }} solicitações
-            </span>
-
-      <Dropdown
-          v-model="perPage"
-          :options="[10, 20, 30]"
-          class="w-6rem"
-      />
-    </div>
   </div>
 </template>
 
@@ -143,9 +137,15 @@ export default {
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
     const selecionadas = ref([]);
-    const perPage = ref(10);
-    const paginaAtual = ref(1);
     const carregando = ref(false);
+    const searchTimeout = ref(null);
+    
+    const paginacao = ref({
+      page: 1,
+      perPage: 10,
+      total: 0,
+      lastPage: 1
+    });
 
     // Verificar se o usuário tem permissão para visualizar todas as solicitações
     const podeVerTodas = computed(() => {
@@ -168,13 +168,25 @@ export default {
       try {
         carregando.value = true;
         
+        const params = {
+          page: paginacao.value.page,
+          per_page: paginacao.value.perPage
+        };
+        
         // Se não tiver permissão para ver todas, filtrar apenas as do usuário logado
-        const params = { per_page: 100 };
         if (!podeVerTodas.value) {
           params.my_requests = 'true';
         }
         
+        // Adicionar busca se houver filtro
+        if (filtroGlobal.value && filtroGlobal.value.trim()) {
+          params.search = filtroGlobal.value.trim();
+        }
+        
         const { data } = await SolicitacaoService.list(params);
+        
+        // Laravel Resource::collection com paginate retorna:
+        // { data: [...], current_page, per_page, total, last_page, etc }
         solicitacoes.value = (data?.data || []).map((item) => ({
           id: item.id,
           numero: item.numero,
@@ -185,6 +197,12 @@ export default {
           status: item.status?.label,
           statusSlug: item.status?.slug,
         }));
+        
+        // Atualizar informações de paginação
+        paginacao.value.total = data.total || 0;
+        paginacao.value.page = data.current_page || 1;
+        paginacao.value.perPage = data.per_page || 10;
+        paginacao.value.lastPage = data.last_page || 1;
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar as solicitações.';
         toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
@@ -193,17 +211,25 @@ export default {
       }
     };
 
-    onMounted(carregarSolicitacoes);
+    const onPageChange = (event) => {
+      paginacao.value.page = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
+      paginacao.value.perPage = event.rows;
+      carregarSolicitacoes();
+    };
+    
+    const onSearchChange = () => {
+      // Debounce: aguardar 500ms após o usuário parar de digitar
+      if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+      }
+      
+      searchTimeout.value = setTimeout(() => {
+        paginacao.value.page = 1; // Resetar para primeira página ao buscar
+        carregarSolicitacoes();
+      }, 500);
+    };
 
-    const filtrarSolicitacoes = computed(() => {
-      if (!filtroGlobal.value) return solicitacoes.value;
-      return solicitacoes.value.filter((s) =>
-        Object.values(s)
-          .join(' ')
-          .toLowerCase()
-          .includes(filtroGlobal.value.toLowerCase())
-      );
-    });
+    onMounted(carregarSolicitacoes);
 
     const novaSolicitacao = () => router.push({ name: 'solicitacoesAdd' });
     const exportar = () => toast.add({ severity: 'info', summary: 'Exportar', detail: 'Exportação simulada...', life: 2000 });
@@ -341,9 +367,7 @@ export default {
       solicitacoes,
       filtroGlobal,
       selecionadas,
-      perPage,
-      paginaAtual,
-      filtrarSolicitacoes,
+      paginacao,
       mapaStatus,
       statusStyle,
       novaSolicitacao,
@@ -357,6 +381,8 @@ export default {
       formatarCentroCusto,
       podeEditar,
       podeAlterarQuantidade,
+      onPageChange,
+      onSearchChange,
     };
   },
 };

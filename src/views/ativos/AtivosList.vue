@@ -13,7 +13,7 @@
     <div class="grid mb-3">
       <div class="col-12 md:col-3">
         <label>Buscar</label>
-        <InputText v-model="filtros.search" placeholder="Número, descrição, TAG..." class="w-full" />
+        <InputText v-model="filtros.search" placeholder="Número, descrição, TAG..." class="w-full" @input="onSearchChange" />
       </div>
       <div class="col-12 md:col-2">
         <label>Filial</label>
@@ -29,7 +29,7 @@
       </div>
       <div class="col-12 md:col-2">
         <label>&nbsp;</label>
-        <Button label="Filtrar" icon="pi pi-filter" class="w-full" @click="carregar" />
+        <Button label="Filtrar" icon="pi pi-filter" class="w-full" @click="aplicarFiltros" />
       </div>
       <div class="col-12 md:col-2">
         <label>&nbsp;</label>
@@ -47,11 +47,18 @@
     <DataTable
       :value="ativos"
       :paginator="true"
-      :rows="10"
+      :rows="paginacao.perPage"
+      :totalRecords="paginacao.total"
+      :lazy="true"
+      :first="(paginacao.page - 1) * paginacao.perPage"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPageChange"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} ativos"
     >
       <Column field="asset_number" header="Número" sortable></Column>
       <Column field="description" header="Descrição" sortable></Column>
@@ -148,6 +155,14 @@ export default {
     const gerandoTermo = ref(false);
     const modalBaixar = ref(false);
     const ativoSelecionado = ref(null);
+    const searchTimeout = ref(null);
+    
+    const paginacao = ref({
+      page: 1,
+      perPage: 10,
+      total: 0,
+      lastPage: 1
+    });
 
     const service = new AssetService();
     const branchService = new AssetAuxiliaryService('filiais');
@@ -193,14 +208,58 @@ export default {
     const carregar = async () => {
       try {
         carregando.value = true;
-        const params = { ...filtros.value, per_page: 100 };
+        const params = {
+          ...filtros.value,
+          page: paginacao.value.page,
+          per_page: paginacao.value.perPage
+        };
+        
+        // Remover campos vazios/null dos filtros
+        Object.keys(params).forEach(key => {
+          if (params[key] === null || params[key] === '' || params[key] === undefined) {
+            delete params[key];
+          }
+        });
+        
         const { data } = await service.getAll(params);
+        
+        // Laravel Resource::collection com paginate retorna:
+        // { data: [...], current_page, per_page, total, last_page, etc }
         ativos.value = data.data || [];
+        
+        // Atualizar informações de paginação
+        paginacao.value.total = data.total || 0;
+        paginacao.value.page = data.current_page || 1;
+        paginacao.value.perPage = data.per_page || 10;
+        paginacao.value.lastPage = data.last_page || 1;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar ativos', life: 3000 });
       } finally {
         carregando.value = false;
       }
+    };
+    
+    const onPageChange = (event) => {
+      paginacao.value.page = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
+      paginacao.value.perPage = event.rows;
+      carregar();
+    };
+    
+    const onSearchChange = () => {
+      // Debounce: aguardar 500ms após o usuário parar de digitar
+      if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+      }
+      
+      searchTimeout.value = setTimeout(() => {
+        paginacao.value.page = 1; // Resetar para primeira página ao buscar
+        carregar();
+      }, 500);
+    };
+    
+    const aplicarFiltros = () => {
+      paginacao.value.page = 1; // Resetar para primeira página ao aplicar filtros
+      carregar();
     };
 
     const carregarFiliais = async () => {
@@ -305,6 +364,9 @@ export default {
       baixarAtivo,
       gerarTermoResponsabilidade,
       gerandoTermo,
+      onPageChange,
+      onSearchChange,
+      aplicarFiltros,
     };
   },
 };
