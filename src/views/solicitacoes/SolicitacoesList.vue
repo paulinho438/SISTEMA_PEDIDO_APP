@@ -70,13 +70,14 @@
         </template>
       </Column>
 
-      <Column header="Ações" style="width: 10rem">
+      <Column header="Ações" style="width: 12rem">
         <template #body="slotProps">
           <div class="flex justify-content-around">
             <Button
                 icon="pi pi-eye"
                 class="p-button-rounded p-button-text"
                 @click="visualizar(slotProps.data)"
+                v-tooltip.top="'Visualizar'"
             />
             <Button
                 v-if="podeEditar(slotProps.data.statusSlug)"
@@ -86,9 +87,17 @@
                 v-tooltip.top="'Editar solicitação'"
             />
             <Button
+                v-if="podeAlterarQuantidade(slotProps.data.statusSlug)"
+                icon="pi pi-sort-numeric-up"
+                class="p-button-rounded p-button-text p-button-info"
+                @click="alterarQuantidade(slotProps.data)"
+                v-tooltip.top="'Alterar quantidade'"
+            />
+            <Button
                 icon="pi pi-trash"
                 class="p-button-rounded p-button-text p-button-danger"
                 @click="excluir(slotProps.data)"
+                v-tooltip.top="'Excluir'"
             />
           </div>
         </template>
@@ -202,6 +211,7 @@ export default {
       router.push({ name: 'solicitacoesView', params: { id: item.id } });
     };
     const editar = (item) => router.push({ name: 'solicitacoesEdit', params: { id: item.id } });
+    const alterarQuantidade = (item) => router.push({ name: 'alterarQuantidade', params: { id: item.id } });
     const excluir = async (item) => {
       confirm.require({
         message: `Tem certeza que deseja deletar a solicitação ${item.numero}?`,
@@ -302,22 +312,13 @@ export default {
     };
 
     const podeEditar = (statusSlug) => {
-      // Pode editar solicitações com status:
-      // - "aguardando" ou "reprovado" (sempre pode editar)
-      // - "cotacao" ou "compra_em_andamento" (pode editar quantidade de itens)
-      // Não pode editar quando status for "analisada" ou posterior
-      const statusPermitidos = ['aguardando', 'reprovado', 'cotacao', 'compra_em_andamento'];
-      const statusBloqueados = ['analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado', 'finalizada'];
-      
-      if (!statusSlug) {
-        return true; // Se não tem status, permite editar (criação)
-      }
-      
-      if (statusBloqueados.includes(statusSlug)) {
-        return false; // Status bloqueados não podem editar
-      }
-      
-      return statusPermitidos.includes(statusSlug);
+      // Pode editar solicitação completa apenas quando status for "aguardando" ou "reprovado"
+      return statusSlug === 'aguardando' || statusSlug === 'reprovado';
+    };
+
+    const podeAlterarQuantidade = (statusSlug) => {
+      // Pode alterar quantidade apenas quando status for "cotacao" ou "compra_em_andamento"
+      return statusSlug === 'cotacao' || statusSlug === 'compra_em_andamento';
     };
 
     const statusStyle = (slug) => {
@@ -349,11 +350,13 @@ export default {
       exportar,
       visualizar,
       editar,
+      alterarQuantidade,
       excluir,
       deletarSelecionadas,
       carregando,
       formatarCentroCusto,
       podeEditar,
+      podeAlterarQuantidade,
     };
   },
 };

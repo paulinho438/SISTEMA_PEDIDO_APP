@@ -43,6 +43,12 @@ const solicitacoesRoutes = [
 				component: () => import('@/views/solicitacoes/SolicitacoesView.vue')
 			},
 			{
+				path: ':id/alterar-quantidade',
+				name: 'alterarQuantidade',
+				props: true,
+				component: () => import('@/views/solicitacoes/AlterarQuantidade.vue')
+			},
+			{
 				path: 'relatorio',
 				name: 'solicitacoesRelatorio',
 				component: () => import('@/views/solicitacoes/SolicitacoesRelatorio.vue')

@@ -75,6 +75,10 @@ class SolicitacaoService {
   delete(id) {
     return axios.delete(`/cotacoes/${id}`);
   }
+
+  alterarQuantidade(id, payload) {
+    return axios.post(`/cotacoes/${id}/alterar-quantidade`, payload);
+  }
 }
 
 export default new SolicitacaoService();
