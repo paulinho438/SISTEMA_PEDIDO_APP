@@ -44,7 +44,6 @@
     <!-- Mensagem informativa -->
     <Message severity="info" :closable="false" class="mb-4">
       <div class="flex align-items-center">
-        <i class="pi pi-info-circle mr-2"></i>
         <span>Você pode alterar apenas a quantidade dos itens. Os demais campos não podem ser modificados nesta tela.</span>
       </div>
     </Message>

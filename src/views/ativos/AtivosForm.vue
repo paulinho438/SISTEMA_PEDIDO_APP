@@ -124,14 +124,6 @@
               <label>Centro de Custo</label>
               <Dropdown v-model="form.cost_center_id" :options="centrosCusto" optionLabel="description" optionValue="id" placeholder="Selecione" class="w-full" showClear :disabled="isViewMode || !podeEditar" />
             </div>
-            <div class="col-12 md:col-6">
-              <label>Conta</label>
-              <Dropdown v-model="form.account_id" :options="contas" optionLabel="name" optionValue="id" placeholder="Selecione" class="w-full" showClear :disabled="isViewMode || !podeEditar" />
-            </div>
-            <div class="col-12 md:col-6">
-              <label>Projeto</label>
-              <Dropdown v-model="form.project_id" :options="projetos" optionLabel="name" optionValue="id" placeholder="Selecione" class="w-full" showClear :disabled="isViewMode || !podeEditar" />
-            </div>
           </div>
         </TabPanel>
 
@@ -220,8 +212,6 @@ export default {
       location_id: null,
       responsible_id: null,
       cost_center_id: null,
-      account_id: null,
-      project_id: null,
       value_brl: 0,
       value_usd: null,
     });
@@ -233,8 +223,6 @@ export default {
     const centrosCusto = ref([]);
     const condicoesUso = ref([]);
     const descricoesPadrao = ref([]);
-    const contas = ref([]);
-    const projetos = ref([]);
     
     const imageUrl = ref(null);
     const selectedFile = ref(null);
@@ -331,12 +319,6 @@ export default {
           if (!form.value.branch_id && asset.branch?.id) {
             form.value.branch_id = parseInt(asset.branch.id);
           }
-          if (!form.value.account_id && asset.account?.id) {
-            form.value.account_id = parseInt(asset.account.id);
-          }
-          if (!form.value.project_id && asset.project?.id) {
-            form.value.project_id = parseInt(asset.project.id);
-          }
           if (!form.value.cost_center_id && asset.cost_center?.id) {
             form.value.cost_center_id = parseInt(asset.cost_center.id);
           }
@@ -368,15 +350,13 @@ export default {
         // Se estiver editando, carregar todos (incluindo inativos) para garantir que o item selecionado apareça
         const all = id ? { all: true } : {};
         
-        const [filiaisRes, locaisRes, responsaveisRes, centrosRes, condicoesRes, descricoesRes, contasRes, projetosRes] = await Promise.all([
+        const [filiaisRes, locaisRes, responsaveisRes, centrosRes, condicoesRes, descricoesRes] = await Promise.all([
           new AssetAuxiliaryService('filiais').getAll(all),
           new AssetAuxiliaryService('locais').getAll(all),
           new AssetAuxiliaryService('responsaveis').getAll(all),
           new CostcenterService().getAll(),
           new AssetAuxiliaryService('condicoes-uso').getAll(),
           new AssetAuxiliaryService('descricoes-padrao').getAll(),
-          new AssetAuxiliaryService('contas').getAll(),
-          new AssetAuxiliaryService('projetos').getAll(),
         ]);
 
         filiais.value = filiaisRes.data?.data || filiaisRes.data || [];
@@ -385,8 +365,6 @@ export default {
         centrosCusto.value = centrosRes.data?.data || centrosRes.data || [];
         condicoesUso.value = condicoesRes.data?.data || condicoesRes.data || [];
         descricoesPadrao.value = descricoesRes.data?.data || descricoesRes.data || [];
-        contas.value = contasRes.data?.data || contasRes.data || [];
-        projetos.value = projetosRes.data?.data || projetosRes.data || [];
       } catch (error) {
         console.error('Erro ao carregar dados auxiliares:', error);
       }
@@ -453,8 +431,6 @@ export default {
       centrosCusto,
       condicoesUso,
       descricoesPadrao,
-      contas,
-      projetos,
       statusOptions,
       isViewMode,
       podeEditar,
