@@ -42,7 +42,7 @@
             <strong>Local:</strong> {{ ativo.location?.name || '-' }}
           </div>
           <div class="col-12 md:col-3">
-            <strong>Responsável:</strong> {{ ativo.responsible?.nome_completo || '-' }}
+            <strong>Responsável:</strong> {{ ativo.responsible?.name || '-' }}
           </div>
           <div class="col-12 md:col-3">
             <strong>Centro de Custo:</strong> {{ ativo.cost_center?.name || '-' }}
@@ -97,7 +97,7 @@
         </div>
         <div class="col-12 md:col-6">
           <label>Responsável Destino</label>
-          <Dropdown v-model="formTransferir.to_responsible_id" :options="usuarios" optionLabel="nome_completo" optionValue="id" placeholder="Selecione" class="w-full" showClear />
+          <Dropdown v-model="formTransferir.to_responsible_id" :options="responsaveis" optionLabel="name" optionValue="id" placeholder="Selecione" class="w-full" showClear />
         </div>
         <div class="col-12">
           <label>Observação</label>
@@ -137,7 +137,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
-import UserService from '@/service/UserService';
 
 export default {
   name: 'AtivosDetalhes',
@@ -154,7 +153,7 @@ export default {
     const modalBaixar = ref(false);
     const filiais = ref([]);
     const locais = ref([]);
-    const usuarios = ref([]);
+    const responsaveis = ref([]);
 
     const formTransferir = ref({
       to_branch_id: null,
@@ -203,15 +202,15 @@ export default {
 
     const carregarAuxiliares = async () => {
       try {
-        const [filiaisRes, locaisRes, usuariosRes] = await Promise.all([
+        const [filiaisRes, locaisRes, responsaveisRes] = await Promise.all([
           new AssetAuxiliaryService('filiais').getAll(),
           new AssetAuxiliaryService('locais').getAll(),
-          new UserService().getAll(),
+          new AssetAuxiliaryService('responsaveis').getAll({ all: true }),
         ]);
 
         filiais.value = filiaisRes.data?.data || filiaisRes.data || [];
         locais.value = locaisRes.data?.data || locaisRes.data || [];
-        usuarios.value = usuariosRes.data?.data || usuariosRes.data || [];
+        responsaveis.value = responsaveisRes.data?.data || responsaveisRes.data || [];
       } catch (error) {
         console.error('Erro ao carregar dados auxiliares:', error);
       }
@@ -278,7 +277,7 @@ export default {
       modalBaixar,
       filiais,
       locais,
-      usuarios,
+      responsaveis,
       formTransferir,
       formBaixar,
       formatarData,

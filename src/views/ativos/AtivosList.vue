@@ -25,7 +25,7 @@
       </div>
       <div class="col-12 md:col-3">
         <label>Responsável</label>
-        <Dropdown v-model="filtros.responsible_id" :options="responsaveis" optionLabel="nome_completo" optionValue="id" placeholder="Todos" class="w-full" showClear :filter="true" filterPlaceholder="Buscar responsável" />
+        <Dropdown v-model="filtros.responsible_id" :options="responsaveis" optionLabel="name" optionValue="id" placeholder="Todos" class="w-full" showClear :filter="true" filterPlaceholder="Buscar responsável" />
       </div>
       <div class="col-12 md:col-2">
         <label>&nbsp;</label>
@@ -65,9 +65,9 @@
           {{ slotProps.data.location?.name || '-' }}
         </template>
       </Column>
-      <Column field="responsible.nome_completo" header="Responsável" sortable>
+      <Column field="responsible.name" header="Responsável" sortable>
         <template #body="slotProps">
-          {{ slotProps.data.responsible?.nome_completo || '-' }}
+          {{ slotProps.data.responsible?.name || '-' }}
         </template>
       </Column>
       <Column field="status" header="Status" sortable>
@@ -134,7 +134,6 @@ import { useToast } from 'primevue/usetoast';
 import PermissionsService from '@/service/PermissionsService';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
-import UserService from '@/service/UserService';
 
 export default {
   name: 'AtivosList',
@@ -152,7 +151,7 @@ export default {
 
     const service = new AssetService();
     const branchService = new AssetAuxiliaryService('filiais');
-    const userService = new UserService();
+    const responsaveisService = new AssetAuxiliaryService('responsaveis');
 
     // Verificar permissões
     const podeCriar = computed(() => permissionService.hasPermissions('view_ativos_create'));
@@ -215,8 +214,8 @@ export default {
 
     const carregarResponsaveis = async () => {
       try {
-        const { data } = await userService.getAll();
-        responsaveis.value = data.data || data || [];
+        const { data } = await responsaveisService.getAll({ all: true });
+        responsaveis.value = data?.data || data || [];
       } catch (error) {
         console.error('Erro ao carregar responsáveis:', error);
       }
@@ -256,7 +255,7 @@ export default {
       try {
         gerandoTermo.value = true;
         const responsavel = responsaveis.value.find(r => r.id === filtros.value.responsible_id);
-        const responsavelNome = responsavel?.nome_completo || 'termo';
+        const responsavelNome = responsavel?.name || 'termo';
 
         const response = await service.gerarTermoResponsabilidade(filtros.value.responsible_id);
         
