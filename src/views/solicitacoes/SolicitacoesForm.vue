@@ -81,10 +81,29 @@
     <div class="mt-4">
       <div class="flex justify-content-between align-items-center mb-2">
         <div class="flex gap-2">
-          <Button label="Adicionar item" icon="pi pi-plus" class="p-button-text p-button-success" @click="abrirModalProdutos" />
+          <Button 
+            label="Adicionar item" 
+            icon="pi pi-plus" 
+            class="p-button-text p-button-success" 
+            @click="abrirModalProdutos"
+            :disabled="!podeEditarQuantidade"
+          />
           <Button label="Consultar Estoque" icon="pi pi-search" class="p-button-text p-button-info" @click="abrirModalEstoque" />
         </div>
       </div>
+      
+      <!-- Mensagem informativa quando não pode editar -->
+      <Message 
+        v-if="isEditMode && !podeEditarQuantidade" 
+        severity="info" 
+        :closable="false" 
+        class="mb-3"
+      >
+        <div class="flex align-items-center">
+          <i class="pi pi-info-circle mr-2"></i>
+          <span>A cotação já está em fase de análise. Não é possível alterar os itens da solicitação.</span>
+        </div>
+      </Message>
 
       <DataTable :value="form.itens" class="p-datatable-sm tabela-itens" responsiveLayout="scroll">
         <Column header="N°">
@@ -100,43 +119,71 @@
 
         <Column field="referencia" header="Referência">
           <template #body="{ data }">
-            <InputText v-model="data.referencia" class="w-full p-inputtext-sm" />
+            <InputText 
+              v-model="data.referencia" 
+              class="w-full p-inputtext-sm" 
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
 
         <Column field="mercadoria" header="Mercadoria">
           <template #body="{ data }">
-            <InputText v-model="data.mercadoria" class="w-full p-inputtext-sm" />
+            <InputText 
+              v-model="data.mercadoria" 
+              class="w-full p-inputtext-sm" 
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
 
         <Column field="quantidade" header="Quant solicitada">
           <template #body="{ data }">
-            <InputNumber v-model="data.quantidade" class="w-full p-inputtext-sm" />
+            <InputNumber 
+              v-model="data.quantidade" 
+              class="w-full p-inputtext-sm" 
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
 
         <Column field="unidade" header="Medida">
           <template #body="{ data }">
-            <InputText v-model="data.unidade" class="w-full p-inputtext-sm" />
+            <InputText 
+              v-model="data.unidade" 
+              class="w-full p-inputtext-sm" 
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
 
         <Column field="aplicacao" header="Aplicação">
           <template #body="{ data }">
-            <InputText v-model="data.aplicacao" class="w-full p-inputtext-sm" />
+            <InputText 
+              v-model="data.aplicacao" 
+              class="w-full p-inputtext-sm" 
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
 
         <Column field="prioridade" header="Prioridade dias">
           <template #body="{ data }">
-            <InputNumber v-model="data.prioridade" class="w-full p-inputtext-sm" />
+            <InputNumber 
+              v-model="data.prioridade" 
+              class="w-full p-inputtext-sm" 
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
 
         <Column field="tag" header="TAG">
           <template #body="{ data }">
-            <InputText v-model="data.tag" class="w-full p-inputtext-sm" />
+            <InputText 
+              v-model="data.tag" 
+              class="w-full p-inputtext-sm" 
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
 
@@ -153,6 +200,7 @@
                   icon="pi pi-search"
                   class="p-button-outlined p-button-sm"
                   @click="abrirModalCentroCusto(index)"
+                  :disabled="!podeEditarQuantidade"
               />
               <Button
                   v-if="data.centroCusto"
@@ -166,7 +214,12 @@
 
         <Column header="" style="width:4rem; text-align:center">
           <template #body="slotProps">
-            <Button icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger" @click="removerItem(slotProps.index)" />
+            <Button 
+              icon="pi pi-trash" 
+              class="p-button-rounded p-button-text p-button-danger" 
+              @click="removerItem(slotProps.index)"
+              :disabled="!podeEditarQuantidade"
+            />
           </template>
         </Column>
       </DataTable>
@@ -603,6 +656,7 @@ import PermissionsService from '@/service/PermissionsService';
 import Dropdown from 'primevue/dropdown';
 import FileUpload from 'primevue/fileupload';
 import AutoComplete from 'primevue/autocomplete';
+import Message from 'primevue/message';
 
 export default {
   name: 'CadastroSolicitacao',
@@ -1640,6 +1694,33 @@ export default {
       loading,
       isEditMode,
       statusReprovado: computed(() => statusAtual.value === 'reprovado'),
+      
+      // Verificar se pode editar quantidade baseado no status da cotação
+      podeEditarQuantidade: computed(() => {
+        const status = statusAtual.value;
+        // Permitir edição apenas quando status for "cotacao" ou "compra_em_andamento"
+        // Bloquear quando status for "analisada" ou posterior
+        const statusPermitidos = ['cotacao', 'compra_em_andamento'];
+        const statusBloqueados = ['analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado', 'finalizada'];
+        
+        // Se não há status (criação), permitir edição
+        if (!status) {
+          return true;
+        }
+        
+        // Se está em um status bloqueado, não permitir
+        if (statusBloqueados.includes(status)) {
+          return false;
+        }
+        
+        // Se está em um status permitido, permitir
+        if (statusPermitidos.includes(status)) {
+          return true;
+        }
+        
+        // Para outros status (aguardando, autorizado, etc), não permitir edição de quantidade
+        return false;
+      }),
       mensagensReprovacao,
       abrirModalCadastroProduto,
       fecharModalCadastroProduto,
@@ -1659,7 +1740,8 @@ export default {
     };
   },
   components: {
-    AutoComplete
+    AutoComplete,
+    Message
   }
 };
 </script>
