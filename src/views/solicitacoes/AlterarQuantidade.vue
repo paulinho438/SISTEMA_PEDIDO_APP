@@ -102,10 +102,10 @@
             <InputNumber 
               v-model="data.novaQuantidade" 
               class="w-full p-inputtext-sm" 
-              :min="0.0001"
+              :min="1"
               :useGrouping="false"
-              :minFractionDigits="4"
-              :maxFractionDigits="4"
+              :minFractionDigits="0"
+              :maxFractionDigits="0"
             />
           </template>
         </Column>
@@ -182,9 +182,9 @@ export default {
 
     const formatarQuantidade = (quantidade) => {
       if (!quantidade && quantidade !== 0) return '-';
-      return parseFloat(quantidade).toLocaleString('pt-BR', {
-        minimumFractionDigits: 4,
-        maximumFractionDigits: 4
+      return parseInt(quantidade).toLocaleString('pt-BR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
       });
     };
 
@@ -247,18 +247,19 @@ export default {
           status: detalhe.status || null
         };
 
-        // Carregar itens e inicializar novaQuantidade com a quantidade atual
+        // Carregar itens e inicializar novaQuantidade com a quantidade atual (convertendo para inteiro)
         const itensCarregados = detalhe.itens || [];
         console.log('Total de itens:', itensCarregados.length);
         
         itens.value = itensCarregados.map(item => {
           console.log('Processando item:', item);
+          const quantidadeAtual = parseInt(item.quantidade) || 0;
           return {
             id: item.id,
             codigo: item.codigo || null,
             referencia: item.referencia || null,
             mercadoria: item.mercadoria || '',
-            quantidade: item.quantidade || 0,
+            quantidade: quantidadeAtual,
             unidade: item.unidade || null,
             aplicacao: item.aplicacao || null,
             prioridade: item.prioridade || null,
@@ -268,7 +269,7 @@ export default {
               descricao: item.centro_custo.descricao || item.centro_custo.CTT_DESC01,
               classe: item.centro_custo.classe || item.centro_custo.CTT_CLASSE
             } : null,
-            novaQuantidade: item.quantidade || 0 // Inicializar com quantidade atual
+            novaQuantidade: quantidadeAtual // Inicializar com quantidade atual (inteiro)
           };
         });
 
@@ -305,8 +306,8 @@ export default {
     const salvar = async () => {
       // Validar se há alterações
       const temAlteracoes = itens.value.some(item => {
-        const quantidadeAtual = parseFloat(item.quantidade) || 0;
-        const novaQuantidade = parseFloat(item.novaQuantidade) || 0;
+        const quantidadeAtual = parseInt(item.quantidade) || 0;
+        const novaQuantidade = parseInt(item.novaQuantidade) || 0;
         return quantidadeAtual !== novaQuantidade;
       });
 
@@ -320,17 +321,17 @@ export default {
         return;
       }
 
-      // Validar se todas as novas quantidades são válidas
+      // Validar se todas as novas quantidades são válidas (números inteiros)
       const itensInvalidos = itens.value.filter(item => {
-        const novaQuantidade = parseFloat(item.novaQuantidade) || 0;
-        return novaQuantidade <= 0;
+        const novaQuantidade = parseInt(item.novaQuantidade) || 0;
+        return novaQuantidade < 1 || !Number.isInteger(parseFloat(item.novaQuantidade));
       });
 
       if (itensInvalidos.length > 0) {
         toast.add({
           severity: 'warn',
           summary: 'Validação',
-          detail: 'Todas as quantidades devem ser maiores que zero.',
+          detail: 'Todas as quantidades devem ser números inteiros maiores que zero.',
           life: 4000
         });
         return;
@@ -339,10 +340,10 @@ export default {
       try {
         salvando.value = true;
 
-        // Preparar payload apenas com id e nova quantidade
+        // Preparar payload apenas com id e nova quantidade (convertendo para inteiro)
         const itensAtualizados = itens.value.map(item => ({
           id: item.id,
-          quantidade: parseFloat(item.novaQuantidade) || 0
+          quantidade: parseInt(item.novaQuantidade) || 0
         }));
 
         // Usar endpoint específico para alterar apenas quantidade
