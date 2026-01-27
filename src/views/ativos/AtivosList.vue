@@ -353,6 +353,7 @@ export default {
       statusOptions,
       filtros,
       formBaixar,
+      paginacao,
       podeCriar,
       podeVisualizar,
       podeEditar,
