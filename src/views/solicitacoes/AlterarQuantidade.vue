@@ -51,7 +51,11 @@
 
     <!-- Tabela de Itens -->
     <div class="mt-4">
+      <div v-if="!carregando && itens.length === 0" class="text-center p-4">
+        <p class="text-600">Nenhum item encontrado nesta solicitação.</p>
+      </div>
       <DataTable 
+        v-else
         :value="itens" 
         class="p-datatable-sm tabela-itens" 
         responsiveLayout="scroll"
@@ -114,7 +118,7 @@
         label="Cancelar" 
         class="p-button-outlined" 
         @click="voltar" 
-        :disabled="salvando"
+        :disabled="salvando || carregando"
       />
       <Button 
         label="Salvar Alterações" 
@@ -122,7 +126,7 @@
         class="p-button-success" 
         @click="salvar"
         :loading="salvando"
-        :disabled="salvando"
+        :disabled="salvando || carregando || itens.length === 0"
       />
     </div>
 
@@ -162,7 +166,7 @@ export default {
     const router = useRouter();
     const route = useRoute();
     const toast = useToast();
-    const service = new SolicitacaoService();
+    const service = SolicitacaoService;
 
     const solicitacao = ref({
       id: null,
@@ -232,6 +236,9 @@ export default {
         const { data } = await service.show(id);
         const detalhe = data?.data ?? {};
 
+        console.log('Dados carregados:', detalhe);
+        console.log('Itens recebidos:', detalhe.itens);
+
         solicitacao.value = {
           id: detalhe.id,
           numero: detalhe.numero || null,
@@ -241,23 +248,31 @@ export default {
         };
 
         // Carregar itens e inicializar novaQuantidade com a quantidade atual
-        itens.value = (detalhe.itens || []).map(item => ({
-          id: item.id,
-          codigo: item.codigo || null,
-          referencia: item.referencia || null,
-          mercadoria: item.mercadoria || '',
-          quantidade: item.quantidade || 0,
-          unidade: item.unidade || null,
-          aplicacao: item.aplicacao || null,
-          prioridade: item.prioridade || null,
-          tag: item.tag || null,
-          centroCusto: item.centro_custo ? {
-            codigo: item.centro_custo.codigo || item.centro_custo.CTT_CUSTO,
-            descricao: item.centro_custo.descricao || item.centro_custo.CTT_DESC01,
-            classe: item.centro_custo.classe || item.centro_custo.CTT_CLASSE
-          } : null,
-          novaQuantidade: item.quantidade || 0 // Inicializar com quantidade atual
-        }));
+        const itensCarregados = detalhe.itens || [];
+        console.log('Total de itens:', itensCarregados.length);
+        
+        itens.value = itensCarregados.map(item => {
+          console.log('Processando item:', item);
+          return {
+            id: item.id,
+            codigo: item.codigo || null,
+            referencia: item.referencia || null,
+            mercadoria: item.mercadoria || '',
+            quantidade: item.quantidade || 0,
+            unidade: item.unidade || null,
+            aplicacao: item.aplicacao || null,
+            prioridade: item.prioridade || null,
+            tag: item.tag || null,
+            centroCusto: item.centro_custo ? {
+              codigo: item.centro_custo.codigo || item.centro_custo.CTT_CUSTO,
+              descricao: item.centro_custo.descricao || item.centro_custo.CTT_DESC01,
+              classe: item.centro_custo.classe || item.centro_custo.CTT_CLASSE
+            } : null,
+            novaQuantidade: item.quantidade || 0 // Inicializar com quantidade atual
+          };
+        });
+
+        console.log('Itens processados:', itens.value);
 
         // Verificar se pode alterar quantidade baseado no status
         const statusSlug = solicitacao.value.status?.slug;
@@ -270,7 +285,7 @@ export default {
             detail: 'A alteração de quantidade só é permitida quando a cotação está com status "Cotação" ou "Compra em Andamento".',
             life: 5000
           });
-          router.push({ name: 'solicitacoesList' });
+          // Não redirecionar imediatamente, apenas mostrar aviso
         }
 
       } catch (error) {
@@ -359,7 +374,12 @@ export default {
     };
 
     const voltar = () => {
-      router.push({ name: 'solicitacoesList' });
+      console.log('Botão voltar clicado');
+      router.push({ name: 'solicitacoesList' }).catch(err => {
+        console.error('Erro ao navegar:', err);
+        // Se falhar, tentar navegação alternativa
+        window.location.href = '/solicitacoes';
+      });
     };
 
     onMounted(() => {
