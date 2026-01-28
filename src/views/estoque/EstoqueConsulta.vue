@@ -462,7 +462,7 @@ export default {
     });
 
     const formatarQuantidade = (qtd) => {
-      return qtd ? parseFloat(qtd).toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : '0,0000';
+      return qtd != null && qtd !== '' ? parseFloat(qtd).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00';
     };
 
     const carregar = async () => {
