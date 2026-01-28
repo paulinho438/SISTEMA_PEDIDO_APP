@@ -411,6 +411,12 @@
       </table>
     </div>
 
+    <!-- Justificativa da Solicitação -->
+    <div v-if="cotacao.observation" class="mt-4 p-3 border-round surface-ground border-1 border-300">
+      <label class="font-semibold text-700 block mb-2">Justificativa da Solicitação</label>
+      <p class="text-900 m-0 whitespace-pre-wrap">{{ cotacao.observation }}</p>
+    </div>
+
     <!-- QUADRO RESUMO -->
     <div v-if="resumo.length" class="quadro-resumo mt-6">
         <h4 class="text-center mb-3 font-semibold">Quadro resumo da cotação e compra</h4>
@@ -847,6 +853,7 @@ const cotacao = reactive({
     next_pending_level: null,
   },
   buyer: null,
+  observation: '',
 })
 const condicoesPagamentoSugestoes = ref([])
 const condicoesPagamentoLoading = ref(false)
@@ -1832,6 +1839,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
     cotacao.requires_response = detalhe.requires_response ?? false
     cotacao.permissions = detalhe.permissions ?? { can_edit: false, can_approve: false, next_pending_level: null }
     cotacao.buyer = detalhe.buyer ?? null
+    cotacao.observation = detalhe.observacao ?? ''
     mensagens.value = detalhe.mensagens ?? []
 
     // Se houver mensagens e o parâmetro indicar, abrir o modal automaticamente
