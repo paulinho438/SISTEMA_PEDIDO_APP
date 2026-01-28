@@ -13,18 +13,25 @@
     <div class="flex justify-content-end mb-3">
       <span class="p-input-icon-left">
         <i class="pi pi-search" />
-        <InputText v-model="filtroGlobal" placeholder="Buscar..." class="p-inputtext-sm" style="width: 16rem" />
+        <InputText v-model="filtroGlobal" placeholder="Buscar..." class="p-inputtext-sm" style="width: 16rem" @input="onSearchChange" />
       </span>
     </div>
 
     <DataTable
-      :value="locaisFiltrados"
+      :value="locais"
       :paginator="true"
-      :rows="10"
+      :rows="paginacao.perPage"
+      :totalRecords="paginacao.total"
+      :lazy="true"
+      :first="(paginacao.page - 1) * paginacao.perPage"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPageChange"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} locais"
     >
       <Column field="code" header="Código" sortable></Column>
       <Column field="name" header="Nome" sortable></Column>
@@ -81,7 +88,15 @@ export default {
     const locais = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
+    const searchTimeout = ref(null);
     const service = new StockLocationService();
+
+    const paginacao = ref({
+      page: 1,
+      perPage: 10,
+      total: 0,
+      lastPage: 1,
+    });
 
     // Verificar permissões
     const podeCriar = computed(() => permissionService.hasPermissions('view_estoque_locais_create'));
@@ -89,25 +104,40 @@ export default {
     const podeEditar = computed(() => permissionService.hasPermissions('view_estoque_locais_edit'));
     const podeDeletar = computed(() => permissionService.hasPermissions('view_estoque_locais_delete'));
 
-    const locaisFiltrados = computed(() => {
-      if (!filtroGlobal.value) return locais.value;
-      const filtro = filtroGlobal.value.toLowerCase();
-      return locais.value.filter(l =>
-        l.code?.toLowerCase().includes(filtro) ||
-        l.name?.toLowerCase().includes(filtro)
-      );
-    });
-
     const carregar = async () => {
       try {
         carregando.value = true;
-        const { data } = await service.getAll({ per_page: 100 });
+        const params = {
+          page: paginacao.value.page,
+          per_page: paginacao.value.perPage,
+        };
+        if (filtroGlobal.value) params.search = filtroGlobal.value;
+        const { data } = await service.getAll(params);
         locais.value = data.data || [];
+        const meta = data.meta || data;
+        paginacao.value.total = meta.total ?? data.total ?? 0;
+        paginacao.value.page = meta.current_page ?? data.current_page ?? 1;
+        paginacao.value.perPage = meta.per_page ?? data.per_page ?? 10;
+        paginacao.value.lastPage = meta.last_page ?? data.last_page ?? 1;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar locais', life: 3000 });
       } finally {
         carregando.value = false;
       }
+    };
+
+    const onPageChange = (event) => {
+      paginacao.value.page = event.page + 1;
+      paginacao.value.perPage = event.rows;
+      carregar();
+    };
+
+    const onSearchChange = () => {
+      if (searchTimeout.value) clearTimeout(searchTimeout.value);
+      searchTimeout.value = setTimeout(() => {
+        paginacao.value.page = 1;
+        carregar();
+      }, 400);
     };
 
     const toggleActive = async (local) => {
@@ -127,13 +157,16 @@ export default {
     return {
       locais,
       filtroGlobal,
-      locaisFiltrados,
+      paginacao,
       carregando,
       toggleActive,
       podeCriar,
       podeVisualizar,
       podeEditar,
       podeDeletar,
+      carregar,
+      onPageChange,
+      onSearchChange,
     };
   },
 };

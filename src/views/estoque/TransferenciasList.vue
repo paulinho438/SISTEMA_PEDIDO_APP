@@ -48,18 +48,25 @@
       </div>
       <div class="col-12 md:col-3">
         <label>&nbsp;</label>
-        <Button label="Filtrar" icon="pi pi-filter" class="w-full mt-2" @click="carregar" />
+        <Button label="Filtrar" icon="pi pi-filter" class="w-full mt-2" @click="aplicarFiltros" />
       </div>
     </div>
 
     <DataTable
       :value="transferencias"
       :paginator="true"
-      :rows="10"
+      :rows="paginacao.perPage"
+      :totalRecords="paginacao.total"
+      :lazy="true"
+      :first="(paginacao.page - 1) * paginacao.perPage"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPageChange"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} transferências"
     >
       <Column field="transfer_number" header="Número" sortable></Column>
       <Column field="origin_location.name" header="Origem" sortable>
@@ -410,6 +417,13 @@ export default {
     const carregando = ref(false);
     const processando = ref(null);
 
+    const paginacao = ref({
+      page: 1,
+      perPage: 10,
+      total: 0,
+      lastPage: 1,
+    });
+
     const filtros = ref({
       status: null,
       local_origem_id: null,
@@ -512,13 +526,21 @@ export default {
           await carregarLocaisUsuario();
         }
 
-        const params = {};
+        const params = {
+          page: paginacao.value.page,
+          per_page: paginacao.value.perPage,
+        };
         if (filtros.value.status) params.status = filtros.value.status;
         if (filtros.value.local_origem_id) params.local_origem_id = filtros.value.local_origem_id;
         if (filtros.value.local_destino_id) params.local_destino_id = filtros.value.local_destino_id;
 
         const { data } = await transferService.getAll(params);
         transferencias.value = data.data || [];
+        const pag = data.pagination || {};
+        paginacao.value.total = pag.total ?? 0;
+        paginacao.value.page = pag.current_page ?? 1;
+        paginacao.value.perPage = pag.per_page ?? 10;
+        paginacao.value.lastPage = pag.last_page ?? 1;
       } catch (error) {
         const errorMessage = error.response?.data?.message 
           || error.response?.data?.error 
@@ -534,6 +556,17 @@ export default {
       } finally {
         carregando.value = false;
       }
+    };
+
+    const onPageChange = (event) => {
+      paginacao.value.page = event.page + 1;
+      paginacao.value.perPage = event.rows;
+      carregar();
+    };
+
+    const aplicarFiltros = () => {
+      paginacao.value.page = 1;
+      carregar();
     };
 
     const marcarRecebido = async (id) => {
@@ -825,7 +858,10 @@ export default {
       modalRecebimento,
       modalDetalhesRecebimento,
       temItensSelecionados,
+      paginacao,
       carregar,
+      aplicarFiltros,
+      onPageChange,
       carregarLocaisUsuario,
       podeReceberTransferencia,
       marcarRecebido,
