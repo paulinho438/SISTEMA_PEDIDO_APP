@@ -1695,13 +1695,12 @@ export default {
       isEditMode,
       statusReprovado: computed(() => statusAtual.value === 'reprovado'),
       
-      // Verificar se pode editar quantidade baseado no status da cotação
+      // Verificar se pode editar baseado no status da cotação
       podeEditarQuantidade: computed(() => {
         const status = statusAtual.value;
-        // Permitir edição apenas quando status for "cotacao" ou "compra_em_andamento"
-        // Bloquear quando status for "analisada" ou posterior
-        const statusPermitidos = ['cotacao', 'compra_em_andamento'];
-        const statusBloqueados = ['analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado', 'finalizada'];
+        // Permitir edição: aguardando (ex.: após reset), cotacao, compra_em_andamento
+        const statusPermitidos = ['aguardando', 'cotacao', 'compra_em_andamento'];
+        const statusBloqueados = ['analisada', 'analisada_aguardando', 'analise_gerencia', 'em_analise_supervisor', 'autorizado', 'aprovado', 'finalizada'];
         
         // Se não há status (criação), permitir edição
         if (!status) {
@@ -1718,7 +1717,7 @@ export default {
           return true;
         }
         
-        // Para outros status (aguardando, autorizado, etc), não permitir edição de quantidade
+        // Para outros status, não permitir edição
         return false;
       }),
       mensagensReprovacao,
