@@ -70,6 +70,15 @@
         />
       </template>
       <Button
+          v-if="podeResetar"
+          label="Resetar Solicitação"
+          icon="pi pi-refresh"
+          class="p-button-outlined p-button-warning"
+          :loading="loadingResetar"
+          :disabled="loadingResetar"
+          @click="abrirModalResetar"
+      />
+      <Button
           v-if="canReprove"
           label="Reprovar"
           icon="pi pi-times"
@@ -106,6 +115,7 @@
           <th rowspan="2">N°</th>
           <th rowspan="2">Qtd</th>
           <th rowspan="2">Medida</th>
+          <th rowspan="2" style="min-width: 140px;">Referência do Produto</th>
           <th rowspan="2" style="min-width: 250px;">Descrição do Produto</th>
           <template v-for="(cot, i) in cotacoes" :key="'cab-' + i">
             <th colspan="8" class="text-center bg-fornecedor" :class="{ 'separador-cotacao': i > 0 }">
@@ -270,6 +280,7 @@
           <td>{{ p + 1 }}</td>
           <td>{{ prod.qtd }}</td>
           <td>{{ prod.medida || '-' }}</td>
+          <td style="min-width: 140px;">{{ prod.referencia || '-' }}</td>
           <td style="min-width: 250px;">{{ prod.descricao }}</td>
 
           <template v-for="(cot, i) in cotacoes" :key="'linha-' + i + '-' + p">
@@ -367,7 +378,7 @@
         
         <!-- Linha de resumo por fornecedor -->
         <tr class="resumo-fornecedor">
-          <td colspan="4" class="font-semibold text-right pr-3">Resumo:</td>
+          <td colspan="5" class="font-semibold text-right pr-3">Resumo:</td>
           <template v-for="(cot, i) in cotacoes" :key="'resumo-' + i">
             <td colspan="8" :class="{ 'separador-cotacao': i > 0 }" class="bg-surface-50">
               <div class="grid p-fluid text-sm p-2">
@@ -737,6 +748,38 @@
     </Dialog>
 
     <Dialog
+        v-model:visible="modalResetarVisible"
+        header="Resetar Solicitação"
+        :modal="true"
+        :closable="true"
+        :style="{ width: '500px' }"
+        appendTo="body"
+        @hide="fecharModalResetar"
+    >
+      <p class="text-600 mb-3">
+        A solicitação voltará para o status <strong>Aguardando</strong>. As assinaturas serão removidas e o solicitante poderá ver o motivo e editar a solicitação. Os fornecedores serão mantidos.
+      </p>
+      <label class="block text-600 mb-2">Por que está resetando? (obrigatório)</label>
+      <Textarea
+          v-model="motivoResetar"
+          rows="4"
+          placeholder="Digite o motivo do reset..."
+          class="w-full mb-3"
+      />
+      <template #footer>
+        <Button label="Cancelar" icon="pi pi-times" class="p-button-secondary" @click="fecharModalResetar" />
+        <Button
+            label="Resetar"
+            icon="pi pi-refresh"
+            class="p-button-warning"
+            :loading="loadingResetar"
+            :disabled="!motivoResetar || !motivoResetar.trim()"
+            @click="confirmarResetar"
+        />
+      </template>
+    </Dialog>
+
+    <Dialog
         v-model:visible="modalAnalise"
         header="Confirmar análise"
         :style="{ width: '35vw', maxWidth: '520px' }"
@@ -801,6 +844,7 @@ import { useStore } from 'vuex'
 import ProtheusService from '@/service/ProtheusService'
 import SolicitacaoService from '@/service/SolicitacaoService'
 import UsuarioService from '@/service/UsuarioService'
+import PermissionsService from '@/service/PermissionsService'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import RadioButton from 'primevue/radiobutton'
@@ -815,6 +859,7 @@ const toast = useToast()
 const store = useStore()
 const protheusService = new ProtheusService()
 const usuarioService = new UsuarioService()
+const permissionService = new PermissionsService()
 
 const produtos = ref([])
 const cotacoes = ref([])
@@ -977,6 +1022,57 @@ const canReprove = computed(() => {
   
   return false
 })
+
+const STATUS_PERMITIDOS_RESETAR = [
+  'em_analise_supervisor',
+  'autorizado',
+  'cotacao',
+  'finalizada',
+  'analisada',
+  'analisada_aguardando',
+  'analise_gerencia',
+]
+const modalResetarVisible = ref(false)
+const motivoResetar = ref('')
+const loadingResetar = ref(false)
+const podeResetar = computed(() => {
+  if (!permissionService.hasPermissions('cotacoes_analisar_selecionar')) return false
+  if (!cotacao.status?.slug) return false
+  return STATUS_PERMITIDOS_RESETAR.includes(cotacao.status.slug)
+})
+const abrirModalResetar = () => {
+  motivoResetar.value = ''
+  modalResetarVisible.value = true
+}
+const fecharModalResetar = () => {
+  modalResetarVisible.value = false
+  motivoResetar.value = ''
+}
+const confirmarResetar = async () => {
+  const motivo = (motivoResetar.value || '').trim()
+  if (!motivo || !cotacao.id) return
+  try {
+    loadingResetar.value = true
+    await SolicitacaoService.resetSolicitacao(cotacao.id, { motivo })
+    toast.add({
+      severity: 'success',
+      summary: 'Sucesso',
+      detail: 'Solicitação resetada. O solicitante poderá ver o motivo e editar.',
+      life: 4000,
+    })
+    fecharModalResetar()
+    await carregarCotacao()
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Erro',
+      detail: error.response?.data?.message || 'Erro ao resetar solicitação',
+      life: 3000,
+    })
+  } finally {
+    loadingResetar.value = false
+  }
+}
 
 const singleActionMetadata = {
   analise_gerencia: {
@@ -1852,6 +1948,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
       id: item.id || index + 1,
       qtd: item.quantidade,
       medida: item.unidade || item.unit || '-',
+      referencia: item.referencia ?? item.referencia_produto ?? null,
       descricao: item.mercadoria,
     }))
 
@@ -2668,6 +2765,13 @@ onMounted(async () => {
 
 .tabela-cotacao th:nth-child(4),
 .tabela-cotacao td:nth-child(4) {
+  min-width: 140px;
+  max-width: 200px;
+  word-wrap: break-word;
+}
+
+.tabela-cotacao th:nth-child(5),
+.tabela-cotacao td:nth-child(5) {
   min-width: 250px;
   max-width: 350px;
   word-wrap: break-word;

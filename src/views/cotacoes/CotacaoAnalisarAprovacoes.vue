@@ -167,6 +167,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import Dialog from 'primevue/dialog';
 import SolicitacaoService from '@/service/SolicitacaoService';
+import PermissionsService from '@/service/PermissionsService';
 
 const STATUS_PERMITIDOS_RESETAR = [
   'em_analise_supervisor',
@@ -194,8 +195,10 @@ export default {
     const modalResetarVisible = ref(false);
     const motivoResetar = ref('');
     const loadingResetar = ref(false);
+    const permissionService = new PermissionsService();
 
     const podeResetar = computed(() => {
+      if (!permissionService.hasPermissions('cotacoes_analisar_selecionar')) return false;
       if (!cotacao.value?.status?.slug) return false;
       return STATUS_PERMITIDOS_RESETAR.includes(cotacao.value.status.slug);
     });
