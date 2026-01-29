@@ -837,7 +837,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useStore } from 'vuex'
@@ -1544,6 +1544,8 @@ const addCotacao = () => {
   if (process.env.NODE_ENV === 'development') {
     console.log('Fornecedor adicionado. Total de fornecedores:', cotacoes.value.length)
   }
+  // Salvar automaticamente (persiste os fornecedores já preenchidos)
+  nextTick(() => salvarCotacaoAutomatico())
 }
 
 const removeCotacao = (index) => {
@@ -1559,6 +1561,8 @@ const removeCotacao = (index) => {
       selecoes.value[key] -= 1
     }
   })
+  // Salvar automaticamente após remover fornecedor
+  nextTick(() => salvarCotacaoAutomatico())
 }
 
 const fornecedorLabel = (fornecedor) => {
@@ -1714,6 +1718,8 @@ const confirmarFornecedorSelecionado = () => {
   }
 
   modalFornecedores.visible = false
+  // Salvar automaticamente para não perder dados (ex.: queda de VPN)
+  nextTick(() => salvarCotacaoAutomatico())
 }
 
 const limparFornecedor = (index) => {
@@ -2100,6 +2106,18 @@ const abrirSelecionarItens = () => {
 
 const confirmarSelecoes = () => {
   showModalSelecionar.value = false
+}
+
+// Auto-save ao preencher fornecedores (evita perda de dados se VPN cair, etc.)
+let autoSaveTimeout = null
+const AUTO_SAVE_DEBOUNCE_MS = 1500
+const salvarCotacaoAutomatico = () => {
+  if (autoSaveTimeout) clearTimeout(autoSaveTimeout)
+  autoSaveTimeout = setTimeout(async () => {
+    autoSaveTimeout = null
+    if (!cotacao.id || salvandoCotacao.value) return
+    await salvarCotacao({ skipSuccessToast: true, showReadOnlyWarning: false })
+  }, AUTO_SAVE_DEBOUNCE_MS)
 }
 
 const salvarCotacao = async (options = {}) => {
