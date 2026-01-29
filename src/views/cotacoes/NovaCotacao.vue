@@ -1883,26 +1883,26 @@ const menorIndice = (itemIndex) => {
 const isMelhorPreco = (cot, itemIndex, cotIndex) => {
   const selecaoManual = selecoes.value[itemIndex]
   const menorPreco = menorIndice(itemIndex)
-  
+
+  // Sempre priorizar o ganhador selecionado manualmente: ele fica laranja (melhor-preco)
+  if (selecaoManual !== undefined && selecaoManual !== null && selecaoManual === cotIndex) {
+    return 'melhor-preco'
+  }
+
   // Se não houver menor preço, não aplica nenhuma cor
   if (menorPreco === null) {
     return ''
   }
 
-  // Se houver seleção manual diferente do menor preço
+  // Se houver seleção manual em outro fornecedor, o menor preço original fica amarelo
   if (selecaoManual !== undefined && selecaoManual !== null && selecaoManual !== menorPreco) {
-    // O selecionado manualmente fica laranja
-    if (selecaoManual === cotIndex) {
-      return 'melhor-preco'
-    }
-    // O menor preço original fica com cor diferente
     if (menorPreco === cotIndex) {
       return 'menor-preco-original'
     }
     return ''
   }
 
-  // Caso contrário (sem seleção manual ou seleção igual ao menor preço), menor preço fica laranja
+  // Sem seleção manual: menor preço fica laranja
   if (menorPreco === cotIndex) {
     return 'melhor-preco'
   }
@@ -2116,12 +2116,12 @@ const salvarCotacaoAutomatico = () => {
   autoSaveTimeout = setTimeout(async () => {
     autoSaveTimeout = null
     if (!cotacao.id || salvandoCotacao.value) return
-    await salvarCotacao({ skipSuccessToast: true, showReadOnlyWarning: false })
+    await salvarCotacao({ skipSuccessToast: true, showReadOnlyWarning: false, skipReload: true })
   }, AUTO_SAVE_DEBOUNCE_MS)
 }
 
 const salvarCotacao = async (options = {}) => {
-  const { skipSuccessToast = false, showReadOnlyWarning = true } = options ?? {}
+  const { skipSuccessToast = false, showReadOnlyWarning = true, skipReload = false } = options ?? {}
 
   if (!cotacao.id) {
     toast.add({
@@ -2272,9 +2272,11 @@ const salvarCotacao = async (options = {}) => {
       })
     }
 
-    await carregarCotacao()
-    // Recarregar assinaturas após salvar (a aprovação do COMPRADOR é feita automaticamente)
-    await carregarAssinaturas()
+    if (!skipReload) {
+      await carregarCotacao()
+      // Recarregar assinaturas após salvar (a aprovação do COMPRADOR é feita automaticamente)
+      await carregarAssinaturas()
+    }
     return true
   } catch (error) {
     const detail = error?.response?.data?.message || 'Não foi possível salvar a cotação.'
