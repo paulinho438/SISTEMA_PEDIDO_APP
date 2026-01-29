@@ -1552,8 +1552,6 @@ const addCotacao = () => {
       if (menor !== null) selecoes.value[p] = menor
     })
   })
-  // Salvar automaticamente (persiste os fornecedores já preenchidos)
-  nextTick(() => salvarCotacaoAutomatico())
 }
 
 const removeCotacao = (index) => {
@@ -1569,8 +1567,6 @@ const removeCotacao = (index) => {
       selecoes.value[key] -= 1
     }
   })
-  // Salvar automaticamente após remover fornecedor
-  nextTick(() => salvarCotacaoAutomatico())
 }
 
 const fornecedorLabel = (fornecedor) => {
@@ -1726,8 +1722,6 @@ const confirmarFornecedorSelecionado = () => {
   }
 
   modalFornecedores.visible = false
-  // Salvar automaticamente para não perder dados (ex.: queda de VPN)
-  nextTick(() => salvarCotacaoAutomatico())
 }
 
 const limparFornecedor = (index) => {
@@ -2151,20 +2145,8 @@ const confirmarSelecoes = () => {
   showModalSelecionar.value = false
 }
 
-// Auto-save ao preencher fornecedores (evita perda de dados se VPN cair, etc.)
-let autoSaveTimeout = null
-const AUTO_SAVE_DEBOUNCE_MS = 1500
-const salvarCotacaoAutomatico = () => {
-  if (autoSaveTimeout) clearTimeout(autoSaveTimeout)
-  autoSaveTimeout = setTimeout(async () => {
-    autoSaveTimeout = null
-    if (!cotacao.id || salvandoCotacao.value) return
-    await salvarCotacao({ skipSuccessToast: true, showReadOnlyWarning: false, skipReload: true })
-  }, AUTO_SAVE_DEBOUNCE_MS)
-}
-
 const salvarCotacao = async (options = {}) => {
-  const { skipSuccessToast = false, showReadOnlyWarning = true, skipReload = false } = options ?? {}
+  const { skipSuccessToast = false, showReadOnlyWarning = true } = options ?? {}
 
   if (!cotacao.id) {
     toast.add({
@@ -2315,11 +2297,9 @@ const salvarCotacao = async (options = {}) => {
       })
     }
 
-    if (!skipReload) {
-      await carregarCotacao()
-      // Recarregar assinaturas após salvar (a aprovação do COMPRADOR é feita automaticamente)
-      await carregarAssinaturas()
-    }
+    await carregarCotacao()
+    // Recarregar assinaturas após salvar (a aprovação do COMPRADOR é feita automaticamente)
+    await carregarAssinaturas()
     return true
   } catch (error) {
     const detail = error?.response?.data?.message || 'Não foi possível salvar a cotação.'
