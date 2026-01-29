@@ -206,9 +206,9 @@ export default {
 
     // Níveis disponíveis (sem COMPRADOR, pois ele sempre assina)
     const niveisDisponiveis = [
-      { value: 'GERENTE_LOCAL', label: 'GERENTE LOCAL' },
+      { value: 'GERENTE_LOCAL', label: 'Gerente Local Compras' },
       { value: 'ENGENHEIRO', label: 'ENGENHEIRO' },
-      { value: 'GERENTE_GERAL', label: 'GERENTE GERAL' },
+      { value: 'GERENTE_GERAL', label: 'Gerente Geral Compras' },
       { value: 'DIRETOR', label: 'DIRETOR' },
       { value: 'PRESIDENTE', label: 'PRESIDENTE' },
     ];

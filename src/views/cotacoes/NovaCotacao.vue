@@ -469,11 +469,11 @@
           <div class="grid">
             <div class="col-12 md:col-2" v-for="(assinatura, perfil) in assinaturasOrdenadas" :key="perfil">
               <div class="text-center p-3 border-round" style="border: 1px solid #e5e7eb;">
-                <div class="font-medium text-sm mb-2">{{ perfil }}</div>
+                <div class="font-medium text-sm mb-2">{{ labelPerfilAssinatura(perfil) }}</div>
                 <div v-if="assinatura && assinatura.signature_url" class="signature-container">
                   <img 
                     :src="assinatura.signature_url" 
-                    :alt="`Assinatura ${perfil}`"
+                    :alt="`Assinatura ${labelPerfilAssinatura(perfil)}`"
                     class="signature-image"
                     style="max-width: 100%; max-height: 80px; object-fit: contain;"
                   />
@@ -2631,6 +2631,12 @@ const ordemExibicaoAssinaturas = {
   'ENGENHEIRO': 4,
   'DIRETOR': 5,
   'PRESIDENTE': 6,
+}
+
+// Rótulos de exibição dos perfis de assinatura
+const labelPerfilAssinatura = (perfil) => {
+  const labels = { 'GERENTE LOCAL': 'Gerente Local Compras', 'GERENTE GERAL': 'Gerente Geral Compras' }
+  return labels[perfil] ?? perfil
 }
 
 // Ordenar assinaturas pela ordem de exibição

@@ -205,9 +205,9 @@ export default {
 
     const niveisDisponiveis = [
       { value: 'COMPRADOR', label: 'COMPRADOR' },
-      { value: 'GERENTE_LOCAL', label: 'GERENTE LOCAL' },
+      { value: 'GERENTE_LOCAL', label: 'Gerente Local Compras' },
       { value: 'ENGENHEIRO', label: 'ENGENHEIRO' },
-      { value: 'GERENTE_GERAL', label: 'GERENTE GERAL' },
+      { value: 'GERENTE_GERAL', label: 'Gerente Geral Compras' },
       { value: 'DIRETOR', label: 'DIRETOR' },
       { value: 'PRESIDENTE', label: 'PRESIDENTE' },
     ];
