@@ -35,10 +35,10 @@
     <DataTable
       :value="produtos"
       :paginator="true"
-      :rows="paginacao.perPage"
-      :totalRecords="paginacao.total"
+      :rows="(paginacao && paginacao.perPage) || 10"
+      :totalRecords="(paginacao && paginacao.total) || 0"
       :lazy="true"
-      :first="(paginacao.page - 1) * paginacao.perPage"
+      :first="paginacao ? (paginacao.page - 1) * paginacao.perPage : 0"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
@@ -372,6 +372,40 @@ export default {
       modalImportacao.value.visivel = false;
       modalImportacao.value.arquivo = null;
       modalImportacao.value.resultado = null;
+      modalImportacao.value.validacao = null;
+    };
+
+    const voltarParaSelecaoArquivo = () => {
+      modalImportacao.value.validacao = null;
+    };
+
+    const analisarArquivo = async () => {
+      if (!modalImportacao.value.arquivo) {
+        toast.add({ severity: 'warn', summary: 'Atenção', detail: 'Selecione um arquivo Excel', life: 3000 });
+        return;
+      }
+      try {
+        modalImportacao.value.analisando = true;
+        modalImportacao.value.validacao = null;
+        const response = await service.validarExcel(modalImportacao.value.arquivo);
+        const data = response.data?.data || response.data;
+        modalImportacao.value.validacao = {
+          linhas: data.linhas || [],
+          total_ok: data.total_ok ?? 0,
+          total_erro: data.total_erro ?? 0,
+          total_vazio: data.total_vazio ?? 0,
+        };
+        if (modalImportacao.value.validacao.total_erro === 0 && modalImportacao.value.validacao.total_ok > 0) {
+          toast.add({ severity: 'success', summary: 'Análise concluída', detail: 'Nenhum erro encontrado. Você pode importar.', life: 4000 });
+        } else if (modalImportacao.value.validacao.total_erro > 0) {
+          toast.add({ severity: 'warn', summary: 'Análise concluída', detail: `${modalImportacao.value.validacao.total_erro} linha(s) com erro. Corrija o arquivo e analise novamente.`, life: 5000 });
+        }
+      } catch (error) {
+        const msg = error.response?.data?.message || error.response?.data?.error || error.message || 'Erro ao analisar arquivo';
+        toast.add({ severity: 'error', summary: 'Erro', detail: msg, life: 5000 });
+      } finally {
+        modalImportacao.value.analisando = false;
+      }
     };
 
     const onFileSelect = (event) => {
