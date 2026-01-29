@@ -610,12 +610,13 @@
               class="mt-3 transition-all"
           >
             <label class="block mb-2 text-sm text-700 font-semibold"
-            >Motivo da escolha manual:</label
+            >Motivo da escolha manual: <span class="text-red-500">*</span></label
             >
             <Textarea
                 v-model="motivos[p]"
                 rows="2"
                 class="w-full border-round"
+                :class="{ 'p-invalid': !((motivos[p] ?? '').toString().trim()) }"
                 placeholder="Ex: Produto com melhor qualidade ou menor prazo de entrega..."
             />
           </div>
@@ -2130,6 +2131,23 @@ const abrirSelecionarItens = () => {
 }
 
 const confirmarSelecoes = () => {
+  // Quando o ganhador é escolha manual (diferente do menor preço), o motivo é obrigatório
+  for (let p = 0; p < produtos.value.length; p++) {
+    const menor = menorIndice(p)
+    const selecionado = selecoes.value[p]
+    if (selecionado !== undefined && selecionado !== null && selecionado !== menor) {
+      const motivo = (motivos.value[p] ?? '').toString().trim()
+      if (!motivo) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Motivo obrigatório',
+          detail: `Informe o motivo da escolha manual para o item "${(produtos.value[p]?.descricao || 'Item ' + (p + 1)).substring(0, 50)}..."`,
+          life: 5000,
+        })
+        return
+      }
+    }
+  }
   showModalSelecionar.value = false
 }
 
