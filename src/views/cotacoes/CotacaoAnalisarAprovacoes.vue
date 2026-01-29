@@ -1,10 +1,51 @@
 <template>
   <div class="card p-5 bg-page">
     <!-- Cabeçalho -->
-    <div class="flex align-items-center mb-4">
-      <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
-      <h4 class="m-0 text-900">Analisar e Selecionar Níveis de Aprovação</h4>
+    <div class="flex align-items-center justify-content-between mb-4">
+      <div class="flex align-items-center">
+        <Button icon="pi pi-arrow-left" class="p-button-text mr-2" @click="voltar" />
+        <h4 class="m-0 text-900">Analisar e Selecionar Níveis de Aprovação</h4>
+      </div>
+      <Button
+          v-if="podeResetar"
+          label="Resetar Solicitação"
+          icon="pi pi-refresh"
+          class="p-button-outlined p-button-warning"
+          @click="abrirModalResetar"
+      />
     </div>
+
+    <!-- Modal Resetar Solicitação -->
+    <Dialog
+        v-model:visible="modalResetarVisible"
+        header="Resetar Solicitação"
+        :modal="true"
+        :closable="true"
+        :style="{ width: '500px' }"
+        @hide="fecharModalResetar"
+    >
+      <p class="text-600 mb-3">
+        A solicitação voltará para o status <strong>Aguardando</strong>. As assinaturas serão removidas e o solicitante poderá ver o motivo e editar a solicitação. Os fornecedores serão mantidos.
+      </p>
+      <label class="block text-600 mb-2">Por que está resetando? (obrigatório)</label>
+      <Textarea
+          v-model="motivoResetar"
+          rows="4"
+          placeholder="Digite o motivo do reset..."
+          class="w-full mb-3"
+      />
+      <template #footer>
+        <Button label="Cancelar" icon="pi pi-times" class="p-button-secondary" @click="fecharModalResetar" />
+        <Button
+            label="Resetar"
+            icon="pi pi-refresh"
+            class="p-button-warning"
+            :loading="loadingResetar"
+            :disabled="!motivoResetar || !motivoResetar.trim()"
+            @click="confirmarResetar"
+        />
+      </template>
+    </Dialog>
 
     <!-- Bloco Identificação -->
     <div class="card shadow-none bg-light p-4 mb-4" v-if="cotacao">
@@ -121,13 +162,25 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
+import Dialog from 'primevue/dialog';
 import SolicitacaoService from '@/service/SolicitacaoService';
+
+const STATUS_PERMITIDOS_RESETAR = [
+  'em_analise_supervisor',
+  'autorizado',
+  'cotacao',
+  'finalizada',
+  'analisada',
+  'analisada_aguardando',
+  'analise_gerencia',
+];
 
 export default {
   name: 'CotacaoAnalisarAprovacoes',
+  components: { Dialog },
   setup() {
     const router = useRouter();
     const route = useRoute();
@@ -138,6 +191,14 @@ export default {
     const niveisSelecionados = ref([]);
     const observacao = ref('');
     const erroValidacao = ref('');
+    const modalResetarVisible = ref(false);
+    const motivoResetar = ref('');
+    const loadingResetar = ref(false);
+
+    const podeResetar = computed(() => {
+      if (!cotacao.value?.status?.slug) return false;
+      return STATUS_PERMITIDOS_RESETAR.includes(cotacao.value.status.slug);
+    });
 
     const niveisDisponiveis = [
       { value: 'COMPRADOR', label: 'COMPRADOR' },
@@ -218,6 +279,44 @@ export default {
       router.back();
     };
 
+    const abrirModalResetar = () => {
+      motivoResetar.value = '';
+      modalResetarVisible.value = true;
+    };
+
+    const fecharModalResetar = () => {
+      modalResetarVisible.value = false;
+      motivoResetar.value = '';
+    };
+
+    const confirmarResetar = async () => {
+      const motivo = (motivoResetar.value || '').trim();
+      if (!motivo) return;
+      try {
+        loadingResetar.value = true;
+        await SolicitacaoService.resetSolicitacao(route.params.id, { motivo });
+        toast.add({
+          severity: 'success',
+          summary: 'Sucesso',
+          detail: 'Solicitação resetada com sucesso. O solicitante poderá ver o motivo e editar.',
+          life: 4000,
+        });
+        fecharModalResetar();
+        setTimeout(() => {
+          router.push({ name: 'cotacoes-list' });
+        }, 1000);
+      } catch (error) {
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: error.response?.data?.message || 'Erro ao resetar solicitação',
+          life: 3000,
+        });
+      } finally {
+        loadingResetar.value = false;
+      }
+    };
+
     onMounted(() => {
       carregarCotacao();
     });
@@ -231,6 +330,13 @@ export default {
       niveisDisponiveis,
       salvar,
       voltar,
+      podeResetar,
+      modalResetarVisible,
+      motivoResetar,
+      loadingResetar,
+      abrirModalResetar,
+      fecharModalResetar,
+      confirmarResetar,
     };
   },
 };

@@ -105,6 +105,22 @@
         </Message>
       </div>
 
+      <!-- Mensagem de Reset (solicitação foi resetada e voltou para Aguardando) -->
+      <div v-if="solicitacao.status?.slug === 'aguardando' && solicitacao.reset_reason" class="mt-4">
+        <Message severity="warn" :closable="false">
+          <div class="flex flex-column gap-2">
+            <strong class="block">Solicitação resetada</strong>
+            <div class="text-700">{{ solicitacao.reset_reason }}</div>
+            <small class="text-500" v-if="solicitacao.reset_by_name || solicitacao.reset_at">
+              Por: {{ solicitacao.reset_by_name || 'Sistema' }} em {{ solicitacao.reset_at || '' }}
+            </small>
+            <p class="text-600 text-sm mt-2 mb-0">
+              Você pode editar a solicitação e enviá-la novamente para aprovação.
+            </p>
+          </div>
+        </Message>
+      </div>
+
       <div class="mt-4">
         <label class="block text-600 mb-1">Observação</label>
         <p class="text-900">{{ solicitacao.observacao || '-' }}</p>

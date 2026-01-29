@@ -68,6 +68,10 @@ class SolicitacaoService {
     return axios.post(`/cotacoes/${id}/analisar-aprovacoes`, payload);
   }
 
+  resetSolicitacao(id, payload) {
+    return axios.post(`/cotacoes/${id}/resetar-solicitacao`, payload);
+  }
+
   approveByLevel(id, level, payload) {
     return axios.post(`/cotacoes/${id}/aprovar-nivel/${level}`, payload);
   }
