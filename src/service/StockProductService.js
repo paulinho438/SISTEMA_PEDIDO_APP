@@ -48,6 +48,16 @@ export default class StockProductService {
         return await axios.delete(`${apiPath}/estoque/produtos/${id}/remove-image`);
     };
 
+    validarExcel = async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return await axios.post(`${apiPath}/estoque/produtos/validar-excel`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    };
+
     importarExcel = async (file) => {
         const formData = new FormData();
         formData.append('file', file);

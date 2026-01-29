@@ -88,17 +88,19 @@
     <Dialog 
       v-model:visible="modalImportacao.visivel" 
       modal 
-      header="Importar Produtos via Excel" 
-      :style="{ width: '600px' }" 
+      :header="modalImportacao.validacao ? 'Pré-validação do arquivo' : 'Importar Produtos via Excel'" 
+      :style="{ width: modalImportacao.validacao ? '90vw' : '600px', maxWidth: modalImportacao.validacao ? '1200px' : '600px' }" 
       appendTo="body"
     >
-      <div class="mb-4">
+      <!-- Passo 1: Seleção do arquivo -->
+      <div v-if="!modalImportacao.validacao" class="mb-4">
         <Message severity="info" :closable="false" class="mb-3">
           <p class="m-0">
             <strong>Instruções:</strong>
             <br />1. Baixe o template Excel abaixo
             <br />2. Preencha com os dados dos produtos (o código será gerado automaticamente pelo sistema)
-            <br />3. Faça o upload do arquivo preenchido
+            <br />3. Selecione o arquivo e clique em <strong>Analisar arquivo</strong> para ver quais linhas importam corretamente e quais têm erro
+            <br />4. Corrija o arquivo se necessário e analise de novo; quando não houver erros, clique em <strong>Importar</strong>
           </p>
         </Message>
 
@@ -152,20 +154,97 @@
         </div>
       </div>
 
+      <!-- Passo 2: Tela de pré-validação (todas as linhas e status) -->
+      <div v-else class="mb-4">
+        <Message 
+          :severity="modalImportacao.validacao.total_erro > 0 ? 'warn' : 'success'" 
+          :closable="false"
+          class="mb-3"
+        >
+          <p class="m-0">
+            <strong>Resumo:</strong>
+            <span class="ml-2">✓ Linhas OK (serão importadas): <strong>{{ modalImportacao.validacao.total_ok }}</strong></span>
+            <span class="ml-2" v-if="modalImportacao.validacao.total_erro > 0">
+              ✗ Linhas com erro: <strong>{{ modalImportacao.validacao.total_erro }}</strong> — corrija o arquivo e analise novamente.
+            </span>
+            <span class="ml-2" v-if="modalImportacao.validacao.total_vazio > 0">
+              (Linhas vazias ignoradas: {{ modalImportacao.validacao.total_vazio }})
+            </span>
+          </p>
+        </Message>
+
+        <DataTable
+          :value="modalImportacao.validacao.linhas"
+          :scrollable="true"
+          scrollHeight="400px"
+          class="p-datatable-sm p-datatable-gridlines"
+          responsiveLayout="scroll"
+          :paginator="modalImportacao.validacao.linhas?.length > 10"
+          :rows="10"
+          :totalRecords="modalImportacao.validacao.linhas?.length ?? 0"
+          paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+          :rowsPerPageOptions="[10, 25, 50]"
+          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} linhas"
+        >
+          <Column field="linha" header="Linha" style="min-width: 4rem" />
+          <Column header="Referência" style="min-width: 8rem">
+            <template #body="{ data }">{{ data.dados?.referencia ?? '-' }}</template>
+          </Column>
+          <Column header="Descrição" style="min-width: 12rem">
+            <template #body="{ data }">{{ data.dados?.descricao ?? '-' }}</template>
+          </Column>
+          <Column header="Unidade" style="min-width: 5rem">
+            <template #body="{ data }">{{ data.dados?.unidade ?? '-' }}</template>
+          </Column>
+          <Column header="Local estoque" style="min-width: 8rem">
+            <template #body="{ data }">{{ data.dados?.local_estoque ?? '-' }}</template>
+          </Column>
+          <Column header="Quantidade" style="min-width: 5rem">
+            <template #body="{ data }">{{ data.dados?.quantidade ?? '-' }}</template>
+          </Column>
+          <Column header="Status" style="min-width: 7rem">
+            <template #body="{ data }">
+              <Tag 
+                :value="data.status === 'ok' ? 'OK' : (data.status === 'erro' ? 'Erro' : 'Vazio')" 
+                :severity="data.status === 'ok' ? 'success' : (data.status === 'erro' ? 'danger' : 'secondary')" 
+              />
+            </template>
+          </Column>
+          <Column header="Mensagem" style="min-width: 14rem">
+            <template #body="{ data }">
+              <span :class="data.status === 'erro' ? 'text-red-600' : 'text-500'">{{ data.mensagem || '-' }}</span>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+
       <template #footer>
-        <Button 
-          label="Cancelar" 
-          class="p-button-text" 
-          @click="fecharModalImportacao" 
-        />
-        <Button
-          label="Importar"
-          icon="pi pi-upload"
-          class="p-button-success"
-          :disabled="!modalImportacao.arquivo"
-          :loading="modalImportacao.processando"
-          @click="processarImportacao"
-        />
+        <template v-if="!modalImportacao.validacao">
+          <Button label="Cancelar" class="p-button-text" @click="fecharModalImportacao" />
+          <Button
+            label="Analisar arquivo"
+            icon="pi pi-search"
+            class="p-button-outlined p-button-info"
+            :disabled="!modalImportacao.arquivo"
+            :loading="modalImportacao.analisando"
+            @click="analisarArquivo"
+          />
+        </template>
+        <template v-else>
+          <Button 
+            label="Voltar" 
+            class="p-button-text" 
+            @click="voltarParaSelecaoArquivo" 
+          />
+          <Button
+            label="Importar"
+            icon="pi pi-upload"
+            class="p-button-success"
+            :disabled="modalImportacao.validacao.total_erro > 0"
+            :loading="modalImportacao.processando"
+            @click="processarImportacao"
+          />
+        </template>
       </template>
     </Dialog>
 
@@ -207,7 +286,9 @@ export default {
       visivel: false,
       arquivo: null,
       processando: false,
+      analisando: false,
       resultado: null,
+      validacao: null, // { linhas, total_ok, total_erro, total_vazio } após analisar
     });
 
     // Verificar permissões
@@ -284,6 +365,7 @@ export default {
       modalImportacao.value.visivel = true;
       modalImportacao.value.arquivo = null;
       modalImportacao.value.resultado = null;
+      modalImportacao.value.validacao = null;
     };
 
     const fecharModalImportacao = () => {
@@ -343,6 +425,7 @@ export default {
         const response = await service.importarExcel(modalImportacao.value.arquivo);
         
         modalImportacao.value.resultado = response.data.data || response.data;
+        modalImportacao.value.validacao = null;
 
         if (modalImportacao.value.resultado.sucesso > 0) {
           toast.add({
@@ -392,6 +475,8 @@ export default {
       toggleActive,
       abrirModalImportacao,
       fecharModalImportacao,
+      voltarParaSelecaoArquivo,
+      analisarArquivo,
       onFileSelect,
       baixarTemplate,
       processarImportacao,
