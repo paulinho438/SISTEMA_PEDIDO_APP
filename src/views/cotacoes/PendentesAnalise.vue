@@ -36,6 +36,9 @@
         class="p-datatable-sm tabela-cotacoes"
         :loading="carregando"
         @page="onPage"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} cotações"
+        :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="numero" header="Nº da Cotação" sortable></Column>
       <Column field="solicitacao" header="Solicitação vinculada" sortable></Column>

@@ -38,6 +38,9 @@
         :sortOrder="sortOrder"
         @sort="onSort"
         @page="onPage"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} solicitações"
+        :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column :expander="true" headerStyle="width: 3rem" />
       <Column field="numero" header="Nº da Solicitação" sortable></Column>

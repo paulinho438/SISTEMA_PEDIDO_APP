@@ -38,6 +38,9 @@
       class="p-datatable-sm"
       :loading="carregando"
       @page="onPageChange"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} notas fiscais"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="invoice_number" header="Número" sortable>
         <template #body="slotProps">

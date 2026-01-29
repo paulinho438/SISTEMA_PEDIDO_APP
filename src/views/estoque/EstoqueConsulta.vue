@@ -29,6 +29,10 @@
           <label for="hasAvailable">Apenas com estoque disponível</label>
         </div>
       </div>
+      <div class="col-12 md:col-4">
+        <label>&nbsp;</label>
+        <Button label="Filtrar" icon="pi pi-filter" class="w-full mt-2" @click="() => carregar(true)" />
+      </div>
     </div>
 
     <DataTable
@@ -42,6 +46,9 @@
       class="p-datatable-sm"
       :loading="carregando"
       @page="onPage"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="product.description" header="Produto" sortable>
         <template #body="slotProps">
@@ -471,9 +478,11 @@ export default {
       return qtd != null && qtd !== '' ? parseFloat(qtd).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00';
     };
 
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
+        if (resetarPagina) page.value = 1;
+
         const params = {
           page: page.value,
           per_page: rows.value,
@@ -493,7 +502,7 @@ export default {
 
         const { data } = await stockService.getAll(params);
         estoques.value = data.data || [];
-        const meta = data.meta || {};
+        const meta = data.meta || data.pagination || {};
         totalRecords.value = meta.total ?? data.total ?? estoques.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar estoque', life: 3000 });

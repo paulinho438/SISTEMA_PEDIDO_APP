@@ -34,6 +34,9 @@
         class="p-datatable-sm tabela-pendentes"
         :loading="carregando"
         @page="onPage"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} solicitações"
+        :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="numero" header="Nº da Solicitação" sortable></Column>
       <Column field="data" header="Data" sortable></Column>

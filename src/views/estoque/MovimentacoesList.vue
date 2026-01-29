@@ -59,6 +59,9 @@
       class="p-datatable-sm"
       :loading="carregando"
       @page="onPage"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} movimentações"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="data" header="Data" sortable>
         <template #body="slotProps">

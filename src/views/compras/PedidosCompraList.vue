@@ -33,6 +33,9 @@
       class="p-datatable-sm tabela-pedidos"
       :loading="carregando"
       @page="onPage"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} pedidos"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="order_number" header="Nº Pedido" sortable></Column>
       <Column field="order_date" header="Data" sortable>

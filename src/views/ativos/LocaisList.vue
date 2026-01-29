@@ -30,6 +30,9 @@
       class="p-datatable-sm"
       :loading="carregando"
       @page="onPage"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} locais"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="code" header="Código" sortable></Column>
       <Column field="name" header="Descrição" sortable></Column>

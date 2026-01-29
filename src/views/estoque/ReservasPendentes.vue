@@ -36,6 +36,9 @@
       class="p-datatable-sm"
       :loading="carregando"
       @page="onPage"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} reservas"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="product.description" header="Produto" sortable>
         <template #body="slotProps">
