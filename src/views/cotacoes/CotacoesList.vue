@@ -27,19 +27,24 @@
                 placeholder="Buscar..."
                 class="p-inputtext-sm"
                 style="width: 16rem"
+                @keyup.enter="() => carregar(true)"
             />
         </span>
+        <Button label="Buscar" icon="pi pi-search" class="p-button-outlined ml-2" @click="() => carregar(true)" />
     </div>
 
     <!-- Tabela -->
     <DataTable
-        :value="cotacoesFiltradas"
+        :value="cotacoes"
         :paginator="true"
-        :rows="5"
+        :rows="rows"
+        :totalRecords="totalRecords"
+        :lazy="true"
         dataKey="id"
         responsiveLayout="scroll"
         class="p-datatable-sm tabela-cotacoes"
         :loading="carregando"
+        @page="onPage"
     >
       <Column field="numero" header="Nº da Cotação" sortable></Column>
       <Column field="solicitacao" header="Solicitação vinculada" sortable></Column>
@@ -117,10 +122,15 @@ export default {
     const router = useRouter();
     const store = useStore();
 
+    const STATUS_PENDENTES = 'aguardando,autorizado,em_analise_supervisor,cotacao,compra_em_andamento,finalizada,analisada,analisada_aguardando,analise_gerencia,aprovado';
+
     const cotacoes = ref([]);
     const filtroGlobal = ref('');
     const filtrarMinhasCotacoes = ref(true); // Por padrão, mostrar apenas minhas cotações
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const gerandoPedidos = ref({});
     const aprovandoDireto = ref({});
     const orderService = new PurchaseOrderService();
@@ -145,38 +155,21 @@ export default {
       return false;
     });
 
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
-        const params = { per_page: 100 };
-        if (filtrarMinhasCotacoes.value) {
-          // Se o checkbox está marcado:
-          // - Se for COMPRADOR, filtrar por minhas cotações (buyer_id)
-          // - Se for outro perfil (Engenheiro, Gerente, etc.), filtrar por aprovações pendentes
-          if (isBuyer.value) {
-            params.my_quotes = 'true';
-          } else {
-            params.my_approvals = 'true';
-          }
-        }
-        // Se o checkbox não está marcado, não aplicar nenhum filtro (mostrar todas as cotações)
-        const { data } = await SolicitacaoService.list(params);
-        const pendentes = (data?.data || []).filter((item) =>
-          [
-            'aguardando',
-            'autorizado',
-            'em_analise_supervisor',
-            'cotacao',
-            'compra_em_andamento',
-            'finalizada',
-            'analisada',
-            'analisada_aguardando',
-            'analise_gerencia',
-            'aprovado',
-          ].includes(item.status?.slug)
-        );
+        if (resetarPagina) page.value = 1;
 
-        cotacoes.value = pendentes.map((item) => ({
+        const params = { page: page.value, per_page: rows.value, status_in: STATUS_PENDENTES };
+        if (filtrarMinhasCotacoes.value) {
+          if (isBuyer.value) params.my_quotes = 'true';
+          else params.my_approvals = 'true';
+        }
+        if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
+
+        const { data } = await SolicitacaoService.list(params);
+        const list = data?.data || [];
+        cotacoes.value = list.map((item) => ({
           id: item.id,
           numero: item.numero,
           solicitacao: item.solicitacao ?? item.numero_solicitacao ?? '-',
@@ -188,6 +181,8 @@ export default {
           temPedidos: (item.orders_count || 0) > 0,
           temComprador: !!(item.buyer?.id || item.buyer?.name),
         }));
+        const pag = data?.pagination || {};
+        totalRecords.value = pag.total ?? data?.total ?? cotacoes.value.length;
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar as cotações.';
         toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
@@ -196,18 +191,17 @@ export default {
       }
     };
 
-    onMounted(carregar);
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregar();
+    };
 
-    const cotacoesFiltradas = computed(() => {
-      if (!filtroGlobal.value) return cotacoes.value;
-      const termo = filtroGlobal.value.toLowerCase();
-      return cotacoes.value.filter((c) =>
-        Object.values(c)
-          .join(' ')
-          .toLowerCase()
-          .includes(termo)
-      );
-    });
+    const onFilterChange = () => {
+      carregar(true);
+    };
+
+    onMounted(carregar);
 
     const formatarValor = (valor) => {
       return Number(valor || 0).toLocaleString('pt-BR', {
@@ -400,16 +394,13 @@ export default {
       }
     };
 
-    const onFilterChange = () => {
-      console.log('Filtro mudou:', filtrarMinhasCotacoes.value);
-      carregar();
-    };
-
     return {
       cotacoes,
       filtroGlobal,
       filtrarMinhasCotacoes,
-      cotacoesFiltradas,
+      totalRecords,
+      rows,
+      onPage,
       visualizar,
       exportar,
       gerarPedidos,

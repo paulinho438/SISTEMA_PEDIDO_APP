@@ -10,8 +10,10 @@
               placeholder="Buscar..."
               class="p-inputtext-sm"
               style="width: 16rem"
+              @keyup.enter="() => carregarSolicitacoes(true)"
           />
         </span>
+        <Button label="Buscar" icon="pi pi-search" class="p-button-outlined" @click="() => carregarSolicitacoes(true)" />
         <Button
             label="Exportar"
             icon="pi pi-upload"
@@ -22,9 +24,11 @@
     </div>
 
     <DataTable
-        :value="filtrarSolicitacoes"
+        :value="solicitacoes"
         :paginator="true"
-        :rows="perPage"
+        :rows="rows"
+        :totalRecords="totalRecords"
+        :lazy="true"
         dataKey="id"
         responsiveLayout="scroll"
         :loading="carregando"
@@ -33,6 +37,7 @@
         :sortField="sortField"
         :sortOrder="sortOrder"
         @sort="onSort"
+        @page="onPage"
     >
       <Column :expander="true" headerStyle="width: 3rem" />
       <Column field="numero" header="Nº da Solicitação" sortable></Column>
@@ -144,7 +149,9 @@ export default {
 
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
-    const perPage = ref(10);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const carregando = ref(false);
     const expandedRows = ref([]);
     const historicoPorSolicitacao = reactive({});
@@ -168,15 +175,15 @@ export default {
       aprovado: 'success',
     };
 
-    const carregarSolicitacoes = async () => {
+    const carregarSolicitacoes = async (resetarPagina = false) => {
       try {
         carregando.value = true;
-        
-        const params = { per_page: 1000 }; // Carregar mais para o relatório
-        if (!podeVerTodas.value) {
-          params.my_requests = 'true';
-        }
-        
+        if (resetarPagina) page.value = 1;
+
+        const params = { page: page.value, per_page: rows.value };
+        if (!podeVerTodas.value) params.my_requests = 'true';
+        if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
+
         const { data } = await SolicitacaoService.list(params);
         solicitacoes.value = (data?.data || []).map((item) => ({
           id: item.id,
@@ -188,12 +195,20 @@ export default {
           status: item.status?.label,
           statusSlug: item.status?.slug,
         }));
+        const pag = data?.pagination || {};
+        totalRecords.value = pag.total ?? data?.total ?? solicitacoes.value.length;
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar as solicitações.';
         toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
       } finally {
         carregando.value = false;
       }
+    };
+
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregarSolicitacoes();
     };
 
     const carregarHistorico = async (solicitacaoId) => {
@@ -231,16 +246,6 @@ export default {
         });
       }
     }, { deep: true });
-
-    const filtrarSolicitacoes = computed(() => {
-      if (!filtroGlobal.value) return solicitacoes.value;
-      return solicitacoes.value.filter((s) =>
-        Object.values(s)
-          .join(' ')
-          .toLowerCase()
-          .includes(filtroGlobal.value.toLowerCase())
-      );
-    });
 
     const formatarCentroCusto = (centroCusto) => {
       if (!centroCusto) return '-';
@@ -329,14 +334,15 @@ export default {
     return {
       solicitacoes,
       filtroGlobal,
-      perPage,
+      totalRecords,
+      rows,
+      onPage,
       carregando,
       expandedRows,
       historicoPorSolicitacao,
       carregandoHistorico,
       sortField,
       sortOrder,
-      filtrarSolicitacoes,
       mapaStatus,
       statusStyle,
       formatarCentroCusto,

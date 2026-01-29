@@ -8,18 +8,28 @@
     <div class="flex justify-content-end mb-3">
       <span class="p-input-icon-left">
         <i class="pi pi-search" />
-        <InputText v-model="filtroGlobal" placeholder="Buscar..." class="p-inputtext-sm" style="width: 16rem" />
+        <InputText
+          v-model="filtroGlobal"
+          placeholder="Buscar..."
+          class="p-inputtext-sm"
+          style="width: 16rem"
+          @keyup.enter="() => carregar(true)"
+        />
       </span>
+      <Button label="Buscar" icon="pi pi-search" class="p-button-outlined ml-2" @click="() => carregar(true)" />
     </div>
 
     <DataTable
-      :value="filiaisFiltradas"
+      :value="filiais"
       :paginator="true"
-      :rows="10"
+      :rows="rows"
+      :totalRecords="totalRecords"
+      :lazy="true"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPage"
     >
       <Column field="code" header="Código" sortable></Column>
       <Column field="name" header="Descrição" sortable></Column>
@@ -55,7 +65,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
@@ -68,28 +78,36 @@ export default {
     const filiais = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const service = new AssetAuxiliaryService('filiais');
 
-    const filiaisFiltradas = computed(() => {
-      if (!filtroGlobal.value) return filiais.value;
-      const filtro = filtroGlobal.value.toLowerCase();
-      return filiais.value.filter(f =>
-        f.code?.toLowerCase().includes(filtro) ||
-        f.name?.toLowerCase().includes(filtro) ||
-        f.address?.toLowerCase().includes(filtro)
-      );
-    });
-
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
-        const { data } = await service.getAll({ all: true });
+        if (resetarPagina) page.value = 1;
+
+        const params = { all: true, page: page.value, per_page: rows.value };
+        if (filtroGlobal.value?.trim()) {
+          params.search = filtroGlobal.value.trim();
+        }
+
+        const { data } = await service.getAll(params);
         filiais.value = data?.data || data || [];
+        const pag = data?.pagination || {};
+        totalRecords.value = pag.total ?? data?.total ?? filiais.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar filiais', life: 3000 });
       } finally {
         carregando.value = false;
       }
+    };
+
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregar();
     };
 
     const confirmarExclusao = (filial) => {
@@ -118,10 +136,13 @@ export default {
 
     return {
       filiais,
-      filiaisFiltradas,
       filtroGlobal,
       carregando,
+      totalRecords,
+      rows,
+      onPage,
       confirmarExclusao,
+      carregar,
     };
   },
 };

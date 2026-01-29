@@ -15,19 +15,24 @@
           placeholder="Buscar por número, fornecedor, cotação..."
           class="p-inputtext-sm"
           style="width: 20rem"
+          @keyup.enter="() => carregar(true)"
         />
       </span>
+      <Button label="Buscar" icon="pi pi-search" class="p-button-outlined ml-2" @click="() => carregar(true)" />
     </div>
 
     <!-- Tabela -->
     <DataTable
-      :value="pedidosFiltrados"
+      :value="pedidos"
       :paginator="true"
-      :rows="10"
+      :rows="rows"
+      :totalRecords="totalRecords"
+      :lazy="true"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm tabela-pedidos"
       :loading="carregando"
+      @page="onPage"
     >
       <Column field="order_number" header="Nº Pedido" sortable></Column>
       <Column field="order_date" header="Data" sortable>
@@ -78,7 +83,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useRouter } from 'vue-router';
 import PurchaseOrderService from '@/service/PurchaseOrderService';
@@ -92,13 +97,23 @@ export default {
     const pedidos = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const service = new PurchaseOrderService();
 
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
-        const { data } = await service.getAll({ per_page: 100 });
-        pedidos.value = data?.data?.data || [];
+        if (resetarPagina) page.value = 1;
+
+        const params = { page: page.value, per_page: rows.value };
+        if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
+
+        const { data } = await service.getAll(params);
+        pedidos.value = data?.data || [];
+        const pag = data?.pagination || {};
+        totalRecords.value = pag.total ?? data?.total ?? pedidos.value.length;
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar os pedidos de compra.';
         toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
@@ -107,18 +122,13 @@ export default {
       }
     };
 
-    onMounted(carregar);
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregar();
+    };
 
-    const pedidosFiltrados = computed(() => {
-      if (!filtroGlobal.value) return pedidos.value;
-      const termo = filtroGlobal.value.toLowerCase();
-      return pedidos.value.filter((p) =>
-        p.order_number?.toLowerCase().includes(termo) ||
-        p.supplier_name?.toLowerCase().includes(termo) ||
-        p.quote?.quote_number?.toLowerCase().includes(termo) ||
-        String(p.id).includes(termo)
-      );
-    });
+    onMounted(() => carregar());
 
     const formatarValor = (valor) => {
       return Number(valor || 0).toLocaleString('pt-BR', {
@@ -187,7 +197,9 @@ export default {
     return {
       pedidos,
       filtroGlobal,
-      pedidosFiltrados,
+      totalRecords,
+      rows,
+      onPage,
       visualizar,
       exportar,
       formatarValor,
@@ -195,6 +207,7 @@ export default {
       getLabelStatus,
       getCorStatus,
       carregando,
+      carregar,
     };
   },
 };

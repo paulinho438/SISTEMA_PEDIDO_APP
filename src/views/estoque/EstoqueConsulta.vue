@@ -34,11 +34,14 @@
     <DataTable
       :value="estoques"
       :paginator="true"
-      :rows="10"
+      :rows="rows"
+      :totalRecords="totalRecords"
+      :lazy="true"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPage"
     >
       <Column field="product.description" header="Produto" sortable>
         <template #body="slotProps">
@@ -388,6 +391,9 @@ export default {
     const estoques = ref([]);
     const locais = ref([]);
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const processando = ref(false);
     const modalReservar = ref(false);
     const modalLiberar = ref(false);
@@ -468,31 +474,38 @@ export default {
     const carregar = async () => {
       try {
         carregando.value = true;
-        const params = { 
-          per_page: 100 
+        const params = {
+          page: page.value,
+          per_page: rows.value,
         };
-        
-        // Adicionar filtros apenas se tiverem valor
+
         if (filtros.value.search && filtros.value.search.trim()) {
           params.search = filtros.value.search.trim();
         }
-        
+
         if (filtros.value.location_id) {
           params.location_id = filtros.value.location_id;
         }
-        
-        // Converter boolean para string 'true'/'false' ou 1/0 para o backend
+
         if (filtros.value.has_available !== null && filtros.value.has_available !== undefined) {
           params.has_available = filtros.value.has_available ? '1' : '0';
         }
-        
+
         const { data } = await stockService.getAll(params);
         estoques.value = data.data || [];
+        const meta = data.meta || {};
+        totalRecords.value = meta.total ?? data.total ?? estoques.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar estoque', life: 3000 });
       } finally {
         carregando.value = false;
       }
+    };
+
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregar();
     };
 
     const carregarLocais = async () => {
@@ -773,6 +786,7 @@ export default {
         clearTimeout(timeoutCarregar);
       }
       timeoutCarregar = setTimeout(() => {
+        page.value = 1;
         carregar();
       }, 500);
     };
@@ -782,6 +796,7 @@ export default {
     });
 
     onMounted(() => {
+      page.value = 1;
       carregar();
       carregarLocais();
     });
@@ -791,6 +806,9 @@ export default {
       locais,
       locaisDestino,
       filtros,
+      totalRecords,
+      rows,
+      onPage,
       carregando,
       processando,
       modalReservar,

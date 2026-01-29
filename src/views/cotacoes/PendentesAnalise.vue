@@ -18,19 +18,24 @@
                 placeholder="Buscar..."
                 class="p-inputtext-sm"
                 style="width: 16rem"
+                @keyup.enter="() => carregar(true)"
             />
         </span>
+        <Button label="Buscar" icon="pi pi-search" class="p-button-outlined ml-2" @click="() => carregar(true)" />
     </div>
 
     <!-- Tabela -->
     <DataTable
-        :value="cotacoesFiltradas"
+        :value="cotacoes"
         :paginator="true"
-        :rows="5"
+        :rows="rows"
+        :totalRecords="totalRecords"
+        :lazy="true"
         dataKey="id"
         responsiveLayout="scroll"
         class="p-datatable-sm tabela-cotacoes"
         :loading="carregando"
+        @page="onPage"
     >
       <Column field="numero" header="Nº da Cotação" sortable></Column>
       <Column field="solicitacao" header="Solicitação vinculada" sortable></Column>
@@ -85,7 +90,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { ToastSeverity } from 'primevue/api';
 import { useRouter } from 'vue-router';
@@ -98,38 +103,33 @@ export default {
     const toast = useToast();
     const router = useRouter();
 
+    const STATUS_PENDENTES = 'aguardando,autorizado,em_analise_supervisor,cotacao,compra_em_andamento,finalizada,analisada,analisada_aguardando,analise_gerencia,aprovado';
+
     const cotacoes = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const gerandoPedidos = ref({});
     const orderService = new PurchaseOrderService();
 
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
-        // Usar filtro my_approvals para buscar apenas cotações pendentes no nível do usuário
-        const params = { 
-          per_page: 100,
-          my_approvals: 'true'
-        };
-        
-        const { data } = await SolicitacaoService.list(params);
-        const pendentes = (data?.data || []).filter((item) =>
-          [
-            'aguardando',
-            'autorizado',
-            'em_analise_supervisor',
-            'cotacao',
-            'compra_em_andamento',
-            'finalizada',
-            'analisada',
-            'analisada_aguardando',
-            'analise_gerencia',
-            'aprovado',
-          ].includes(item.status?.slug)
-        );
+        if (resetarPagina) page.value = 1;
 
-        cotacoes.value = pendentes.map((item) => ({
+        const params = {
+          page: page.value,
+          per_page: rows.value,
+          my_approvals: 'true',
+          status_in: STATUS_PENDENTES,
+        };
+        if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
+
+        const { data } = await SolicitacaoService.list(params);
+        const list = data?.data || [];
+        cotacoes.value = list.map((item) => ({
           id: item.id,
           numero: item.numero,
           solicitacao: item.solicitacao ?? item.numero_solicitacao ?? '-',
@@ -140,6 +140,8 @@ export default {
           statusSlug: item.status?.slug,
           temPedidos: (item.orders_count || 0) > 0,
         }));
+        const pag = data?.pagination || {};
+        totalRecords.value = pag.total ?? data?.total ?? cotacoes.value.length;
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar as cotações pendentes de análise.';
         toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
@@ -148,18 +150,13 @@ export default {
       }
     };
 
-    onMounted(carregar);
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregar();
+    };
 
-    const cotacoesFiltradas = computed(() => {
-      if (!filtroGlobal.value) return cotacoes.value;
-      const termo = filtroGlobal.value.toLowerCase();
-      return cotacoes.value.filter((c) =>
-        Object.values(c)
-          .join(' ')
-          .toLowerCase()
-          .includes(termo)
-      );
-    });
+    onMounted(carregar);
 
     const formatarValor = (valor) => {
       return Number(valor || 0).toLocaleString('pt-BR', {
@@ -257,7 +254,9 @@ export default {
     return {
       cotacoes,
       filtroGlobal,
-      cotacoesFiltradas,
+      totalRecords,
+      rows,
+      onPage,
       visualizar,
       exportar,
       gerarPedidos,

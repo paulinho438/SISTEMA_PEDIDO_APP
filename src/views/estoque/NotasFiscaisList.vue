@@ -23,19 +23,20 @@
       </div>
       <div class="col-12 md:col-3">
         <label>&nbsp;</label>
-        <Button label="Filtrar" icon="pi pi-filter" class="w-full mt-2" @click="carregar" />
+        <Button label="Filtrar" icon="pi pi-filter" class="w-full mt-2" @click="() => carregar(true)" />
       </div>
     </div>
 
     <DataTable
       :value="notasFiscais"
       :paginator="true"
-      :rows="10"
+      :rows="itensPorPagina"
+      :totalRecords="totalRegistros"
+      :lazy="true"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
-      :totalRecords="totalRegistros"
       @page="onPageChange"
     >
       <Column field="invoice_number" header="Número" sortable>
@@ -219,9 +220,11 @@ export default {
       return qtd ? parseFloat(qtd).toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : '0,0000';
     };
 
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
+        if (resetarPagina) paginaAtual.value = 1;
+
         const params = {
           per_page: itensPorPagina.value,
           page: paginaAtual.value,
@@ -248,7 +251,7 @@ export default {
 
         const { data } = await service.getAll(params);
         notasFiscais.value = data.data || [];
-        totalRegistros.value = data.total || 0;
+        totalRegistros.value = data.total ?? data.pagination?.total ?? notasFiscais.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar notas fiscais', life: 3000 });
       } finally {
@@ -289,6 +292,7 @@ export default {
       notasFiscais,
       carregando,
       totalRegistros,
+      itensPorPagina,
       filtros,
       modalDetalhes,
       formatarValor,

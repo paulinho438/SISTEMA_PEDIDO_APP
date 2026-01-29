@@ -21,18 +21,21 @@
         />
       </div>
       <div class="col-12 md:col-4">
-        <Button label="Atualizar" icon="pi pi-refresh" class="w-full mt-4" @click="carregar" />
+        <Button label="Atualizar" icon="pi pi-refresh" class="w-full mt-4" @click="() => carregar(true)" />
       </div>
     </div>
 
     <DataTable
       :value="reservas"
       :paginator="true"
-      :rows="10"
+      :rows="rows"
+      :totalRecords="totalRecords"
+      :lazy="true"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPage"
     >
       <Column field="product.description" header="Produto" sortable>
         <template #body="slotProps">
@@ -416,6 +419,9 @@ export default {
     const reservas = ref([]);
     const locais = ref([]);
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const processando = ref(false);
     const estoqueSelecionado = ref(null);
 
@@ -504,21 +510,31 @@ export default {
       return qtd ? parseFloat(qtd).toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : '0,0000';
     };
 
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
+        if (resetarPagina) page.value = 1;
         const params = {
           ...filtros.value,
           has_reserved: true,
-          per_page: 100,
+          page: page.value,
+          per_page: rows.value,
         };
         const { data } = await stockService.getAll(params);
         reservas.value = data.data || [];
+        const meta = data.meta || data.pagination || {};
+        totalRecords.value = meta.total ?? data.total ?? reservas.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar reservas', life: 3000 });
       } finally {
         carregando.value = false;
       }
+    };
+
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregar();
     };
 
     const carregarLocais = async () => {
@@ -939,6 +955,10 @@ export default {
       filtros,
       carregando,
       processando,
+      totalRecords,
+      page,
+      rows,
+      onPage,
       estoqueSelecionado,
       modalSaida,
       modalTransferirESair,

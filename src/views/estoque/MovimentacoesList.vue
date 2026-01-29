@@ -44,18 +44,21 @@
       </div>
       <div class="col-12 md:col-3">
         <label>&nbsp;</label>
-        <Button label="Filtrar" icon="pi pi-filter" class="w-full mt-2" @click="carregar" />
+        <Button label="Filtrar" icon="pi pi-filter" class="w-full mt-2" @click="() => carregar(true)" />
       </div>
     </div>
 
     <DataTable
-      :value="movimentacoesAgrupadas"
+      :value="valorTabela"
       :paginator="true"
-      :rows="10"
+      :rows="rows"
+      :totalRecords="totalRecords"
+      :lazy="true"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
       :loading="carregando"
+      @page="onPage"
     >
       <Column field="data" header="Data" sortable>
         <template #body="slotProps">
@@ -461,6 +464,9 @@ export default {
     const movimentacoes = ref([]);
     const transferencias = ref([]);
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(10);
     const modalDetalhesTransferencia = reactive({
       visivel: false,
       transferencia: null,
@@ -583,10 +589,30 @@ export default {
       return false;
     });
 
-    const carregar = async () => {
+    const ehTodos = computed(() => !filtrosAplicados.value.movement_type);
+
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      if (!ehTodos.value) {
+        carregar();
+      }
+    };
+
+    const valorTabela = computed(() => {
+      const lista = movimentacoesAgrupadas.value;
+      if (ehTodos.value) {
+        const start = (page.value - 1) * rows.value;
+        return lista.slice(start, start + rows.value);
+      }
+      return lista;
+    });
+
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
-        
+        if (resetarPagina) page.value = 1;
+
         // Atualizar filtros aplicados com os valores atuais dos filtros
         filtrosAplicados.value = {
           movement_type: filtros.value.movement_type,
@@ -610,36 +636,64 @@ export default {
           paramsTransferencias.date_to = dateTo.toISOString().split('T')[0];
         }
         
-        try {
-          const { data } = await transferService.getAll({ ...paramsTransferencias, per_page: 100 });
-          // A resposta vem em data.data conforme o controller
-          transferencias.value = data?.data || [];
-        } catch (error) {
-          console.error('Erro ao carregar transferências:', error);
+        const paramsTransferenciasComPagina = { ...paramsTransferencias, page: page.value, per_page: rows.value };
+
+        if (ehTransferencia.value) {
+          try {
+            const { data } = await transferService.getAll(paramsTransferenciasComPagina);
+            transferencias.value = data?.data || [];
+            totalRecords.value = data?.pagination?.total ?? transferencias.value.length;
+          } catch (error) {
+            console.error('Erro ao carregar transferências:', error);
+            transferencias.value = [];
+            totalRecords.value = 0;
+          }
+          movimentacoes.value = [];
+        } else if (ehTodos.value) {
+          // Filtro "Todos": buscar movimentações e transferências (lote) e paginar no cliente
+          const paramsMov = { page: 1, per_page: 500 };
+          if (filtrosAplicados.value.date_from) {
+            const d = filtrosAplicados.value.date_from instanceof Date ? filtrosAplicados.value.date_from : new Date(filtrosAplicados.value.date_from);
+            paramsMov.date_from = d.toISOString().split('T')[0];
+          }
+          if (filtrosAplicados.value.date_to) {
+            const d = filtrosAplicados.value.date_to instanceof Date ? filtrosAplicados.value.date_to : new Date(filtrosAplicados.value.date_to);
+            paramsMov.date_to = d.toISOString().split('T')[0];
+          }
+          try {
+            const [resMov, resTrans] = await Promise.all([
+              service.getAll(paramsMov),
+              transferService.getAll({ ...paramsTransferencias, page: 1, per_page: 500 }),
+            ]);
+            const dataMov = resMov?.data;
+            const dataTrans = resTrans?.data;
+            movimentacoes.value = dataMov?.data ?? [];
+            transferencias.value = dataTrans?.data ?? [];
+            totalRecords.value = movimentacoesAgrupadas.value.length;
+          } catch (error) {
+            movimentacoes.value = [];
+            transferencias.value = [];
+            totalRecords.value = 0;
+          }
+        } else {
           transferencias.value = [];
-        }
-        
-        // Buscar movimentações normais
-        const params = { ...filtrosAplicados.value, per_page: 100 };
-        if (params.date_from) {
-          const dateFrom = params.date_from instanceof Date 
-            ? params.date_from 
-            : new Date(params.date_from);
-          params.date_from = dateFrom.toISOString().split('T')[0];
-        }
-        if (params.date_to) {
-          const dateTo = params.date_to instanceof Date 
-            ? params.date_to 
-            : new Date(params.date_to);
-          params.date_to = dateTo.toISOString().split('T')[0];
-        }
-        
-        // Se o filtro for transferência, não buscar movimentações individuais
-        if (!ehTransferencia.value) {
+          // Buscar movimentações normais com page e per_page
+          const params = { ...filtrosAplicados.value, page: page.value, per_page: rows.value };
+          if (params.date_from) {
+            const dateFrom = params.date_from instanceof Date
+              ? params.date_from
+              : new Date(params.date_from);
+            params.date_from = dateFrom.toISOString().split('T')[0];
+          }
+          if (params.date_to) {
+            const dateTo = params.date_to instanceof Date
+              ? params.date_to
+              : new Date(params.date_to);
+            params.date_to = dateTo.toISOString().split('T')[0];
+          }
           const { data } = await service.getAll(params);
           movimentacoes.value = data.data || [];
-        } else {
-          movimentacoes.value = [];
+          totalRecords.value = data.meta?.total ?? data.pagination?.total ?? movimentacoes.value.length;
         }
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar movimentações', life: 3000 });
@@ -1131,7 +1185,13 @@ export default {
       fecharModalAjuste,
       confirmarAjuste,
       ehTransferencia,
+      ehTodos,
       movimentacoesAgrupadas,
+      valorTabela,
+      totalRecords,
+      page,
+      rows,
+      onPage,
       verDetalhesTransferencia,
       modalDetalhesTransferencia,
     };

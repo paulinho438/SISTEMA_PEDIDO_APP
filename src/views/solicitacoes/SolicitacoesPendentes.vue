@@ -22,15 +22,18 @@
             </span>
     </div>
 
-    <!-- Tabela -->
+    <!-- Tabela (paginação sempre envia page e per_page para o back) -->
     <DataTable
-        :value="filtrarSolicitacoes"
+        :value="solicitacoes"
         :paginator="true"
-        :rows="5"
+        :rows="rows"
+        :totalRecords="totalRecords"
+        :lazy="true"
         dataKey="id"
         responsiveLayout="scroll"
         class="p-datatable-sm tabela-pendentes"
         :loading="carregando"
+        @page="onPage"
     >
       <Column field="numero" header="Nº da Solicitação" sortable></Column>
       <Column field="data" header="Data" sortable></Column>
@@ -62,7 +65,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { ToastSeverity } from 'primevue/api';
 import { useRouter } from 'vue-router';
@@ -77,19 +80,27 @@ export default {
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
+    const totalRecords = ref(0);
+    const page = ref(1);
+    const rows = ref(5);
 
     const carregar = async () => {
       try {
         carregando.value = true;
-        const { data } = await SolicitacaoService.list({ per_page: 100 });
-        
-        // Filtrar apenas solicitações com status "aguardando" ou "autorizado"
-        const pendentes = (data?.data || []).filter((item) => {
-          const statusSlug = item.status?.slug?.toLowerCase() || '';
-          return statusSlug === 'aguardando' || statusSlug === 'autorizado';
-        });
+        const params = {
+          page: page.value,
+          per_page: rows.value,
+          status_in: 'aguardando,autorizado',
+        };
+        if (filtroGlobal.value?.trim()) {
+          params.search = filtroGlobal.value.trim();
+        }
+        const { data } = await SolicitacaoService.list(params);
 
-        solicitacoes.value = pendentes.map((item) => ({
+        const list = data?.data || [];
+        const pagination = data?.pagination || {};
+
+        solicitacoes.value = list.map((item) => ({
           id: Number(item.id),
           numero: item.numero,
           data: item.data,
@@ -99,6 +110,8 @@ export default {
           status: item.status?.label || '-',
           statusSlug: item.status?.slug,
         }));
+
+        totalRecords.value = pagination.total ?? list.length;
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar as solicitações.';
         toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
@@ -107,17 +120,20 @@ export default {
       }
     };
 
-    onMounted(carregar);
+    const onPage = (event) => {
+      page.value = event.page + 1;
+      rows.value = event.rows;
+      carregar();
+    };
 
-    const filtrarSolicitacoes = computed(() => {
-      if (!filtroGlobal.value) return solicitacoes.value;
-      const termo = filtroGlobal.value.toLowerCase();
-      return solicitacoes.value.filter((s) =>
-        Object.values(s)
-          .join(' ')
-          .toLowerCase()
-          .includes(termo)
-      );
+    onMounted(() => {
+      page.value = 1;
+      carregar();
+    });
+
+    watch(filtroGlobal, () => {
+      page.value = 1;
+      carregar();
     });
 
     const exportar = () => {
@@ -177,7 +193,9 @@ export default {
     return {
       solicitacoes,
       filtroGlobal,
-      filtrarSolicitacoes,
+      totalRecords,
+      rows,
+      onPage,
       exportar,
       visualizar,
       carregando,
