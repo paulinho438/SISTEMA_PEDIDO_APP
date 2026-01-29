@@ -89,6 +89,14 @@
             :disabled="!podeEditarQuantidade"
           />
           <Button label="Consultar Estoque" icon="pi pi-search" class="p-button-text p-button-info" @click="abrirModalEstoque" />
+          <Button 
+            label="Replicar do 1º item" 
+            icon="pi pi-copy" 
+            class="p-button-text p-button-secondary" 
+            @click="replicarAplicacaoPrioridadeTagDoPrimeiro"
+            :disabled="!podeEditarQuantidade || !form.itens || form.itens.length < 2"
+            v-tooltip.top="'Copia Aplicação, Prioridade dias e TAG do primeiro item para todos os demais'"
+          />
         </div>
       </div>
       
@@ -1314,6 +1322,22 @@ export default {
       toast.add({ severity: 'warn', summary: 'Item removido', life: 1500 });
     };
 
+    /** Copia Aplicação, Prioridade dias e TAG do primeiro item para todos os demais itens da solicitação. */
+    const replicarAplicacaoPrioridadeTagDoPrimeiro = () => {
+      const itens = form.value.itens;
+      if (!itens || itens.length < 2) return;
+      const primeiro = itens[0];
+      const aplicacao = primeiro.aplicacao ?? '';
+      const prioridade = primeiro.prioridade ?? 0;
+      const tag = primeiro.tag ?? '';
+      for (let i = 1; i < itens.length; i++) {
+        itens[i].aplicacao = aplicacao;
+        itens[i].prioridade = prioridade;
+        itens[i].tag = tag;
+      }
+      toast.add({ severity: 'success', summary: 'Replicado', detail: `Aplicação, Prioridade dias e TAG do 1º item aplicados em ${itens.length - 1} item(ns).`, life: 3000 });
+    };
+
     // Métodos do Modal de Estoque
     const abrirModalEstoque = () => {
       modalEstoque.visivel = true;
@@ -1690,6 +1714,7 @@ export default {
       confirmarCentroCusto,
       limparCentroCusto,
       removerItem,
+      replicarAplicacaoPrioridadeTagDoPrimeiro,
       voltar,
       salvar,
       isSaving,
