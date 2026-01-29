@@ -867,6 +867,8 @@ const cotacoes = ref([])
 const showModalSelecionar = ref(false)
 const selecoes = ref({})
 const motivos = ref({})
+// Valor ao focar no campo de preço (para só atualizar ganhador quando o valor realmente mudar)
+const valorNoFocusMoeda = ref({ cotIndex: null, itemIndex: null, campo: null, valor: null })
 const salvandoCotacao = ref(false)
 const imprimindoCotacao = ref(false)
 const fornecedoresState = reactive({
@@ -1747,6 +1749,7 @@ const prepararCampoMoeda = (cotIndex, itemIndex, campo) => {
 
   const numero = parsePreco(item[campo])
   item[campo] = numero === null ? '' : formatNumberValue(numero)
+  valorNoFocusMoeda.value = { cotIndex, itemIndex, campo, valor: numero }
 }
 
 const formatarCampoMoeda = (cotIndex, itemIndex, campo) => {
@@ -1756,14 +1759,19 @@ const formatarCampoMoeda = (cotIndex, itemIndex, campo) => {
   const numero = parsePreco(item[campo])
   item[campo] = numero === null ? '' : formatCurrencyValue(numero)
 
-  // Atualizar ganhador (menor preço) quando alterar campo de preço; assim, se um novo fornecedor passar a ter o menor preço, já fica considerado
+  // Só atualizar ganhador (menor preço) quando o valor realmente mudar; se só entrou e saiu do input sem alterar, não altera a seleção
   if (['custoUnit', 'custoFinal', 'custoIPI', 'icmsTotal'].includes(campo)) {
-    nextTick(() => {
-      produtos.value.forEach((_, p) => {
-        const menor = menorIndice(p)
-        if (menor !== null) selecoes.value[p] = menor
+    const antes = valorNoFocusMoeda.value
+    const mesmoCampo = antes.cotIndex === cotIndex && antes.itemIndex === itemIndex && antes.campo === campo
+    const valorDiferente = antes.valor !== numero && !(antes.valor == null && numero == null)
+    if (mesmoCampo && valorDiferente) {
+      nextTick(() => {
+        produtos.value.forEach((_, p) => {
+          const menor = menorIndice(p)
+          if (menor !== null) selecoes.value[p] = menor
+        })
       })
-    })
+    }
   }
 }
 
@@ -1846,6 +1854,9 @@ const calcularDifalAutomatico = (cotIndex) => {
   const cot = cotacoes.value[cotIndex]
   if (!cot || !cot.itens) return
 
+  // Guardar custoFinal antes para só atualizar seleção se algo mudou
+  const custoFinalAntes = cot.itens.map((item, idx) => parsePreco(item.custoFinal))
+
   // Extrair o número do difalPercent (remover % se existir)
   let difalPercentValue = cot.difalPercent
   if (difalPercentValue && typeof difalPercentValue === 'string') {
@@ -1875,13 +1886,16 @@ const calcularDifalAutomatico = (cotIndex) => {
     item.custoFinal = formatCurrencyValue(custoComIPIComDifal)
   })
 
-  // Atualizar ganhador (menor preço) após recalcular custo final
-  nextTick(() => {
-    produtos.value.forEach((_, p) => {
-      const menor = menorIndice(p)
-      if (menor !== null) selecoes.value[p] = menor
+  // Só atualizar ganhador se algum custoFinal realmente mudou
+  const algumMudou = cot.itens.some((item, idx) => parsePreco(item.custoFinal) !== custoFinalAntes[idx])
+  if (algumMudou) {
+    nextTick(() => {
+      produtos.value.forEach((_, p) => {
+        const menor = menorIndice(p)
+        if (menor !== null) selecoes.value[p] = menor
+      })
     })
-  })
+  }
 }
 
 const menorIndice = (itemIndex) => {
