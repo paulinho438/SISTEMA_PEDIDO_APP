@@ -185,8 +185,7 @@ export default {
         
         const { data } = await SolicitacaoService.list(params);
         
-        // Laravel Resource::collection com paginate retorna:
-        // { data: [...], current_page, per_page, total, last_page, etc }
+        // Backend retorna: { data: [...], pagination: { current_page, per_page, total, last_page } }
         solicitacoes.value = (data?.data || []).map((item) => ({
           id: item.id,
           numero: item.numero,
@@ -198,11 +197,11 @@ export default {
           statusSlug: item.status?.slug,
         }));
         
-        // Atualizar informações de paginação
-        paginacao.value.total = data.total || 0;
-        paginacao.value.page = data.current_page || 1;
-        paginacao.value.perPage = data.per_page || 10;
-        paginacao.value.lastPage = data.last_page || 1;
+        const pag = data?.pagination || {};
+        paginacao.value.total = pag.total ?? data?.total ?? 0;
+        paginacao.value.page = pag.current_page ?? data?.current_page ?? 1;
+        paginacao.value.perPage = pag.per_page ?? data?.per_page ?? 10;
+        paginacao.value.lastPage = pag.last_page ?? data?.last_page ?? 1;
       } catch (error) {
         const detail = error?.response?.data?.message || 'Não foi possível carregar as solicitações.';
         toast.add({ severity: 'error', summary: 'Erro ao carregar', detail, life: 4000 });
