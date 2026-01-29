@@ -1544,6 +1544,13 @@ const addCotacao = () => {
   if (process.env.NODE_ENV === 'development') {
     console.log('Fornecedor adicionado. Total de fornecedores:', cotacoes.value.length)
   }
+  // Recalcular ganhador por produto (menor preço) para incluir o novo fornecedor nas opções
+  nextTick(() => {
+    produtos.value.forEach((_, p) => {
+      const menor = menorIndice(p)
+      if (menor !== null) selecoes.value[p] = menor
+    })
+  })
   // Salvar automaticamente (persiste os fornecedores já preenchidos)
   nextTick(() => salvarCotacaoAutomatico())
 }
@@ -1753,6 +1760,16 @@ const formatarCampoMoeda = (cotIndex, itemIndex, campo) => {
 
   const numero = parsePreco(item[campo])
   item[campo] = numero === null ? '' : formatCurrencyValue(numero)
+
+  // Atualizar ganhador (menor preço) quando alterar campo de preço; assim, se um novo fornecedor passar a ter o menor preço, já fica considerado
+  if (['custoUnit', 'custoFinal', 'custoIPI', 'icmsTotal'].includes(campo)) {
+    nextTick(() => {
+      produtos.value.forEach((_, p) => {
+        const menor = menorIndice(p)
+        if (menor !== null) selecoes.value[p] = menor
+      })
+    })
+  }
 }
 
 const prepararCampoMoedaFrete = (cotIndex) => {
@@ -1861,6 +1878,14 @@ const calcularDifalAutomatico = (cotIndex) => {
     // Custo com IPI com Difal
     const custoComIPIComDifal = custoComIPI + difalValue
     item.custoFinal = formatCurrencyValue(custoComIPIComDifal)
+  })
+
+  // Atualizar ganhador (menor preço) após recalcular custo final
+  nextTick(() => {
+    produtos.value.forEach((_, p) => {
+      const menor = menorIndice(p)
+      if (menor !== null) selecoes.value[p] = menor
+    })
   })
 }
 
