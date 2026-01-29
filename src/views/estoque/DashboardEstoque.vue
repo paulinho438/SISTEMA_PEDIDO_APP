@@ -66,8 +66,12 @@
           :loading="loading"
           :paginator="true"
           :rows="10"
+          :totalRecords="(metrics.out_of_stock_products || []).length"
           responsiveLayout="scroll"
           class="p-datatable-sm"
+          paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+          :rowsPerPageOptions="[10, 20, 50, 100]"
+          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} produtos"
         >
           <Column field="code" header="Código" sortable></Column>
           <Column field="description" header="Descrição" sortable></Column>
@@ -118,8 +122,12 @@
           :loading="loading"
           :paginator="true"
           :rows="10"
+          :totalRecords="(metrics.low_stock_products || []).length"
           responsiveLayout="scroll"
           class="p-datatable-sm"
+          paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+          :rowsPerPageOptions="[10, 20, 50, 100]"
+          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} produtos"
         >
           <Column field="code" header="Código" sortable></Column>
           <Column field="description" header="Descrição" sortable></Column>

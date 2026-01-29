@@ -191,6 +191,7 @@ export default {
                         :paginator="true"
                         class="p-datatable-gridlines"
                         :rows="10"
+                        :totalRecords="Usuarios?.length ?? 0"
                         dataKey="id"
                         :rowHover="true"
                         v-model:filters="filters1"
@@ -199,6 +200,9 @@ export default {
                         :filters="filters1"
                         responsiveLayout="scroll"
                         :globalFilterFields="['login', 'nome_completo', 'email', 'telefone_celular', 'permissao']"
+                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                        :rowsPerPageOptions="[10, 20, 50, 100]"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} usuários"
                     >
                         <template #header>
                             <div class="flex justify-content-between flex-column sm:flex-row">
