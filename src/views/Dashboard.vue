@@ -137,7 +137,11 @@ watch(isDarkTheme, aplicarTema);
             dataKey="comprador"
             paginator
             :rows="10"
+            :totalRecords="processosFiltrados?.length ?? 0"
             responsiveLayout="scroll"
+            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+            :rowsPerPageOptions="[10, 20, 50, 100]"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} processos"
         >
           <Column field="comprador" header="Comprador" sortable></Column>
           <Column field="acumulado" header="Acumulado" sortable></Column>
@@ -182,7 +186,11 @@ watch(isDarkTheme, aplicarTema);
             :value="statusSolicitacoes"
             :paginator="true"
             :rows="5"
+            :totalRecords="statusSolicitacoes?.length ?? 0"
             responsiveLayout="scroll"
+            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+            :rowsPerPageOptions="[5, 10, 20, 50]"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
         >
           <Column field="comprador" header="Comprador" sortable></Column>
           <Column field="aguardando" header="Aguardando" sortable></Column>
@@ -207,7 +215,11 @@ watch(isDarkTheme, aplicarTema);
             :value="statusResumo"
             :paginator="true"
             :rows="5"
+            :totalRecords="statusResumo?.length ?? 0"
             responsiveLayout="scroll"
+            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+            :rowsPerPageOptions="[5, 10, 20, 50]"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} status"
         >
           <Column field="status" header="Status" sortable></Column>
           <Column field="quantidade" header="Quantidade" sortable></Column>
