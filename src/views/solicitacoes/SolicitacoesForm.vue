@@ -776,8 +776,9 @@ export default {
         form.value.workFront = detalhe.work_front || '';
         form.value.observacao = detalhe.observacao || '';
         
-        // Converter itens para o formato do formulário
+        // Converter itens para o formato do formulário (incluir id para preservar itens e preços dos fornecedores ao atualizar)
         form.value.itens = (detalhe.itens || []).map(item => ({
+          id: item.id ?? null,
           codigo: item.codigo || null,
           referencia: item.referencia || null,
           mercadoria: item.mercadoria || '',
@@ -1614,6 +1615,7 @@ export default {
         work_front: form.value.workFront || null,
         observacao: form.value.observacao || null,
         itens: form.value.itens.map((item) => ({
+          id: item.id ?? null,
           codigo: item.codigo || null,
           referencia: item.referencia || null,
           mercadoria: item.mercadoria,
