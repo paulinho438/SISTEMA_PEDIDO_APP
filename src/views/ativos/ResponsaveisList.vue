@@ -15,9 +15,9 @@
         <i class="pi pi-search" />
         <InputText
           v-model="filtroGlobal"
-          placeholder="Buscar..."
+          placeholder="Buscar por nome ou matrícula..."
           class="p-inputtext-sm"
-          style="width: 16rem"
+          style="width: 20rem"
           @keyup.enter="() => carregar(true)"
         />
       </span>
@@ -41,6 +41,11 @@
     >
       <Column field="code" header="Código" sortable></Column>
       <Column field="name" header="Nome" sortable></Column>
+      <Column field="matricula" header="Matrícula" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.matricula || '-' }}
+        </template>
+      </Column>
       <Column field="description" header="Descrição" sortable>
         <template #body="slotProps">
           {{ slotProps.data.description || '-' }}
@@ -115,10 +120,12 @@ export default {
         const params = { all: true, page: page.value, per_page: rows.value };
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
-        const { data } = await service.getAll(params);
-        responsaveis.value = data?.data || data || [];
-        const pag = data?.pagination || {};
-        totalRecords.value = pag.total ?? data?.total ?? responsaveis.value.length;
+        const { data: body } = await service.getAll(params);
+        // API pode retornar { data: [...] } ou { data: [...], pagination: { total } }
+        const items = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
+        responsaveis.value = items;
+        const pag = body?.pagination || {};
+        totalRecords.value = pag.total ?? body?.total ?? items.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar responsáveis', life: 3000 });
       } finally {

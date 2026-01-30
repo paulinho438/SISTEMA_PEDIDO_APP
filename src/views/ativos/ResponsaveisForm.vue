@@ -15,9 +15,13 @@
             <label for="active" class="ml-2">Responsável ativo</label>
           </div>
         </div>
-        <div class="col-12">
+        <div class="col-12 md:col-6">
           <label for="name">Nome *</label>
           <InputText id="name" v-model="form.name" class="w-full" required />
+        </div>
+        <div class="col-12 md:col-6">
+          <label for="matricula">Matrícula</label>
+          <InputText id="matricula" v-model="form.matricula" class="w-full" placeholder="Matrícula do responsável" />
         </div>
         <div class="col-12">
           <label for="description">Descrição</label>
@@ -53,6 +57,7 @@ export default {
     const form = ref({
       code: '', // Será gerado automaticamente pelo backend se vazio
       name: '',
+      matricula: '',
       description: '',
       active: true,
     });
@@ -70,6 +75,7 @@ export default {
             form.value = {
               code: responsavel.code || '',
               name: responsavel.name || '',
+              matricula: responsavel.matricula || '',
               description: responsavel.description || '',
               active: responsavel.active !== undefined ? responsavel.active : true,
             };
