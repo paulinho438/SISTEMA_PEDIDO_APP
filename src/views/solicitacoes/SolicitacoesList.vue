@@ -102,6 +102,13 @@
                 v-tooltip.top="'Alterar quantidade'"
             />
             <Button
+                v-if="podeAlterarCentroCusto"
+                icon="pi pi-wallet"
+                class="p-button-rounded p-button-text p-button-warning"
+                @click="abrirModalAlterarCentroCusto(slotProps.data)"
+                v-tooltip.top="'Alterar centro de custo'"
+            />
+            <Button
                 icon="pi pi-trash"
                 class="p-button-rounded p-button-text p-button-danger"
                 @click="excluir(slotProps.data)"
@@ -115,16 +122,69 @@
     <!-- Modal de Confirmação de Exclusão -->
     <ConfirmDialog />
 
+    <!-- Modal Alterar Centro de Custo -->
+    <Dialog
+        v-model:visible="modalCentroCusto.visible"
+        header="Alterar centro de custo da solicitação"
+        :style="{ width: '50vw', maxWidth: '800px' }"
+        modal
+        appendTo="body"
+        @hide="fecharModalCentroCusto"
+    >
+        <p class="mb-3">
+            Selecione o novo centro de custo. Ele será aplicado a <strong>todos os itens</strong> da solicitação
+            <span v-if="modalCentroCusto.solicitacao"> {{ modalCentroCusto.solicitacao.numero }}</span>.
+        </p>
+        <div class="mb-3">
+            <InputText
+                v-model="modalCentroCusto.busca"
+                placeholder="Buscar (código, descrição...)"
+                class="w-full"
+                @input="onPesquisarCentroCusto"
+            />
+        </div>
+        <DataTable
+            :value="modalCentroCusto.items"
+            v-model:selection="modalCentroCusto.selection"
+            selectionMode="single"
+            dataKey="CTT_CUSTO"
+            :loading="modalCentroCusto.loading"
+            :paginator="true"
+            :rows="modalCentroCusto.perPage"
+            :totalRecords="modalCentroCusto.total"
+            :lazy="true"
+            :first="(modalCentroCusto.page - 1) * modalCentroCusto.perPage"
+            @page="onCentroCustoPage"
+            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+            :rowsPerPageOptions="[10, 20, 50]"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
+        >
+            <Column field="CTT_CUSTO" header="Código" />
+            <Column field="CTT_DESC01" header="Descrição" />
+        </DataTable>
+        <template #footer>
+            <Button label="Cancelar" class="p-button-text" @click="fecharModalCentroCusto" />
+            <Button
+                label="Alterar centro de custo"
+                class="p-button-success"
+                :loading="modalCentroCusto.saving"
+                :disabled="!modalCentroCusto.selection"
+                @click="confirmarAlterarCentroCusto"
+            />
+        </template>
+    </Dialog>
+
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useRouter } from 'vue-router';
 import SolicitacaoService from '@/service/SolicitacaoService';
 import PermissionsService from '@/service/PermissionsService';
+import ProtheusService from '@/service/ProtheusService';
 
 export default {
   name: 'CicomList',
@@ -133,6 +193,7 @@ export default {
     const confirm = useConfirm();
     const router = useRouter();
     const permissionService = new PermissionsService();
+    const protheusService = new ProtheusService();
 
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
@@ -150,6 +211,25 @@ export default {
     // Verificar se o usuário tem permissão para visualizar todas as solicitações
     const podeVerTodas = computed(() => {
       return permissionService.hasPermissions('view_all_solicitacoes');
+    });
+
+    // Permissão para alterar centro de custo (independente do status)
+    const podeAlterarCentroCusto = computed(() => {
+      return permissionService.hasPermissions('alterar_centro_custo_solicitacao');
+    });
+
+    const buscaCentroTimeout = ref(null);
+    const modalCentroCusto = reactive({
+      visible: false,
+      loading: false,
+      saving: false,
+      solicitacao: null,
+      items: [],
+      selection: null,
+      page: 1,
+      perPage: 10,
+      total: 0,
+      busca: '',
     });
 
     const mapaStatus = {
@@ -313,6 +393,91 @@ export default {
       });
     };
 
+    const fetchCentrosCusto = async () => {
+      try {
+        modalCentroCusto.loading = true;
+        const params = {
+          page: modalCentroCusto.page,
+          per_page: modalCentroCusto.perPage,
+        };
+        const busca = modalCentroCusto.busca?.trim();
+        if (busca) params.busca = busca;
+
+        const response = await protheusService.getCentrosCusto(params);
+        const payload = response?.data ?? {};
+        const data = payload?.data ?? payload;
+        modalCentroCusto.items = data?.items ?? data?.centros ?? [];
+        const pagination = data?.pagination ?? payload?.pagination ?? {};
+        modalCentroCusto.total = pagination?.total ?? data?.total ?? modalCentroCusto.items.length;
+        modalCentroCusto.page = pagination?.current_page ?? params.page ?? 1;
+        modalCentroCusto.perPage = pagination?.per_page ?? params.per_page ?? modalCentroCusto.perPage;
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Não foi possível carregar os centros de custo.';
+        toast.add({ severity: 'error', summary: 'Erro', detail, life: 4000 });
+        modalCentroCusto.items = [];
+      } finally {
+        modalCentroCusto.loading = false;
+      }
+    };
+
+    const abrirModalAlterarCentroCusto = (item) => {
+      modalCentroCusto.solicitacao = item;
+      modalCentroCusto.visible = true;
+      modalCentroCusto.page = 1;
+      modalCentroCusto.busca = '';
+      modalCentroCusto.selection = null;
+      fetchCentrosCusto();
+    };
+
+    const fecharModalCentroCusto = () => {
+      modalCentroCusto.visible = false;
+      modalCentroCusto.solicitacao = null;
+      modalCentroCusto.selection = null;
+    };
+
+    const onPesquisarCentroCusto = () => {
+      if (buscaCentroTimeout.value) clearTimeout(buscaCentroTimeout.value);
+      buscaCentroTimeout.value = setTimeout(() => {
+        modalCentroCusto.page = 1;
+        fetchCentrosCusto();
+      }, 400);
+    };
+
+    const onCentroCustoPage = (event) => {
+      modalCentroCusto.page = event.page + 1;
+      modalCentroCusto.perPage = event.rows;
+      fetchCentrosCusto();
+    };
+
+    const confirmarAlterarCentroCusto = async () => {
+      if (!modalCentroCusto.selection || !modalCentroCusto.solicitacao) return;
+      const sel = modalCentroCusto.selection;
+      const payload = {
+        centro_custo: {
+          codigo: sel.CTT_CUSTO ?? sel.codigo ?? '',
+          descricao: sel.CTT_DESC01 ?? sel.descricao ?? null,
+          classe: sel.CTT_CLASSE ?? sel.classe ?? null,
+        },
+      };
+      try {
+        modalCentroCusto.saving = true;
+        await SolicitacaoService.alterarCentroCusto(modalCentroCusto.solicitacao.id, payload);
+        toast.add({
+          severity: 'success',
+          summary: 'Centro de custo alterado',
+          detail: `O centro de custo de todos os itens da solicitação ${modalCentroCusto.solicitacao.numero} foi atualizado.`,
+          life: 4000,
+        });
+        fecharModalCentroCusto();
+        await carregarSolicitacoes();
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Não foi possível alterar o centro de custo.';
+        toast.add({ severity: 'error', summary: 'Erro', detail, life: 4000 });
+      } finally {
+        modalCentroCusto.saving = false;
+      }
+    };
+
     const formatarCentroCusto = (centroCusto) => {
       if (!centroCusto) return '-';
       
@@ -380,6 +545,13 @@ export default {
       formatarCentroCusto,
       podeEditar,
       podeAlterarQuantidade,
+      podeAlterarCentroCusto,
+      modalCentroCusto,
+      abrirModalAlterarCentroCusto,
+      fecharModalCentroCusto,
+      onPesquisarCentroCusto,
+      onCentroCustoPage,
+      confirmarAlterarCentroCusto,
       onPageChange,
       onSearchChange,
     };

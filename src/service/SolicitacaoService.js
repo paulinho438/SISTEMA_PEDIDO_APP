@@ -83,6 +83,10 @@ class SolicitacaoService {
   alterarQuantidade(id, payload) {
     return axios.post(`/cotacoes/${id}/alterar-quantidade`, payload);
   }
+
+  alterarCentroCusto(id, payload) {
+    return axios.post(`/cotacoes/${id}/alterar-centro-custo`, payload);
+  }
 }
 
 export default new SolicitacaoService();
