@@ -49,6 +49,12 @@ const solicitacoesRoutes = [
 				component: () => import('@/views/solicitacoes/AlterarQuantidade.vue')
 			},
 			{
+				path: ':id/alterar-centro-custo',
+				name: 'alterarCentroCustoSolicitacao',
+				props: true,
+				component: () => import('@/views/solicitacoes/AlterarCentroCustoSolicitacao.vue')
+			},
+			{
 				path: 'relatorio',
 				name: 'solicitacoesRelatorio',
 				component: () => import('@/views/solicitacoes/SolicitacoesRelatorio.vue')
