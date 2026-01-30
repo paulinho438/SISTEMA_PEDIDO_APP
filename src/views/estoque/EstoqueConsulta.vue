@@ -86,13 +86,6 @@
             />
             <Button
               v-if="slotProps.data.quantity_available > 0"
-              label="Transferir"
-              icon="pi pi-arrow-right-arrow-left"
-              class="p-button-sm p-button-outlined p-button-info"
-              @click="abrirModalTransferencia(slotProps.data)"
-            />
-            <Button
-              v-if="slotProps.data.quantity_available > 0"
               label="Reservar"
               icon="pi pi-lock"
               class="p-button-sm p-button-outlined p-button-success"
