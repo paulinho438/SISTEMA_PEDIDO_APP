@@ -66,7 +66,7 @@
           {{ formatarCentroCusto(slotProps.data.centroCusto) }}
         </template>
       </Column>
-      <Column field="frenteObra" header="Frente de Obra" sortable></Column>
+      <Column field="local" header="Local" sortable></Column>
 
       <Column header="Status" sortable>
         <template #body="slotProps">
@@ -204,7 +204,7 @@ export default {
           data: item.data,
           solicitante: item.solicitante,
           centroCusto: typeof item.centro_custo === 'string' ? item.centro_custo : item.centro_custo,
-          frenteObra: item.frente_obra,
+          local: item.local,
           status: item.status?.label,
           statusSlug: item.status?.slug,
         }));
