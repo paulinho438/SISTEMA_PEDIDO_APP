@@ -120,12 +120,13 @@ export default {
         const params = { all: true, page: page.value, per_page: rows.value };
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
-        const { data: body } = await service.getAll(params);
-        // API pode retornar { data: [...] } ou { data: [...], pagination: { total } }
+        const res = await service.getAll(params);
+        const body = res?.data ?? res;
+        // API retorna { data: [...], pagination?: { total } }
         const items = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
-        responsaveis.value = items;
+        responsaveis.value = Array.isArray(items) ? items : [];
         const pag = body?.pagination || {};
-        totalRecords.value = pag.total ?? body?.total ?? items.length;
+        totalRecords.value = Number(pag.total) ?? Number(body?.total) ?? responsaveis.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar responsáveis', life: 3000 });
       } finally {
