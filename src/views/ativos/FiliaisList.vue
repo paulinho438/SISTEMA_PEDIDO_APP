@@ -99,11 +99,18 @@ export default {
         const res = await service.getAll(params);
         const data = res?.data;
         const raw = data?.data ?? data;
-        const list = Array.isArray(raw)
-          ? raw
-          : (raw && typeof raw === 'object' && Array.isArray(raw.data)
-            ? raw.data
-            : []);
+        let list = [];
+        if (Array.isArray(raw)) {
+          list = raw;
+        } else if (raw && typeof raw === 'object' && Array.isArray(raw.data)) {
+          list = raw.data;
+        } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+          // API pode retornar objeto com chaves numéricas: { "0": {...}, "1": {...}, "pagination": {...} }
+          list = Object.entries(raw)
+            .filter(([k]) => k !== 'pagination')
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([, v]) => v);
+        }
         filiais.value = Array.isArray(list) ? list : [];
         const pag = data?.pagination ?? raw?.pagination ?? {};
         totalRecords.value = pag.total ?? data?.total ?? raw?.total ?? filiais.value.length;
