@@ -95,7 +95,8 @@ export default {
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
         const { data } = await service.getAll(params);
-        locais.value = data?.data || data || [];
+        const raw = data?.data ?? data;
+        locais.value = Array.isArray(raw) ? raw : [];
         const pag = data?.pagination || {};
         totalRecords.value = pag.total ?? data?.total ?? locais.value.length;
       } catch (error) {

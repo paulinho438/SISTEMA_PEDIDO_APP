@@ -97,7 +97,8 @@ export default {
         }
 
         const { data } = await service.getAll(params);
-        filiais.value = data?.data || data || [];
+        const raw = data?.data ?? data;
+        filiais.value = Array.isArray(raw) ? raw : [];
         const pag = data?.pagination || {};
         totalRecords.value = pag.total ?? data?.total ?? filiais.value.length;
       } catch (error) {

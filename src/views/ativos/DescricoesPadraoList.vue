@@ -122,7 +122,8 @@ export default {
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
         const { data } = await service.getAll(params);
-        descricoes.value = data?.data || data || [];
+        const raw = data?.data ?? data;
+        descricoes.value = Array.isArray(raw) ? raw : [];
         const pag = data?.pagination || {};
         totalRecords.value = pag.total ?? data?.total ?? descricoes.value.length;
       } catch (error) {
