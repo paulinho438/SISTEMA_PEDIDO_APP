@@ -61,7 +61,21 @@
       currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} ativos"
     >
       <Column field="asset_number" header="Número" sortable></Column>
-      <Column field="description" header="Descrição" sortable></Column>
+      <Column field="standard_description.name" header="Descrição" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.standard_description?.name || '-' }}
+        </template>
+      </Column>
+      <Column field="brand" header="Marca" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.brand || '-' }}
+        </template>
+      </Column>
+      <Column field="model" header="Modelo" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.model || '-' }}
+        </template>
+      </Column>
       <Column field="branch.name" header="Filial" sortable>
         <template #body="slotProps">
           {{ slotProps.data.branch?.name || '-' }}
