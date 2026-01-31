@@ -322,7 +322,11 @@ export default {
           if (!form.value.cost_center_id && asset.cost_center?.id) {
             form.value.cost_center_id = parseInt(asset.cost_center.id);
           }
-          
+          // Centro de custo do Protheus vem como código (ex: "6.19"), não como id numérico
+          if (!form.value.cost_center_id && asset.cost_center_code) {
+            form.value.cost_center_id = asset.cost_center_code;
+          }
+
           if (asset.acquisition_date) {
             // Se a data está em formato dd/mm/yyyy, converter
             if (typeof asset.acquisition_date === 'string' && asset.acquisition_date.includes('/')) {
