@@ -10,7 +10,7 @@
     <h5 class="text-900 mb-3">Listagem de Cotações Pendentes</h5>
 
     <!-- Filtros -->
-    <div class="flex justify-content-between align-items-center mb-3">
+    <div class="flex flex-wrap align-items-center gap-3 mb-3">
         <div class="flex align-items-center">
             <Checkbox
                 v-model="filtrarMinhasCotacoes"
@@ -20,7 +20,36 @@
             />
             <label for="filtrarMinhasCotacoes" class="ml-2">Mostrar apenas minhas cotações</label>
         </div>
-        <span class="p-input-icon-left">
+        <div class="flex align-items-center gap-2">
+            <label for="filtroStatus" class="text-900 font-medium">Status:</label>
+            <Dropdown
+                id="filtroStatus"
+                v-model="filtroStatus"
+                :options="opcoesStatus"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                class="w-10rem"
+                showClear
+                @change="() => carregar(true)"
+            />
+        </div>
+        <div class="flex align-items-center gap-2">
+            <label for="filtroComprador" class="text-900 font-medium">Comprador:</label>
+            <Dropdown
+                id="filtroComprador"
+                v-model="filtroComprador"
+                :options="compradores"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Todos"
+                class="w-10rem"
+                showClear
+                :loading="carregandoCompradores"
+                @change="() => carregar(true)"
+            />
+        </div>
+        <span class="p-input-icon-left ml-auto">
             <i class="pi pi-search" />
             <InputText
                 v-model="filtroGlobal"
@@ -30,7 +59,7 @@
                 @keyup.enter="() => carregar(true)"
             />
         </span>
-        <Button label="Buscar" icon="pi pi-search" class="p-button-outlined ml-2" @click="() => carregar(true)" />
+        <Button label="Buscar" icon="pi pi-search" class="p-button-outlined" @click="() => carregar(true)" />
     </div>
 
     <!-- Tabela -->
@@ -118,6 +147,29 @@ import { useStore } from 'vuex';
 import SolicitacaoService from '@/service/SolicitacaoService';
 import PurchaseOrderService from '@/service/PurchaseOrderService';
 
+const OPCOES_STATUS = [
+  { value: 'aguardando', label: 'Aguardando' },
+  { value: 'autorizado', label: 'Autorizado' },
+  { value: 'em_analise_supervisor', label: 'Em análise (Supervisor)' },
+  { value: 'cotacao', label: 'Cotação' },
+  { value: 'compra_em_andamento', label: 'Compra em andamento' },
+  { value: 'finalizada', label: 'Finalizada' },
+  { value: 'analisada', label: 'Analisada' },
+  { value: 'analisada_aguardando', label: 'Analisada / Aguardando' },
+  { value: 'analise_gerencia', label: 'Análise Gerência' },
+  { value: 'aprovado', label: 'Aprovado' },
+];
+
+function isGerenteOuDiretor(store) {
+  const usuario = store.state.usuario;
+  if (!usuario?.permissions?.length) return false;
+  for (const perm of usuario.permissions) {
+    const name = (perm.name || '').toLowerCase();
+    if (name.includes('gerente') || name.includes('diretor')) return true;
+  }
+  return false;
+}
+
 export default {
   name: 'CotacoesPendentes',
   setup() {
@@ -129,7 +181,12 @@ export default {
 
     const cotacoes = ref([]);
     const filtroGlobal = ref('');
-    const filtrarMinhasCotacoes = ref(true); // Por padrão, mostrar apenas minhas cotações
+    const filtrarMinhasCotacoes = ref(!isGerenteOuDiretor(store));
+    const filtroStatus = ref(null);
+    const filtroComprador = ref(null);
+    const opcoesStatus = OPCOES_STATUS;
+    const compradores = ref([]);
+    const carregandoCompradores = ref(false);
     const carregando = ref(false);
     const totalRecords = ref(0);
     const page = ref(1);
@@ -163,11 +220,17 @@ export default {
         carregando.value = true;
         if (resetarPagina) page.value = 1;
 
-        const params = { page: page.value, per_page: rows.value, status_in: STATUS_PENDENTES };
+        const params = { page: page.value, per_page: rows.value };
+        if (filtroStatus.value) {
+          params.status = filtroStatus.value;
+        } else {
+          params.status_in = STATUS_PENDENTES;
+        }
         if (filtrarMinhasCotacoes.value) {
           if (isBuyer.value) params.my_quotes = 'true';
           else params.my_approvals = 'true';
         }
+        if (filtroComprador.value) params.buyer_id = filtroComprador.value;
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
         const { data } = await SolicitacaoService.list(params);
@@ -204,7 +267,22 @@ export default {
       carregar(true);
     };
 
-    onMounted(carregar);
+    const carregarCompradores = async () => {
+      try {
+        carregandoCompradores.value = true;
+        const { data } = await SolicitacaoService.listBuyers();
+        compradores.value = data?.data ?? [];
+      } catch {
+        compradores.value = [];
+      } finally {
+        carregandoCompradores.value = false;
+      }
+    };
+
+    onMounted(() => {
+      carregarCompradores();
+      carregar();
+    });
 
     const formatarValor = (valor) => {
       return Number(valor || 0).toLocaleString('pt-BR', {
@@ -401,6 +479,11 @@ export default {
       cotacoes,
       filtroGlobal,
       filtrarMinhasCotacoes,
+      filtroStatus,
+      filtroComprador,
+      opcoesStatus,
+      compradores,
+      carregandoCompradores,
       totalRecords,
       rows,
       onPage,

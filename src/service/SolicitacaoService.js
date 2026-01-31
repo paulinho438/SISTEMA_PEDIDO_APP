@@ -5,6 +5,10 @@ class SolicitacaoService {
     return axios.get('/cotacoes', { params });
   }
 
+  listBuyers() {
+    return axios.get('/cotacoes/buyers');
+  }
+
   show(id) {
     return axios.get(`/cotacoes/${id}`);
   }
