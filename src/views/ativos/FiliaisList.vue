@@ -35,7 +35,7 @@
       :rowsPerPageOptions="[10, 20, 50, 100]"
     >
       <Column field="code" header="Código" sortable></Column>
-      <Column field="name" header="Descrição" sortable></Column>
+      <Column field="name" header="Nome" sortable></Column>
       <Column field="address" header="Endereço" sortable>
         <template #body="slotProps">
           {{ slotProps.data.address || '-' }}
