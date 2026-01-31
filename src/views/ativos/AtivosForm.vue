@@ -11,7 +11,7 @@
       />
     </div>
 
-    <form @submit.prevent="salvar">
+    <form @submit.prevent="salvar" novalidate>
       <TabView>
         <TabPanel header="Informações Gerais">
           <div class="grid">
@@ -33,7 +33,7 @@
             </div>
             <div class="col-12">
               <label>Descrição *</label>
-              <Textarea v-model="form.description" class="w-full" rows="3" required :disabled="isViewMode || !podeEditar" />
+              <Textarea v-model="form.description" class="w-full" rows="3" :disabled="isViewMode || !podeEditar" />
             </div>
           </div>
         </TabPanel>
@@ -382,6 +382,22 @@ export default {
 
       if (!id && !podeCriar.value) {
         toast.add({ severity: 'error', summary: 'Sem permissão', detail: 'Você não tem permissão para criar ativos', life: 3000 });
+        return;
+      }
+
+      // Validação manual (evita "invalid form control is not focusable" em campos dentro de abas ocultas)
+      const desc = (form.value.description || '').toString().trim();
+      if (!desc) {
+        toast.add({ severity: 'error', summary: 'Campo obrigatório', detail: 'Preencha a Descrição.', life: 3000 });
+        return;
+      }
+      if (!form.value.acquisition_date) {
+        toast.add({ severity: 'error', summary: 'Campo obrigatório', detail: 'Preencha a Data de Aquisição.', life: 3000 });
+        return;
+      }
+      const valorBrl = form.value.value_brl;
+      if (valorBrl == null || valorBrl === '' || Number(valorBrl) < 0) {
+        toast.add({ severity: 'error', summary: 'Campo obrigatório', detail: 'Preencha o Valor (R$).', life: 3000 });
         return;
       }
 
