@@ -430,7 +430,10 @@
 
     <!-- QUADRO RESUMO -->
     <div v-if="resumo.length" class="quadro-resumo mt-6">
-        <h4 class="text-center mb-3 font-semibold">Quadro resumo da cotação e compra</h4>
+        <h4 class="text-center mb-3 font-semibold">
+          Quadro resumo da cotação e compra
+          <span v-if="cotacao.numero" class="ml-2 text-600">– Solicitação nº {{ cotacao.numero }}</span>
+        </h4>
         <table class="tabela-cotacao">
           <thead>
           <tr>
