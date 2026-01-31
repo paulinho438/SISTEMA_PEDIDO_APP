@@ -96,11 +96,17 @@ export default {
           params.search = filtroGlobal.value.trim();
         }
 
-        const { data } = await service.getAll(params);
+        const res = await service.getAll(params);
+        const data = res?.data;
         const raw = data?.data ?? data;
-        filiais.value = Array.isArray(raw) ? raw : [];
-        const pag = data?.pagination || {};
-        totalRecords.value = pag.total ?? data?.total ?? filiais.value.length;
+        const list = Array.isArray(raw)
+          ? raw
+          : (raw && typeof raw === 'object' && Array.isArray(raw.data)
+            ? raw.data
+            : []);
+        filiais.value = Array.isArray(list) ? list : [];
+        const pag = data?.pagination ?? raw?.pagination ?? {};
+        totalRecords.value = pag.total ?? data?.total ?? raw?.total ?? filiais.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar filiais', life: 3000 });
       } finally {

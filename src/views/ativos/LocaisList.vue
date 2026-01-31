@@ -94,11 +94,17 @@ export default {
         const params = { all: true, page: page.value, per_page: rows.value };
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
-        const { data } = await service.getAll(params);
+        const res = await service.getAll(params);
+        const data = res?.data;
         const raw = data?.data ?? data;
-        locais.value = Array.isArray(raw) ? raw : [];
-        const pag = data?.pagination || {};
-        totalRecords.value = pag.total ?? data?.total ?? locais.value.length;
+        const list = Array.isArray(raw)
+          ? raw
+          : (raw && typeof raw === 'object' && Array.isArray(raw.data)
+            ? raw.data
+            : []);
+        locais.value = Array.isArray(list) ? list : [];
+        const pag = data?.pagination ?? raw?.pagination ?? {};
+        totalRecords.value = pag.total ?? data?.total ?? raw?.total ?? locais.value.length;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar locais', life: 3000 });
       } finally {
