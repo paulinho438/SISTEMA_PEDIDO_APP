@@ -241,14 +241,15 @@ export default {
         const { data } = await service.getAll(params);
         
         // Laravel Resource::collection com paginate retorna:
-        // { data: [...], current_page, per_page, total, last_page, etc }
+        // { data: [...], links: {...}, meta: { current_page, per_page, total, last_page } }
         ativos.value = data.data || [];
+        const meta = data.meta || {};
         
-        // Atualizar informações de paginação
-        paginacao.value.total = data.total || 0;
-        paginacao.value.page = data.current_page || 1;
-        paginacao.value.perPage = data.per_page || 10;
-        paginacao.value.lastPage = data.last_page || 1;
+        // Atualizar informações de paginação (meta vem no nível raiz da resposta)
+        paginacao.value.total = meta.total ?? data.total ?? 0;
+        paginacao.value.page = meta.current_page ?? data.current_page ?? 1;
+        paginacao.value.perPage = meta.per_page ?? data.per_page ?? 10;
+        paginacao.value.lastPage = meta.last_page ?? data.last_page ?? 1;
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar ativos', life: 3000 });
       } finally {

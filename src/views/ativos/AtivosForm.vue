@@ -413,7 +413,11 @@ export default {
         // Descrição vem da Descrição Padrão selecionada (nome)
         const descPadrao = descricoesPadrao.value.find(d => d.id == form.value.standard_description_id);
         dataToSave.description = (descPadrao?.name ?? form.value.description ?? '').trim() || (form.value.description ?? '');
-        const response = await service.save({ ...dataToSave, id: id || undefined });
+        // Garantir que campos opcionais numéricos não sejam enviados como string vazia (backend espera null)
+        if (dataToSave.manufacture_year === '' || dataToSave.manufacture_year === undefined) dataToSave.manufacture_year = null;
+        if (dataToSave.value_usd === '' || dataToSave.value_usd === undefined) dataToSave.value_usd = null;
+        const payload = id ? { ...dataToSave, id } : dataToSave;
+        const response = await service.save(payload);
         const assetId = id || (response.data?.data?.id || response.data?.id);
         
         // Se houver imagem selecionada e ativo foi criado/editado, fazer upload
