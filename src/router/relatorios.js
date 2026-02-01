@@ -27,6 +27,11 @@ const relatoriosRoutes = [
 				path: 'historico-periodo',
 				name: 'relatorioHistoricoPeriodo',
 				component: () => import('@/views/relatorios/HistoricoPeriodo.vue')
+			},
+			{
+				path: 'solicitacao-produto',
+				name: 'relatorioSolicitacaoProduto',
+				component: () => import('@/views/relatorios/SolicitacaoProduto.vue')
 			}
 		]
 	}

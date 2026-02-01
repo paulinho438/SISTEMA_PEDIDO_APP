@@ -97,11 +97,12 @@ const model = ref([
                         permission: 'view_cotacoes',
                         items: [
                             { label: 'Acompanhamento de Cotações', icon: 'pi pi-fw pi-table', to: '/cotacoes/acompanhamento', permission: 'view_acompanhamento_cotacoes' },
-                            { label: 'Custos por Centro de Custo', icon: 'pi pi-fw pi-chart-bar', to: '/relatorios/custos-centro-custo', permission: 'view_cotacoes' },
-                            { label: 'Relatório de cotação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/cotacoes', permission: 'cotacoes_imprimir' },
-                            { label: 'Custos por Fornecedor', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-fornecedor', permission: 'view_cotacoes' },
-                            { label: 'Custos por Solicitação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-solicitacao', permission: 'view_cotacoes' },
-                            { label: 'Histórico por Período', icon: 'pi pi-fw pi-calendar-plus', to: '/relatorios/historico-periodo', permission: 'view_cotacoes' }
+                            { label: 'Custos por Centro de Custo', icon: 'pi pi-fw pi-chart-bar', to: '/relatorios/custos-centro-custo', permission: 'view_relatorio_custos_centro_custo' },
+                            { label: 'Relatório de cotação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/cotacoes', permission: 'view_relatorio_cotacao' },
+                            { label: 'Custos por Fornecedor', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-fornecedor', permission: 'view_relatorio_custos_fornecedor' },
+                            { label: 'Custos por Solicitação', icon: 'pi pi-fw pi-chart-line', to: '/relatorios/custos-solicitacao', permission: 'view_relatorio_custos_solicitacao' },
+                            { label: 'Histórico por Período', icon: 'pi pi-fw pi-calendar-plus', to: '/relatorios/historico-periodo', permission: 'view_relatorio_historico_periodo' },
+                            { label: 'Solicitação / Produto', icon: 'pi pi-fw pi-search', to: '/relatorios/solicitacao-produto', permission: 'view_relatorio_solicitacao_produto' }
                         ]
                     }
                 ]

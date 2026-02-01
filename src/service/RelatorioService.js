@@ -24,6 +24,10 @@ class RelatorioService {
   historicoPorPeriodo(params = {}) {
     return axios.get('/relatorios/historico-periodo', { params });
   }
+
+  solicitacaoProduto(params = {}) {
+    return axios.get('/relatorios/solicitacao-produto', { params });
+  }
 }
 
 export default new RelatorioService();
