@@ -20,30 +20,36 @@ const model = ref([
         icon: 'pi pi-fw pi-briefcase',
         to: '/pages',
         items: [
-            {
-                label: 'CADASTROS',
-                icon: 'pi pi-fw pi-database',
-                items: [
-                    {
-                        label: 'Empresas',
-                        icon: 'pi pi-fw pi-building',
-                        to: '/empresas',
-                        permission: 'view_empresas'
-                    },
-                    {
-                        label: 'Permissões',
+{
+                        label: 'CADASTROS',
                         icon: 'pi pi-fw pi-database',
-                        to: '/permissoes',
-                        permission: 'view_permissions'
+                        items: [
+                            {
+                                label: 'Empresas',
+                                icon: 'pi pi-fw pi-building',
+                                to: '/empresas',
+                                permission: 'view_empresas'
+                            },
+                            {
+                                label: 'Permissões',
+                                icon: 'pi pi-fw pi-database',
+                                to: '/permissoes',
+                                permission: 'view_permissions'
+                            },
+                            {
+                                label: 'Usuários',
+                                icon: 'pi pi-fw pi-database',
+                                to: '/usuarios',
+                                permission: 'criar_usuarios'
+                            },
+                            {
+                                label: 'Auditoria',
+                                icon: 'pi pi-fw pi-history',
+                                to: '/auditoria',
+                                permission: 'view_auditoria'
+                            }
+                        ]
                     },
-                    {
-                        label: 'Usuários',
-                        icon: 'pi pi-fw pi-database',
-                        to: '/usuarios',
-                        permission: 'criar_usuarios'
-                    }
-                ]
-            },
             {
                 label: 'ESTOQUE',
                 permission: 'view_estoque',

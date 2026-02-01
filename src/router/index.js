@@ -29,6 +29,7 @@ import relatoriosRoutes from "@/router/relatorios";
 import estoqueRoutes from "@/router/estoque";
 import ativosRoutes from "@/router/ativos";
 import comprasRoutes from "@/router/compras";
+import auditoriaRoutes from "@/router/auditoria";
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -91,6 +92,7 @@ const router = createRouter({
                 ...estoqueRoutes,
                 ...ativosRoutes,
                 ...comprasRoutes,
+                ...auditoriaRoutes,
                 {
                     path: '/uikit/formlayout',
                     name: 'formlayout',
