@@ -296,13 +296,14 @@ export default {
           
           // Mapear todos os campos, incluindo IDs de relacionamentos
           Object.keys(form.value).forEach(key => {
-            if (asset[key] !== undefined) {
-              // Converter IDs para number para garantir compatibilidade com dropdowns
-              if (key.endsWith('_id') && asset[key] !== null) {
-                form.value[key] = parseInt(asset[key]);
-              } else {
-                form.value[key] = asset[key];
-              }
+            if (asset[key] === undefined) return;
+            // use_condition_id e cost_center_id são tratados abaixo com fallback de relacionamentos
+            if (key === 'use_condition_id' || key === 'cost_center_id') return;
+            // Converter IDs para number para garantir compatibilidade com dropdowns
+            if (key.endsWith('_id') && asset[key] !== null) {
+              form.value[key] = parseInt(asset[key]);
+            } else {
+              form.value[key] = asset[key];
             }
           });
           
@@ -316,11 +317,20 @@ export default {
           if (!form.value.branch_id && asset.branch?.id) {
             form.value.branch_id = parseInt(asset.branch.id);
           }
-          // Condição de uso: API pode vir em use_condition_id ou use_condition.id
-          if (asset.use_condition_id != null) {
-            form.value.use_condition_id = parseInt(asset.use_condition_id);
-          } else if (asset.use_condition?.id != null) {
-            form.value.use_condition_id = parseInt(asset.use_condition.id);
+          // Condição de uso: API pode vir em use_condition_id ou use_condition.id (sempre número para o Dropdown)
+          const useConditionId = asset.use_condition_id != null
+            ? Number(asset.use_condition_id)
+            : (asset.use_condition?.id != null ? Number(asset.use_condition.id) : null);
+          if (useConditionId != null) {
+            form.value.use_condition_id = useConditionId;
+            // Se a condição não estiver na lista (ex.: inativa), adicionar opção sintética para exibir
+            const jaNaLista = condicoesUso.value.some(c => Number(c.id) === useConditionId);
+            if (!jaNaLista && asset.use_condition?.name) {
+              condicoesUso.value = [
+                ...condicoesUso.value,
+                { id: useConditionId, name: asset.use_condition.name }
+              ];
+            }
           }
           // Centro de custo: id numérico ou código Protheus (ex: "6.19")
           if (asset.cost_center_id != null) {
@@ -385,7 +395,9 @@ export default {
         locais.value = locaisRes.data?.data || locaisRes.data || [];
         responsaveis.value = responsaveisRes.data?.data || responsaveisRes.data || [];
         centrosCusto.value = centrosRes.data?.data || centrosRes.data || [];
-        condicoesUso.value = condicoesRes.data?.data || condicoesRes.data || [];
+        // Garantir id numérico nas opções para o Dropdown fazer match com form.use_condition_id
+        const condicoesRaw = condicoesRes.data?.data || condicoesRes.data || [];
+        condicoesUso.value = Array.isArray(condicoesRaw) ? condicoesRaw.map(c => ({ ...c, id: Number(c.id) })) : [];
         descricoesPadrao.value = descricoesRes.data?.data || descricoesRes.data || [];
       } catch (error) {
         console.error('Erro ao carregar dados auxiliares:', error);
