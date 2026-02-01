@@ -259,6 +259,7 @@ import { useStore } from 'vuex';
 import Message from 'primevue/message';
 import PermissionsService from '@/service/PermissionsService';
 import StockProductService from '@/service/StockProductService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'ProdutosList',
@@ -270,11 +271,13 @@ export default {
     const filtroGlobal = ref('');
     const carregando = ref(false);
     const service = new StockProductService();
-    
-    // Estado de paginação
+    const { getInitialPagination, savePagination } = usePaginationPersist('produtos-estoque', 10);
+    const saved = getInitialPagination();
+
+    // Estado de paginação (inicializado com valor persistido)
     const paginacao = ref({
-      page: 1,
-      perPage: 10,
+      page: saved.page,
+      perPage: saved.rows,
       total: 0,
       lastPage: 1
     });
@@ -334,8 +337,11 @@ export default {
     };
     
     const onPageChange = (event) => {
-      paginacao.value.page = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
-      paginacao.value.perPage = event.rows;
+      const newPage = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      paginacao.value.page = newPage;
+      paginacao.value.perPage = newRows;
       carregar();
     };
     

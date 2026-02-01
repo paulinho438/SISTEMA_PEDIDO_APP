@@ -78,6 +78,7 @@ import { useToast } from 'primevue/usetoast';
 import { useStore } from 'vuex';
 import PermissionsService from '@/service/PermissionsService';
 import StockLocationService from '@/service/StockLocationService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'LocaisList',
@@ -85,6 +86,8 @@ export default {
     const toast = useToast();
     const store = useStore();
     const permissionService = new PermissionsService();
+    const { getInitialPagination, savePagination } = usePaginationPersist('locais-estoque', 10);
+    const saved = getInitialPagination();
     const locais = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
@@ -92,8 +95,8 @@ export default {
     const service = new StockLocationService();
 
     const paginacao = ref({
-      page: 1,
-      perPage: 10,
+      page: saved.page,
+      perPage: saved.rows,
       total: 0,
       lastPage: 1,
     });
@@ -127,8 +130,11 @@ export default {
     };
 
     const onPageChange = (event) => {
-      paginacao.value.page = event.page + 1;
-      paginacao.value.perPage = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      paginacao.value.page = newPage;
+      paginacao.value.perPage = newRows;
       carregar();
     };
 

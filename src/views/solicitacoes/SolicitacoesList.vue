@@ -132,6 +132,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useRouter } from 'vue-router';
 import SolicitacaoService from '@/service/SolicitacaoService';
 import PermissionsService from '@/service/PermissionsService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'CicomList',
@@ -140,6 +141,8 @@ export default {
     const confirm = useConfirm();
     const router = useRouter();
     const permissionService = new PermissionsService();
+    const { getInitialPagination, savePagination } = usePaginationPersist('solicitacoes', 10);
+    const saved = getInitialPagination();
 
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
@@ -148,8 +151,8 @@ export default {
     const searchTimeout = ref(null);
     
     const paginacao = ref({
-      page: 1,
-      perPage: 10,
+      page: saved.page,
+      perPage: saved.rows,
       total: 0,
       lastPage: 1
     });
@@ -223,8 +226,11 @@ export default {
     };
 
     const onPageChange = (event) => {
-      paginacao.value.page = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
-      paginacao.value.perPage = event.rows;
+      const newPage = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      paginacao.value.page = newPage;
+      paginacao.value.perPage = newRows;
       carregarSolicitacoes();
     };
     

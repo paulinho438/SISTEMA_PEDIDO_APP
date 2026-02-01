@@ -181,6 +181,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import AuditService from '@/service/AuditService';
 import axios from '@/plugins/axios';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
@@ -214,6 +215,8 @@ const opcoesAcao = [
   { value: 'deleted', label: 'Excluído' },
 ];
 
+const { getInitialPagination, savePagination } = usePaginationPersist('auditoria', 20);
+const savedAudit = getInitialPagination();
 const filtros = reactive({
   auditable_type: null,
   auditable_id: '',
@@ -221,8 +224,8 @@ const filtros = reactive({
   action: null,
   date_from: null,
   date_to: null,
-  page: 1,
-  per_page: 20,
+  page: savedAudit.page,
+  per_page: savedAudit.rows,
 });
 
 const modalDetalhes = reactive({
@@ -313,8 +316,11 @@ async function buscar() {
 }
 
 function onPage(event) {
-  filtros.page = event.page + 1;
-  filtros.per_page = event.rows;
+  const newPage = event.page + 1;
+  const newRows = event.rows;
+  savePagination(newRows, newPage);
+  filtros.page = newPage;
+  filtros.per_page = newRows;
   buscar();
 }
 

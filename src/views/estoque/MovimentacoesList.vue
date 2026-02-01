@@ -458,18 +458,21 @@ import StockProductService from '@/service/StockProductService';
 import StockService from '@/service/StockService';
 import StockLocationService from '@/service/StockLocationService';
 import StockTransferService from '@/service/StockTransferService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'MovimentacoesList',
   setup() {
     const toast = useToast();
     const permissionService = new PermissionsService();
+    const { getInitialPagination, savePagination } = usePaginationPersist('movimentacoes', 10);
+    const saved = getInitialPagination();
     const movimentacoes = ref([]);
     const transferencias = ref([]);
     const carregando = ref(false);
     const totalRecords = ref(0);
-    const page = ref(1);
-    const rows = ref(10);
+    const page = ref(saved.page);
+    const rows = ref(saved.rows);
     const modalDetalhesTransferencia = reactive({
       visivel: false,
       transferencia: null,
@@ -595,8 +598,11 @@ export default {
     const ehTodos = computed(() => !filtrosAplicados.value.movement_type);
 
     const onPage = (event) => {
-      page.value = event.page + 1;
-      rows.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      page.value = newPage;
+      rows.value = newRows;
       if (!ehTodos.value) {
         carregar();
       }

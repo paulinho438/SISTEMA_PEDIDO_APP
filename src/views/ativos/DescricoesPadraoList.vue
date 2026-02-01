@@ -84,6 +84,7 @@ import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import PermissionsService from '@/service/PermissionsService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'DescricoesPadraoList',
@@ -96,8 +97,10 @@ export default {
     const filtroGlobal = ref('');
     const carregando = ref(false);
     const totalRecords = ref(0);
-    const page = ref(1);
-    const rows = ref(10);
+    const { getInitialPagination, savePagination } = usePaginationPersist('descricoes-padrao', 10);
+    const saved = getInitialPagination();
+    const page = ref(saved.page);
+    const rows = ref(saved.rows);
     const service = new AssetAuxiliaryService('descricoes-padrao');
     const permissionService = new PermissionsService();
 
@@ -147,8 +150,11 @@ export default {
     };
 
     const onPage = (event) => {
-      page.value = event.page + 1;
-      rows.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      page.value = newPage;
+      rows.value = newRows;
       carregar();
     };
 

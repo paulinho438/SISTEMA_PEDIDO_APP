@@ -72,6 +72,7 @@ import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'LocaisList',
@@ -82,8 +83,10 @@ export default {
     const filtroGlobal = ref('');
     const carregando = ref(false);
     const totalRecords = ref(0);
-    const page = ref(1);
-    const rows = ref(10);
+    const { getInitialPagination, savePagination } = usePaginationPersist('locais-ativos', 10);
+    const saved = getInitialPagination();
+    const page = ref(saved.page);
+    const rows = ref(saved.rows);
     const service = new AssetAuxiliaryService('locais');
 
     const carregar = async (resetarPagina = false) => {
@@ -120,8 +123,11 @@ export default {
     };
 
     const onPage = (event) => {
-      page.value = event.page + 1;
-      rows.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      page.value = newPage;
+      rows.value = newRows;
       carregar();
     };
 

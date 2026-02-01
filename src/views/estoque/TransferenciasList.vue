@@ -399,6 +399,7 @@ import StockTransferService from '@/service/StockTransferService';
 import StockLocationService from '@/service/StockLocationService';
 import StockAlmoxarifeService from '@/service/StockAlmoxarifeService';
 import PermissionsService from '@/service/PermissionsService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'TransferenciasList',
@@ -406,6 +407,8 @@ export default {
     const toast = useToast();
     const confirm = useConfirm();
     const store = useStore();
+    const { getInitialPagination, savePagination } = usePaginationPersist('transferencias', 10);
+    const saved = getInitialPagination();
     const transferService = new StockTransferService();
     const locationService = new StockLocationService();
     const almoxarifeService = new StockAlmoxarifeService();
@@ -418,8 +421,8 @@ export default {
     const processando = ref(null);
 
     const paginacao = ref({
-      page: 1,
-      perPage: 10,
+      page: saved.page,
+      perPage: saved.rows,
       total: 0,
       lastPage: 1,
     });
@@ -559,8 +562,11 @@ export default {
     };
 
     const onPageChange = (event) => {
-      paginacao.value.page = event.page + 1;
-      paginacao.value.perPage = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      paginacao.value.page = newPage;
+      paginacao.value.perPage = newRows;
       carregar();
     };
 

@@ -146,6 +146,7 @@ import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import SolicitacaoService from '@/service/SolicitacaoService';
 import PurchaseOrderService from '@/service/PurchaseOrderService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 const OPCOES_STATUS = [
   { value: 'aguardando', label: 'Aguardando' },
@@ -189,8 +190,10 @@ export default {
     const carregandoCompradores = ref(false);
     const carregando = ref(false);
     const totalRecords = ref(0);
-    const page = ref(1);
-    const rows = ref(10);
+    const { getInitialPagination, savePagination } = usePaginationPersist('cotacoes-list', 10);
+    const savedCotacoes = getInitialPagination();
+    const page = ref(savedCotacoes.page);
+    const rows = ref(savedCotacoes.rows);
     const gerandoPedidos = ref({});
     const aprovandoDireto = ref({});
     const orderService = new PurchaseOrderService();
@@ -258,8 +261,11 @@ export default {
     };
 
     const onPage = (event) => {
-      page.value = event.page + 1;
-      rows.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      page.value = newPage;
+      rows.value = newRows;
       carregar();
     };
 

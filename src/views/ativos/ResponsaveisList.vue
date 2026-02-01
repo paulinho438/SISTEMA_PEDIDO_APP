@@ -85,18 +85,21 @@ import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
 import PermissionsService from '@/service/PermissionsService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'ResponsaveisList',
   setup() {
     const toast = useToast();
     const confirm = useConfirm();
+    const { getInitialPagination, savePagination } = usePaginationPersist('responsaveis', 10);
+    const saved = getInitialPagination();
     const responsaveis = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
     const totalRecords = ref(0);
-    const page = ref(1);
-    const rows = ref(10);
+    const page = ref(saved.page);
+    const rows = ref(saved.rows);
     const service = new AssetAuxiliaryService('responsaveis');
     const permissionService = new PermissionsService();
 
@@ -135,8 +138,11 @@ export default {
     };
 
     const onPage = (event) => {
-      page.value = event.page + 1;
-      rows.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      page.value = newPage;
+      rows.value = newRows;
       carregar();
     };
 

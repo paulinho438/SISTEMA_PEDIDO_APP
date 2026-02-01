@@ -33,6 +33,7 @@
       :rows="itensPorPagina"
       :totalRecords="totalRegistros"
       :lazy="true"
+      :first="(paginaAtual - 1) * itensPorPagina"
       dataKey="id"
       responsiveLayout="scroll"
       class="p-datatable-sm"
@@ -183,6 +184,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import PermissionsService from '@/service/PermissionsService';
 import PurchaseInvoiceService from '@/service/PurchaseInvoiceService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'NotasFiscaisList',
@@ -190,14 +192,16 @@ export default {
     const toast = useToast();
     const store = useStore();
     const router = useRouter();
+    const { getInitialPagination, savePagination } = usePaginationPersist('notas-fiscais', 10);
+    const saved = getInitialPagination();
     const service = new PurchaseInvoiceService();
     const permissionService = new PermissionsService();
 
     const notasFiscais = ref([]);
     const carregando = ref(false);
     const totalRegistros = ref(0);
-    const paginaAtual = ref(1);
-    const itensPorPagina = ref(10);
+    const paginaAtual = ref(saved.page);
+    const itensPorPagina = ref(saved.rows);
 
     const filtros = ref({
       invoice_number: '',
@@ -263,8 +267,11 @@ export default {
     };
 
     const onPageChange = (event) => {
-      paginaAtual.value = event.page + 1;
-      itensPorPagina.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      paginaAtual.value = newPage;
+      itensPorPagina.value = newRows;
       carregar();
     };
 

@@ -155,12 +155,15 @@ import { useToast } from 'primevue/usetoast';
 import PermissionsService from '@/service/PermissionsService';
 import AssetService from '@/service/AssetService';
 import AssetAuxiliaryService from '@/service/AssetAuxiliaryService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'AtivosList',
   setup() {
     const toast = useToast();
     const permissionService = new PermissionsService();
+    const { getInitialPagination, savePagination } = usePaginationPersist('ativos', 10);
+    const saved = getInitialPagination();
     const ativos = ref([]);
     const filiais = ref([]);
     const responsaveis = ref([]);
@@ -172,8 +175,8 @@ export default {
     const searchTimeout = ref(null);
     
     const paginacao = ref({
-      page: 1,
-      perPage: 10,
+      page: saved.page,
+      perPage: saved.rows,
       total: 0,
       lastPage: 1
     });
@@ -254,8 +257,11 @@ export default {
     };
     
     const onPageChange = (event) => {
-      paginacao.value.page = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
-      paginacao.value.perPage = event.rows;
+      const newPage = event.page + 1; // PrimeVue usa índice 0, Laravel usa 1
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      paginacao.value.page = newPage;
+      paginacao.value.perPage = newRows;
       carregar();
     };
     

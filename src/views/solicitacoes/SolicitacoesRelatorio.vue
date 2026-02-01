@@ -129,6 +129,7 @@ import Tag from 'primevue/tag';
 import Timeline from 'primevue/timeline';
 import ProgressSpinner from 'primevue/progressspinner';
 import Toast from 'primevue/toast';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'SolicitacoesRelatorio',
@@ -146,6 +147,8 @@ export default {
     const toast = useToast();
     const router = useRouter();
     const permissionService = new PermissionsService();
+    const { getInitialPagination, savePagination } = usePaginationPersist('solicitacoes-relatorio', 10);
+    const saved = getInitialPagination();
 
     // Verificar permissão ao montar o componente
     permissionService.hasPermissionsView('view_solicitacoes_relatorio');
@@ -153,8 +156,8 @@ export default {
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
     const totalRecords = ref(0);
-    const page = ref(1);
-    const rows = ref(10);
+    const page = ref(saved.page);
+    const rows = ref(saved.rows);
     const carregando = ref(false);
     const expandedRows = ref([]);
     const historicoPorSolicitacao = reactive({});
@@ -209,8 +212,11 @@ export default {
     };
 
     const onPage = (event) => {
-      page.value = event.page + 1;
-      rows.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      page.value = newPage;
+      rows.value = newRows;
       carregarSolicitacoes();
     };
 

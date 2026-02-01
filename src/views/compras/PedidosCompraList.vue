@@ -90,19 +90,22 @@ import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useRouter } from 'vue-router';
 import PurchaseOrderService from '@/service/PurchaseOrderService';
+import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
 export default {
   name: 'PedidosCompraList',
   setup() {
     const toast = useToast();
     const router = useRouter();
+    const { getInitialPagination, savePagination } = usePaginationPersist('pedidos-compra', 10);
+    const saved = getInitialPagination();
 
     const pedidos = ref([]);
     const filtroGlobal = ref('');
     const carregando = ref(false);
     const totalRecords = ref(0);
-    const page = ref(1);
-    const rows = ref(10);
+    const page = ref(saved.page);
+    const rows = ref(saved.rows);
     const service = new PurchaseOrderService();
 
     const carregar = async (resetarPagina = false) => {
@@ -126,8 +129,11 @@ export default {
     };
 
     const onPage = (event) => {
-      page.value = event.page + 1;
-      rows.value = event.rows;
+      const newPage = event.page + 1;
+      const newRows = event.rows;
+      savePagination(newRows, newPage);
+      page.value = newPage;
+      rows.value = newRows;
       carregar();
     };
 
