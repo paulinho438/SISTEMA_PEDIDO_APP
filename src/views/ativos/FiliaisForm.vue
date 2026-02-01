@@ -5,8 +5,14 @@
     <form @submit.prevent="salvar">
       <div class="grid">
         <div class="col-12 md:col-6">
-          <label for="code">Código da Filial *</label>
-          <InputText id="code" v-model="form.code" class="w-full" required />
+          <label for="code">Código da Filial</label>
+          <InputText
+            id="code"
+            v-model="form.code"
+            class="w-full"
+            :disabled="!id"
+            :placeholder="id ? undefined : 'Gerado automaticamente'"
+          />
         </div>
         <div class="col-12 md:col-6">
           <label for="active">Ativo</label>
@@ -87,7 +93,11 @@ export default {
     const salvar = async () => {
       try {
         salvando.value = true;
-        await service.save({ ...form.value, id: id || undefined });
+        const payload = { ...form.value, id: id || undefined };
+        if (!id && !(form.value.code || '').trim()) {
+          payload.code = '';
+        }
+        await service.save(payload);
         toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Filial salva com sucesso', life: 3000 });
         router.push('/ativos/filiais');
       } catch (error) {
