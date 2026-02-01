@@ -53,14 +53,31 @@
             showClear
           />
         </div>
-        <div class="col-12 md:col-3">
+        <div class="col-12 md:col-3 produto-select">
           <label class="block text-600 mb-2">Produto</label>
-          <InputText
-            v-model="produto"
-            placeholder="Código ou descrição do produto"
-            class="w-full"
-            @keyup.enter="buscar"
-          />
+          <div class="p-inputgroup">
+            <input
+              type="text"
+              :value="produtoExibicao"
+              readonly
+              placeholder="Código ou descrição do produto"
+              class="p-inputtext p-component w-full"
+              @click="abrirModalProdutos"
+            />
+            <Button
+              v-if="produtoSelecionado"
+              icon="pi pi-times"
+              class="p-button-outlined"
+              @click="limparProduto"
+              type="button"
+            />
+            <Button
+              icon="pi pi-chevron-down"
+              class="p-button-outlined"
+              @click="abrirModalProdutos"
+              type="button"
+            />
+          </div>
         </div>
         <div class="col-12 flex align-items-end gap-2">
           <Button
@@ -127,12 +144,67 @@
       </template>
     </DataTable>
 
+    <!-- Modal Selecionar produto (apenas produtos com pelo menos uma solicitação) -->
+    <Dialog
+      v-model:visible="modalProdutos.visivel"
+      modal
+      header="Selecionar produto"
+      :style="{ width: '60vw', maxWidth: '900px' }"
+      appendTo="body"
+    >
+      <div class="mb-3">
+        <span class="p-input-icon-left w-full">
+          <i class="pi pi-search" />
+          <InputText
+            v-model="modalProdutos.busca"
+            placeholder="Buscar (código, descrição...)"
+            class="w-full"
+            @input="onPesquisarProdutos"
+          />
+        </span>
+      </div>
+
+      <DataTable
+        :value="modalProdutos.items"
+        selectionMode="single"
+        v-model:selection="modalProdutos.selection"
+        :loading="modalProdutos.loading"
+        dataKey="B1_COD"
+        class="p-datatable-sm"
+        paginator
+        :rows="modalProdutos.perPage"
+        :totalRecords="modalProdutos.total"
+        :rowsPerPageOptions="[10, 20, 50]"
+        lazy
+        :first="(modalProdutos.page - 1) * modalProdutos.perPage"
+        @page="onProdutosPage"
+        responsiveLayout="scroll"
+      >
+        <Column selectionMode="single" headerStyle="width:3rem" />
+        <Column field="B1_COD" header="Código" sortable />
+        <Column field="B1_DESC" header="Descrição" sortable />
+        <Column field="B1_UM" header="Unidade de medida" sortable />
+      </DataTable>
+
+      <template #footer>
+        <div class="flex justify-content-end gap-2">
+          <Button label="Cancelar" class="p-button-text" @click="fecharModalProdutos" />
+          <Button
+            label="Selecionar"
+            class="p-button-success"
+            @click="confirmarProduto"
+            :disabled="!modalProdutos.selection"
+          />
+        </div>
+      </template>
+    </Dialog>
+
     <Toast />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { useToast } from 'primevue/usetoast';
@@ -143,6 +215,7 @@ import InputText from 'primevue/inputtext';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
 import Toast from 'primevue/toast';
 
 const toast = useToast();
@@ -153,11 +226,37 @@ const dados = ref([]);
 const dataInicial = ref(null);
 const dataFinal = ref(null);
 const empresaId = ref(null);
-const produto = ref('');
+/** Produto selecionado no modal (apenas produtos com solicitação). Código enviado na busca = produtoSelecionado?.B1_COD */
+const produtoSelecionado = ref(null);
 const carregando = ref(false);
 const exportando = ref(false);
 
+const modalProdutos = reactive({
+  visivel: false,
+  busca: '',
+  selection: null,
+  items: [],
+  page: 1,
+  perPage: 10,
+  total: 0,
+  loading: false,
+});
+let buscaProdutoTimeout = null;
+
 const empresas = computed(() => store.getters.companies || store.getters.allCompanies || []);
+
+/** Código do produto enviado na API (B1_COD do selecionado) */
+const produto = computed({
+  get: () => produtoSelecionado.value?.B1_COD ?? '',
+  set: () => {},
+});
+
+const produtoExibicao = computed(() => {
+  const p = produtoSelecionado.value;
+  if (!p) return '';
+  const desc = (p.B1_DESC || '').trim();
+  return desc ? `${p.B1_COD} ${desc}` : (p.B1_COD || '');
+});
 
 const dadosComChave = computed(() =>
   dados.value.map((row, index) => ({
@@ -190,8 +289,77 @@ const montarParametros = () => {
   if (produto.value?.trim()) {
     params.product = produto.value.trim();
   }
-
   return params;
+};
+
+const fetchProdutos = async () => {
+  try {
+    modalProdutos.loading = true;
+    const params = {
+      page: modalProdutos.page,
+      per_page: modalProdutos.perPage,
+    };
+    const busca = modalProdutos.busca?.trim();
+    if (busca) params.busca = busca;
+    if (empresaId.value != null && empresaId.value !== '') {
+      params.company_id = empresaId.value;
+    }
+    const { data } = await RelatorioService.produtosComSolicitacao(params);
+    const payload = data ?? {};
+    const list = payload?.data ?? [];
+    modalProdutos.items = Array.isArray(list) ? list : [];
+    const pag = payload?.pagination ?? {};
+    modalProdutos.total = pag?.total ?? modalProdutos.items.length;
+    modalProdutos.page = pag?.current_page ?? modalProdutos.page;
+    modalProdutos.perPage = pag?.per_page ?? modalProdutos.perPage;
+    if (modalProdutos.selection?.B1_COD) {
+      const match = modalProdutos.items.find((item) => item.B1_COD === modalProdutos.selection.B1_COD);
+      if (match) modalProdutos.selection = match;
+    }
+  } catch (error) {
+    const detail = error?.response?.data?.message || 'Não foi possível carregar os produtos.';
+    toast.add({ severity: 'error', summary: 'Erro ao carregar produtos', detail, life: 4000 });
+    modalProdutos.items = [];
+  } finally {
+    modalProdutos.loading = false;
+  }
+};
+
+const abrirModalProdutos = () => {
+  modalProdutos.visivel = true;
+  modalProdutos.page = 1;
+  modalProdutos.selection = null;
+  fetchProdutos();
+};
+
+const fecharModalProdutos = () => {
+  modalProdutos.visivel = false;
+};
+
+const onPesquisarProdutos = () => {
+  if (buscaProdutoTimeout) clearTimeout(buscaProdutoTimeout);
+  buscaProdutoTimeout = setTimeout(() => {
+    modalProdutos.page = 1;
+    fetchProdutos();
+  }, 400);
+};
+
+const onProdutosPage = (event) => {
+  modalProdutos.page = event.page + 1;
+  modalProdutos.perPage = event.rows;
+  fetchProdutos();
+};
+
+const confirmarProduto = () => {
+  const p = modalProdutos.selection;
+  if (!p) return;
+  produtoSelecionado.value = { B1_COD: p.B1_COD, B1_DESC: p.B1_DESC, B1_UM: p.B1_UM };
+  modalProdutos.visivel = false;
+  modalProdutos.selection = null;
+};
+
+const limparProduto = () => {
+  produtoSelecionado.value = null;
 };
 
 const buscar = async () => {
@@ -219,7 +387,7 @@ const limparFiltros = () => {
   dataInicial.value = null;
   dataFinal.value = null;
   empresaId.value = null;
-  produto.value = '';
+  produtoSelecionado.value = null;
   dados.value = [];
 };
 
@@ -307,6 +475,14 @@ onMounted(() => {
 .filters :deep(.p-dropdown),
 .filters :deep(.p-inputtext) {
   width: 100%;
+}
+
+.filters .produto-select input[readonly] {
+  cursor: pointer;
+}
+
+.filters .p-inputgroup .p-inputtext {
+  flex: 1 1 auto;
 }
 
 .tabela-relatorio :deep(.p-datatable-thead > tr > th) {
