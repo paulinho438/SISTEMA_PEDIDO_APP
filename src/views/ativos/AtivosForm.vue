@@ -153,7 +153,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import PermissionsService from '@/service/PermissionsService';
@@ -299,8 +299,8 @@ export default {
           // Mapear todos os campos, incluindo IDs de relacionamentos
           Object.keys(form.value).forEach(key => {
             if (asset[key] === undefined) return;
-            // use_condition_id e cost_center_id são tratados abaixo com fallback de relacionamentos
-            if (key === 'use_condition_id' || key === 'cost_center_id') return;
+            // cost_center_id é tratado abaixo com fallback de relacionamentos e código Protheus
+            if (key === 'cost_center_id') return;
             // Converter IDs para number para garantir compatibilidade com dropdowns
             if (key.endsWith('_id') && asset[key] !== null) {
               form.value[key] = parseInt(asset[key]);
@@ -319,20 +319,24 @@ export default {
           if (!form.value.branch_id && asset.branch?.id) {
             form.value.branch_id = parseInt(asset.branch.id);
           }
-          // Condição de uso: API pode vir em use_condition_id ou use_condition.id (sempre número para o Dropdown)
+          // Condição de uso: garantir número e opção na lista; aplicar em nextTick para o Dropdown reconhecer
           const useConditionId = asset.use_condition_id != null
             ? Number(asset.use_condition_id)
             : (asset.use_condition?.id != null ? Number(asset.use_condition.id) : null);
           if (useConditionId != null) {
-            form.value.use_condition_id = useConditionId;
-            // Se a condição não estiver na lista (ex.: inativa), adicionar opção sintética para exibir
+            // Se a condição não estiver na lista (ex.: inativa), adicionar opção sintética
             const jaNaLista = condicoesUso.value.some(c => Number(c.id) === useConditionId);
-            if (!jaNaLista && asset.use_condition?.name) {
+            if (!jaNaLista && (asset.use_condition?.name || asset.use_condition_id)) {
               condicoesUso.value = [
                 ...condicoesUso.value,
-                { id: useConditionId, name: asset.use_condition.name }
+                { id: useConditionId, name: asset.use_condition?.name || `Condição #${useConditionId}` }
               ];
             }
+            nextTick(() => {
+              form.value.use_condition_id = useConditionId;
+            });
+          } else {
+            form.value.use_condition_id = null;
           }
           // Centro de custo: id numérico ou código Protheus (ex: "6.19")
           if (asset.cost_center_id != null) {
