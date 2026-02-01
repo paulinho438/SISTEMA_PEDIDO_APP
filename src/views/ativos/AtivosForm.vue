@@ -31,10 +31,6 @@
               <label>Status</label>
               <Dropdown v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" class="w-full" :disabled="isViewMode || !podeEditar" />
             </div>
-            <div class="col-12">
-              <label>Descrição *</label>
-              <Textarea v-model="form.description" class="w-full" rows="3" :disabled="isViewMode || !podeEditar" />
-            </div>
           </div>
         </TabPanel>
 
@@ -201,6 +197,7 @@ export default {
       asset_number: '',
       acquisition_date: new Date(),
       status: 'incluido',
+      standard_description_id: null,
       description: '',
       brand: '',
       model: '',
@@ -326,6 +323,9 @@ export default {
           if (!form.value.cost_center_id && asset.cost_center_code) {
             form.value.cost_center_id = asset.cost_center_code;
           }
+          if (!form.value.standard_description_id && asset.standard_description?.id) {
+            form.value.standard_description_id = parseInt(asset.standard_description.id);
+          }
 
           if (asset.acquisition_date) {
             // Se a data está em formato dd/mm/yyyy, converter
@@ -390,9 +390,8 @@ export default {
       }
 
       // Validação manual (evita "invalid form control is not focusable" em campos dentro de abas ocultas)
-      const desc = (form.value.description || '').toString().trim();
-      if (!desc) {
-        toast.add({ severity: 'error', summary: 'Campo obrigatório', detail: 'Preencha a Descrição.', life: 3000 });
+      if (!form.value.standard_description_id) {
+        toast.add({ severity: 'error', summary: 'Campo obrigatório', detail: 'Selecione a Descrição Padrão.', life: 3000 });
         return;
       }
       if (!form.value.acquisition_date) {
@@ -411,6 +410,9 @@ export default {
         if (dataToSave.acquisition_date instanceof Date) {
           dataToSave.acquisition_date = dataToSave.acquisition_date.toISOString().split('T')[0];
         }
+        // Descrição vem da Descrição Padrão selecionada (nome)
+        const descPadrao = descricoesPadrao.value.find(d => d.id == form.value.standard_description_id);
+        dataToSave.description = (descPadrao?.name ?? form.value.description ?? '').trim() || (form.value.description ?? '');
         const response = await service.save({ ...dataToSave, id: id || undefined });
         const assetId = id || (response.data?.data?.id || response.data?.id);
         
