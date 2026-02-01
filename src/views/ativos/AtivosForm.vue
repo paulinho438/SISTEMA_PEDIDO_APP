@@ -211,6 +211,7 @@ export default {
       cost_center_id: null,
       value_brl: 0,
       value_usd: null,
+      image_path: null,
     });
 
     const salvando = ref(false);
@@ -260,14 +261,15 @@ export default {
       reader.readAsDataURL(file);
     };
 
-    const uploadImagem = async () => {
-      if (!selectedFile.value || !id) return;
+    const uploadImagem = async (assetIdParam) => {
+      const targetId = assetIdParam ?? id;
+      if (!selectedFile.value || !targetId) return;
       try {
-        await service.uploadImage(id, selectedFile.value);
+        await service.uploadImage(targetId, selectedFile.value);
         toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Imagem enviada com sucesso', life: 3000 });
         selectedFile.value = null;
-        // Recarregar ativo para obter o caminho da imagem
-        await carregar();
+        // Recarregar ativo para obter o caminho da imagem (só se estivermos na tela de edição desse ativo)
+        if (id) await carregar();
       } catch (error) {
         toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao enviar imagem', life: 3000 });
       }
@@ -365,11 +367,15 @@ export default {
             }
           }
 
-          // Carregar imagem
-          if (asset.image_url) {
-            imageUrl.value = asset.image_url;
-          } else if (asset.image_path) {
-            imageUrl.value = getImageUrl(asset.image_path);
+          // Carregar imagem: sempre atualizar form e imageUrl para exibir ou limpar
+          form.value.image_path = asset.image_path ?? null;
+          if (asset.image_path) {
+            // Preferir URL absoluta da API; senão montar com base da API
+            imageUrl.value = asset.image_url && asset.image_url.startsWith('http')
+              ? asset.image_url
+              : getImageUrl(asset.image_path);
+          } else {
+            imageUrl.value = null;
           }
         } catch (error) {
           toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar ativo', life: 3000 });
@@ -450,9 +456,9 @@ export default {
         const response = await service.save(payload);
         const assetId = id || (response.data?.data?.id || response.data?.id);
         
-        // Se houver imagem selecionada e ativo foi criado/editado, fazer upload
+        // Se houver imagem selecionada e ativo foi criado/editado, fazer upload (passar assetId para novo ativo)
         if (selectedFile.value && assetId) {
-          await uploadImagem();
+          await uploadImagem(assetId);
         }
         
         toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Ativo salvo com sucesso', life: 3000 });
