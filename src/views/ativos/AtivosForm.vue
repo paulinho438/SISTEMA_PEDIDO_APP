@@ -316,11 +316,18 @@ export default {
           if (!form.value.branch_id && asset.branch?.id) {
             form.value.branch_id = parseInt(asset.branch.id);
           }
-          if (!form.value.cost_center_id && asset.cost_center?.id) {
-            form.value.cost_center_id = parseInt(asset.cost_center.id);
+          // Condição de uso: API pode vir em use_condition_id ou use_condition.id
+          if (asset.use_condition_id != null) {
+            form.value.use_condition_id = parseInt(asset.use_condition_id);
+          } else if (asset.use_condition?.id != null) {
+            form.value.use_condition_id = parseInt(asset.use_condition.id);
           }
-          // Centro de custo do Protheus vem como código (ex: "6.19"), não como id numérico
-          if (!form.value.cost_center_id && asset.cost_center_code) {
+          // Centro de custo: id numérico ou código Protheus (ex: "6.19")
+          if (asset.cost_center_id != null) {
+            form.value.cost_center_id = parseInt(asset.cost_center_id);
+          } else if (asset.cost_center?.id != null) {
+            form.value.cost_center_id = parseInt(asset.cost_center.id);
+          } else if (asset.cost_center_code) {
             form.value.cost_center_id = asset.cost_center_code;
           }
           if (!form.value.standard_description_id && asset.standard_description?.id) {
@@ -337,6 +344,17 @@ export default {
             }
           }
           
+          // Centro de custo pode ser código Protheus (string): garantir que exista na lista do dropdown
+          if (asset.cost_center_code && typeof form.value.cost_center_id === 'string') {
+            const jaNaLista = centrosCusto.value.some(c => String(c.id) === String(asset.cost_center_code));
+            if (!jaNaLista) {
+              centrosCusto.value = [
+                ...centrosCusto.value,
+                { id: asset.cost_center_code, description: asset.cost_center_code }
+              ];
+            }
+          }
+
           // Carregar imagem
           if (asset.image_url) {
             imageUrl.value = asset.image_url;
