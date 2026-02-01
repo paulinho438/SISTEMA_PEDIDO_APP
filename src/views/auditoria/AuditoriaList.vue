@@ -35,7 +35,7 @@
         <Dropdown
           v-model="filtros.user_id"
           :options="usuarios"
-          optionLabel="name"
+          optionLabel="nome_completo"
           optionValue="id"
           placeholder="Todos"
           class="w-full"
@@ -111,7 +111,7 @@
       <Column field="user" header="Usuário" style="min-width: 160px">
         <template #body="slotProps">
           <span v-if="slotProps.data.user">
-            {{ slotProps.data.user.name || slotProps.data.user.email || '—' }}
+            {{ slotProps.data.user.nome_completo || slotProps.data.user.login || slotProps.data.user.email || '—' }}
           </span>
           <span v-else class="text-500">—</span>
         </template>
@@ -152,7 +152,7 @@
       <div v-if="modalDetalhes.item" class="grid">
         <div class="col-12">
           <p><strong>Data/Hora:</strong> {{ formatarDataHora(modalDetalhes.item.created_at) }}</p>
-          <p><strong>Usuário:</strong> {{ modalDetalhes.item.user?.name || modalDetalhes.item.user?.email || '—' }}</p>
+          <p><strong>Usuário:</strong> {{ modalDetalhes.item.user?.nome_completo || modalDetalhes.item.user?.login || modalDetalhes.item.user?.email || '—' }}</p>
           <p><strong>Ação:</strong> {{ labelAcao(modalDetalhes.item.action) }}</p>
           <p><strong>Tipo:</strong> {{ labelTipoEntidade(modalDetalhes.item.auditable_type) }}</p>
           <p><strong>ID:</strong> {{ modalDetalhes.item.auditable_id }}</p>
