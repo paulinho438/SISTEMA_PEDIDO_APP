@@ -5,6 +5,10 @@ class RelatorioService {
     return axios.get('/relatorios/custos-centro-custo', { params });
   }
 
+  custosPorCentroCustoDetalhado(params = {}) {
+    return axios.get('/relatorios/custos-centro-custo-detalhado', { params });
+  }
+
   relatorioCotacoes(params = {}) {
     return axios.get('/relatorios/cotacoes', { params });
   }

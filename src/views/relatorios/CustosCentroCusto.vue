@@ -7,6 +7,14 @@
       </div>
       <div class="flex gap-2 align-items-center filters-actions">
         <Button
+          label="C.CUSTO DETALHADO"
+          icon="pi pi-file-excel"
+          class="p-button-outlined p-button-success"
+          @click="exportarDetalhado"
+          :loading="exportandoDetalhado"
+          :disabled="carregando"
+        />
+        <Button
           label="Exportar"
           icon="pi pi-upload"
           class="p-button-outlined"
@@ -173,6 +181,7 @@ const statusDisponiveis = ref([]);
 const statusSelecionados = ref([]);
 const periodo = ref(null);
 const carregando = ref(false);
+const exportandoDetalhado = ref(false);
 const linhasExpandidas = ref({});
 
 const totais = computed(() => {
@@ -262,6 +271,83 @@ const exportar = () => {
     detail: 'Funcionalidade de exportação ainda não implementada.',
     life: 3000,
   });
+};
+
+const escapeCsv = (val) => {
+  if (val == null) return '';
+  const s = String(val).trim();
+  if (s.includes(';') || s.includes('"') || s.includes('\n') || s.includes(',')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+};
+
+const exportarDetalhado = async () => {
+  try {
+    exportandoDetalhado.value = true;
+    const { data } = await RelatorioService.custosPorCentroCustoDetalhado(montarParametros());
+    const linhas = data?.data ?? [];
+
+    if (linhas.length === 0) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Sem dados',
+        detail: 'Nenhum registro encontrado para os filtros selecionados.',
+        life: 4000,
+      });
+      return;
+    }
+
+    const headers = [
+      'Código do Centro de Custo',
+      'Descrição do Centro de Custo',
+      'Fornecedor',
+      'Valor',
+      'Data da Criação da Solicitação',
+    ];
+    const sep = ';';
+    const csvRows = [
+      headers.join(sep),
+      ...linhas.map((r) =>
+        [
+          escapeCsv(r.codigo_centro_custo),
+          escapeCsv(r.descricao_centro_custo),
+          escapeCsv(r.fornecedor),
+          escapeCsv(r.valor_formatado ?? formatarMoeda(r.valor)),
+          escapeCsv(r.data_criacao_solicitacao),
+        ].join(sep)
+      ),
+    ];
+    const csvContent = csvRows.join('\r\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `c_custo_detalhado_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast.add({
+      severity: 'success',
+      summary: 'Exportação concluída',
+      detail: `Arquivo com ${linhas.length} registro(s) baixado. Abra no Excel.`,
+      life: 4000,
+    });
+  } catch (error) {
+    const detail =
+      error?.response?.data?.message || 'Não foi possível exportar o relatório detalhado.';
+    toast.add({
+      severity: 'error',
+      summary: 'Erro ao exportar',
+      detail,
+      life: 4000,
+    });
+  } finally {
+    exportandoDetalhado.value = false;
+  }
 };
 
 const onRowExpand = (event) => {
