@@ -562,6 +562,22 @@ export default {
                 </div>
             </div>
 
+            <div class="flex justify-content-between align-items-center mb-2 mt-4" v-if="multiselectValues?.auditoria">
+                <h5 class="m-0">Auditoria</h5>
+                <div>
+                    <Button label="Selecionar Todos" icon="pi pi-check" class="p-button-sm p-button-text p-button-success mr-2" @click="selecionarTodos('auditoria')" />
+                    <Button label="Desselecionar" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger" @click="desselecionarTodos('auditoria')" />
+                </div>
+            </div>
+            <div class="grid" v-if="multiselectValues?.auditoria">
+                <div class="col-12 md:col-4" v-for="option of getUniqueItemsBySlug(multiselectValues?.auditoria)" :key="`auditoria-${option.slug}`">
+                    <div class="field-checkbox mb-0">
+                        <Checkbox :id="`auditoria-${option.slug}`" name="option" :value="option.slug" v-model="checkboxValue" />
+                        <label :for="`auditoria-${option.slug}`">{{ option.name }}</label>
+                    </div>
+                </div>
+            </div>
+
             <div v-if="permissionsService.hasPermissions('view_mastergeral')">
                 <div class="flex justify-content-between align-items-center mb-2 mt-4">
                     <h5 class="m-0">Gestão de Empresas (Legado)</h5>
