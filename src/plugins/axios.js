@@ -18,7 +18,11 @@ axios.interceptors.request.use(
     const token = localStorage.getItem('app.emp.token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      const companyId = store?.getters?.isCompany?.id;
+      let companyId = store?.getters?.isCompany?.id;
+      // Se não tiver empresa selecionada mas houver apenas uma empresa, usar essa
+      if (companyId == null && store?.getters?.companies?.length === 1) {
+        companyId = store.getters.companies[0]?.id;
+      }
       if (companyId != null) {
         config.headers['company-id'] = String(companyId);
       }

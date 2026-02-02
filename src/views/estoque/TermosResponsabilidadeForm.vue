@@ -4,6 +4,11 @@
       <Button icon="pi pi-arrow-left" class="p-button-text" @click="voltar" />
       <h5 class="text-900 m-0">Novo Termo de Responsabilidade (Ferramentas)</h5>
     </div>
+
+    <Message v-if="!empresaSelecionada" severity="warn" :closable="false" class="mb-4">
+      Selecione uma <strong>empresa</strong> no menu superior (canto da tela) para carregar os locais de estoque e os produtos.
+    </Message>
+
     <p class="text-600 mt-0 mb-4">
       Informe o responsável e os itens (ferramentas/equipamentos) que sairão do estoque. Ao devolver, os itens retornarão ao estoque.
     </p>
@@ -134,12 +139,17 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
 import Toast from 'primevue/toast';
+import Message from 'primevue/message';
+import { useStore } from 'vuex';
 import ResponsibilityTermService from '@/service/ResponsibilityTermService';
 import StockLocationService from '@/service/StockLocationService';
 import StockProductService from '@/service/StockProductService';
 
 const router = useRouter();
 const toast = useToast();
+const store = useStore();
+
+const empresaSelecionada = computed(() => store.getters?.isCompany != null);
 
 const salvando = ref(false);
 const locais = ref([]);
@@ -256,6 +266,10 @@ const salvar = async () => {
 };
 
 onMounted(async () => {
+  if (!store.getters?.isCompany?.id) {
+    locais.value = [];
+    return;
+  }
   try {
     const res = await StockLocationService.getAllActive({ per_page: 100 });
     const data = res?.data;
@@ -263,11 +277,12 @@ onMounted(async () => {
     if (!Array.isArray(locais.value)) locais.value = [];
   } catch (e) {
     locais.value = [];
+    const msg = e?.response?.data?.message || e?.message || 'Erro ao carregar locais.';
     toast.add({
       severity: 'error',
       summary: 'Erro ao carregar locais',
-      detail: e?.response?.data?.message || 'Verifique se a empresa está selecionada e se você tem permissão.',
-      life: 5000,
+      detail: msg,
+      life: 6000,
     });
   }
 });
