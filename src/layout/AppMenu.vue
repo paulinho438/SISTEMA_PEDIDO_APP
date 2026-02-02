@@ -64,6 +64,7 @@ const model = ref([
                     { label: 'Controle de Transferências', icon: 'pi pi-fw pi-list', to: '/estoque/transferencias', permission: 'view_estoque_movimentacoes' },
                     { label: 'Gerenciar Almoxarifes', icon: 'pi pi-fw pi-users', to: '/estoque/almoxarifes', permission: 'view_estoque_almoxarifes' },
                     { label: 'Análise de Reservas', icon: 'pi pi-fw pi-check-circle', to: '/estoque/reservas', permission: 'view_estoque_reservas' },
+                    { label: 'Termos de Responsabilidade (Ferramentas)', icon: 'pi pi-fw pi-file-edit', to: '/estoque/termos-responsabilidade', permission: 'view_estoque_movimentacoes' },
                     { label: 'Nota Fiscal e Entrada', icon: 'pi pi-fw pi-file', to: '/estoque/nota-fiscal/nova', permission: 'view_estoque_nota_fiscal' },
                     { label: 'Controle de Notas Fiscais', icon: 'pi pi-fw pi-list', to: '/estoque/notas-fiscais', permission: 'view_controle_notas_fiscais' }
                 ]

@@ -16,6 +16,14 @@
           :loading="exportando"
           :disabled="carregando || dados.length === 0"
         />
+        <Button
+          label="Exportar todos (sem filtro)"
+          icon="pi pi-file-excel"
+          class="p-button-outlined p-button-info"
+          @click="exportarTodosExcel"
+          :loading="exportandoTodos"
+          :disabled="carregando"
+        />
       </div>
     </div>
 
@@ -230,6 +238,7 @@ const empresaId = ref(null);
 const produtoSelecionado = ref(null);
 const carregando = ref(false);
 const exportando = ref(false);
+const exportandoTodos = ref(false);
 
 const modalProdutos = reactive({
   visivel: false,
@@ -458,6 +467,65 @@ const exportarExcel = () => {
     });
   } finally {
     exportando.value = false;
+  }
+};
+
+const exportarTodosExcel = async () => {
+  exportandoTodos.value = true;
+  try {
+    const { data } = await RelatorioService.solicitacaoProdutoTodos({});
+    const lista = data?.data ?? [];
+    const rows = Array.isArray(lista) ? lista : [];
+    if (rows.length === 0) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Sem dados',
+        detail: 'Nenhum item em solicitação encontrado para exportar.',
+        life: 3000,
+      });
+      return;
+    }
+    const headers = ['Cotação', 'Data', 'Produto', 'Qtd', 'Obs'];
+    const sep = ';';
+    const csvRows = [
+      headers.join(sep),
+      ...rows.map((r) =>
+        [
+          escapeCsv(r.numero),
+          escapeCsv(r.data),
+          escapeCsv(r.produto),
+          escapeCsv(r.qtd),
+          escapeCsv(r.obs),
+        ].join(sep)
+      ),
+    ];
+    const csvContent = csvRows.join('\r\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `solicitacao_produto_todos_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    toast.add({
+      severity: 'success',
+      summary: 'Exportação concluída',
+      detail: `Arquivo com ${rows.length} registro(s) baixado (todos os itens em solicitação). Abra no Excel.`,
+      life: 4000,
+    });
+  } catch (e) {
+    const detail = e?.response?.data?.message || 'Não foi possível gerar o arquivo.';
+    toast.add({
+      severity: 'error',
+      summary: 'Erro ao exportar',
+      detail,
+      life: 4000,
+    });
+  } finally {
+    exportandoTodos.value = false;
   }
 };
 

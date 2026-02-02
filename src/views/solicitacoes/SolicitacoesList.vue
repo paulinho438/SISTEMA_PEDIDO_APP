@@ -22,9 +22,11 @@
       <div class="flex align-items-center">
         <Button
             label="Exportar"
-            icon="pi pi-upload"
-            class="p-button-outlined mr-3"
+            icon="pi pi-file-excel"
+            class="p-button-outlined p-button-success mr-3"
             @click="exportar"
+            :loading="exportando"
+            :disabled="carregando"
         />
         <span class="p-input-icon-left">
                     <i class="pi pi-search" />
@@ -148,6 +150,7 @@ export default {
     const filtroGlobal = ref('');
     const selecionadas = ref([]);
     const carregando = ref(false);
+    const exportando = ref(false);
     const searchTimeout = ref(null);
     
     const paginacao = ref({
@@ -246,10 +249,94 @@ export default {
       }, 500);
     };
 
+    const escapeCsv = (val) => {
+      if (val == null) return '';
+      const s = String(val).trim();
+      if (s.includes(';') || s.includes('"') || s.includes('\n') || s.includes(',')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const exportar = async () => {
+      exportando.value = true;
+      try {
+        const params = {
+          page: 1,
+          per_page: 99999,
+        };
+        if (!podeVerTodas.value) params.my_requests = 'true';
+        if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
+
+        const { data } = await SolicitacaoService.list(params);
+        const raw = data?.data || [];
+        const lista = raw.map((item) => ({
+          numero: item.numero,
+          data: item.data,
+          solicitante: item.solicitante,
+          centroCusto: typeof item.centro_custo === 'string' ? item.centro_custo : item.centro_custo,
+          local: item.local,
+          status: item.status?.label ?? '',
+        }));
+
+        if (lista.length === 0) {
+          toast.add({
+            severity: 'warn',
+            summary: 'Sem dados',
+            detail: 'Nenhuma solicitação para exportar.',
+            life: 3000,
+          });
+          return;
+        }
+
+        const headers = ['Nº da Solicitação', 'Data', 'Solicitante', 'Centro de Custo', 'Local', 'Status'];
+        const sep = ';';
+        const csvRows = [
+          headers.join(sep),
+          ...lista.map((r) =>
+            [
+              escapeCsv(r.numero),
+              escapeCsv(r.data),
+              escapeCsv(r.solicitante),
+              escapeCsv(formatarCentroCusto(r.centroCusto)),
+              escapeCsv(r.local),
+              escapeCsv(r.status),
+            ].join(sep)
+          ),
+        ];
+        const csvContent = csvRows.join('\r\n');
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `solicitacoes_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.add({
+          severity: 'success',
+          summary: 'Exportação concluída',
+          detail: `Arquivo com ${lista.length} solicitação(ões) baixado. Abra no Excel.`,
+          life: 4000,
+        });
+      } catch (e) {
+        const detail = e?.response?.data?.message || 'Não foi possível gerar o arquivo.';
+        toast.add({
+          severity: 'error',
+          summary: 'Erro ao exportar',
+          detail,
+          life: 4000,
+        });
+      } finally {
+        exportando.value = false;
+      }
+    };
+
     onMounted(carregarSolicitacoes);
 
     const novaSolicitacao = () => router.push({ name: 'solicitacoesAdd' });
-    const exportar = () => toast.add({ severity: 'info', summary: 'Exportar', detail: 'Exportação simulada...', life: 2000 });
     const visualizar = (item) => {
       router.push({ name: 'solicitacoesView', params: { id: item.id } });
     };
@@ -396,6 +483,7 @@ export default {
       excluir,
       deletarSelecionadas,
       carregando,
+      exportando,
       formatarCentroCusto,
       podeEditar,
       podeAlterarQuantidade,

@@ -88,6 +88,22 @@ const estoqueRoutes = [
                 path: 'notas-fiscais',
                 name: 'estoqueNotasFiscais',
                 component: () => import('@/views/estoque/NotasFiscaisList.vue')
+            },
+            // Termos de Responsabilidade (ferramentas)
+            {
+                path: 'termos-responsabilidade',
+                name: 'estoqueTermosResponsabilidade',
+                component: () => import('@/views/estoque/TermosResponsabilidadeList.vue')
+            },
+            {
+                path: 'termos-responsabilidade/add',
+                name: 'estoqueTermosResponsabilidadeAdd',
+                component: () => import('@/views/estoque/TermosResponsabilidadeForm.vue')
+            },
+            {
+                path: 'termos-responsabilidade/:id',
+                name: 'estoqueTermosResponsabilidadeView',
+                component: () => import('@/views/estoque/TermosResponsabilidadeView.vue')
             }
         ]
     }

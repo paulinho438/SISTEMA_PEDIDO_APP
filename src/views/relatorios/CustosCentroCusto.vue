@@ -304,6 +304,7 @@ const exportarDetalhado = async () => {
       'Fornecedor',
       'Valor',
       'Data da Criação da Solicitação',
+      'Número da Solicitação',
     ];
     const sep = ';';
     const csvRows = [
@@ -315,6 +316,7 @@ const exportarDetalhado = async () => {
           escapeCsv(r.fornecedor),
           escapeCsv(r.valor_formatado ?? formatarMoeda(r.valor)),
           escapeCsv(r.data_criacao_solicitacao),
+          escapeCsv(r.numero_solicitacao ?? ''),
         ].join(sep)
       ),
     ];

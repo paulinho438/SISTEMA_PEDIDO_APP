@@ -29,6 +29,10 @@ class RelatorioService {
     return axios.get('/relatorios/solicitacao-produto', { params });
   }
 
+  solicitacaoProdutoTodos(params = {}) {
+    return axios.get('/relatorios/solicitacao-produto-todos', { params });
+  }
+
   produtosComSolicitacao(params = {}) {
     return axios.get('/relatorios/produtos-com-solicitacao', { params });
   }
