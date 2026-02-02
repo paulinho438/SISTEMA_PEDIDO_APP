@@ -1,43 +1,42 @@
-import axios from 'axios';
-const apiPath = import.meta.env.VITE_APP_BASE_URL;
+import axios from '@/plugins/axios';
 
 export default class StockProductService {
     get = async (id) => {
-        return await axios.get(`${apiPath}/estoque/produtos/${id}`);
+        return await axios.get(`/estoque/produtos/${id}`);
     };
 
     getAll = async (params = {}) => {
-        return await axios.get(`${apiPath}/estoque/produtos`, { params });
+        return await axios.get('/estoque/produtos', { params });
     };
 
     buscar = async (params = {}) => {
-        return await axios.get(`${apiPath}/estoque/produtos/buscar`, { params });
+        return await axios.get('/estoque/produtos/buscar', { params });
     };
 
     save = async (product) => {
         if (undefined === product.id) {
-            return await axios.post(`${apiPath}/estoque/produtos`, product);
+            return await axios.post('/estoque/produtos', product);
         } else {
-            return await axios.put(`${apiPath}/estoque/produtos/${product.id}`, product);
+            return await axios.put(`/estoque/produtos/${product.id}`, product);
         }
     };
 
     toggleActive = async (id) => {
-        return await axios.patch(`${apiPath}/estoque/produtos/${id}/toggle-active`);
+        return await axios.patch(`/estoque/produtos/${id}/toggle-active`);
     };
 
     saveWithProtheus = async (product) => {
-        return await axios.post(`${apiPath}/estoque/produtos/cadastrar-com-protheus`, product);
+        return await axios.post('/estoque/produtos/cadastrar-com-protheus', product);
     };
 
     buscarCombinado = async (params = {}) => {
-        return await axios.get(`${apiPath}/estoque/produtos/buscar-combinado`, { params });
+        return await axios.get('/estoque/produtos/buscar-combinado', { params });
     };
 
     uploadImage = async (id, file) => {
         const formData = new FormData();
         formData.append('image', file);
-        return await axios.post(`${apiPath}/estoque/produtos/${id}/upload-image`, formData, {
+        return await axios.post(`/estoque/produtos/${id}/upload-image`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -45,13 +44,13 @@ export default class StockProductService {
     };
 
     removeImage = async (id) => {
-        return await axios.delete(`${apiPath}/estoque/produtos/${id}/remove-image`);
+        return await axios.delete(`/estoque/produtos/${id}/remove-image`);
     };
 
     validarExcel = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
-        return await axios.post(`${apiPath}/estoque/produtos/validar-excel`, formData, {
+        return await axios.post('/estoque/produtos/validar-excel', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -61,7 +60,7 @@ export default class StockProductService {
     importarExcel = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
-        return await axios.post(`${apiPath}/estoque/produtos/importar-excel`, formData, {
+        return await axios.post('/estoque/produtos/importar-excel', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -69,7 +68,7 @@ export default class StockProductService {
     };
 
     baixarTemplate = async () => {
-        return await axios.get(`${apiPath}/estoque/produtos/template-excel`, {
+        return await axios.get('/estoque/produtos/template-excel', {
             responseType: 'blob'
         });
     };

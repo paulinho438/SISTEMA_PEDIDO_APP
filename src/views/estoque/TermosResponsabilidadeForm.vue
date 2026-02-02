@@ -257,11 +257,18 @@ const salvar = async () => {
 
 onMounted(async () => {
   try {
-    const { data } = await StockLocationService.getAllActive();
-    locais.value = data?.data ?? data ?? [];
-    if (Array.isArray(locais.value) === false) locais.value = [];
-  } catch (_) {
+    const res = await StockLocationService.getAllActive({ per_page: 100 });
+    const data = res?.data;
+    locais.value = data?.data ?? (Array.isArray(data) ? data : []) ?? [];
+    if (!Array.isArray(locais.value)) locais.value = [];
+  } catch (e) {
     locais.value = [];
+    toast.add({
+      severity: 'error',
+      summary: 'Erro ao carregar locais',
+      detail: e?.response?.data?.message || 'Verifique se a empresa está selecionada e se você tem permissão.',
+      life: 5000,
+    });
   }
 });
 </script>
