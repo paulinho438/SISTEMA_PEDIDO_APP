@@ -8,6 +8,9 @@
     <Message v-if="!empresaSelecionada" severity="warn" :closable="false" class="mb-4">
       Selecione uma <strong>empresa</strong> no menu superior (canto da tela) para carregar os locais de estoque e os produtos.
     </Message>
+    <Message v-else-if="locais.length === 0 && !carregandoLocais" severity="info" :closable="false" class="mb-4">
+      Nenhum local de estoque encontrado para a empresa selecionada, ou você não tem permissão. Verifique se possui permissão de <strong>Estoque > Locais</strong> ou <strong>Movimentações</strong>. <Button label="Carregar novamente" class="p-button-sm p-button-outlined ml-2" @click="carregarLocais" />
+    </Message>
 
     <p class="text-600 mt-0 mb-4">
       Informe o responsável e os itens (ferramentas/equipamentos) que sairão do estoque. Ao devolver, os itens retornarão ao estoque.
@@ -152,6 +155,7 @@ const store = useStore();
 const empresaSelecionada = computed(() => store.getters?.isCompany != null);
 
 const salvando = ref(false);
+const carregandoLocais = ref(false);
 const locais = ref([]);
 const buscaProduto = ref('');
 
@@ -265,16 +269,44 @@ const salvar = async () => {
   }
 };
 
-onMounted(async () => {
-  if (!store.getters?.isCompany?.id) {
-    locais.value = [];
-    return;
+const getCompanyId = () => {
+  const c = store.getters?.isCompany;
+  if (c?.id != null) return c.id;
+  const list = store.getters?.companies;
+  if (Array.isArray(list) && list.length > 0 && list[0]?.id != null) return list[0].id;
+  return null;
+};
+
+const carregarLocais = async () => {
+  let companyId = getCompanyId();
+  if (!companyId) {
+    const list = store.getters?.companies;
+    if (Array.isArray(list) && list.length === 1 && list[0]?.id != null) {
+      store.commit('setCompany', list[0]);
+      companyId = list[0].id;
+    } else {
+      locais.value = [];
+      return;
+    }
   }
+  carregandoLocais.value = true;
+  locais.value = [];
   try {
-    const res = await StockLocationService.getAllActive({ per_page: 100 });
+    const axios = (await import('@/plugins/axios')).default;
+    const headers = { 'company-id': String(companyId) };
+    let res = null;
+    try {
+      res = await axios.get('/estoque/locais/all-active', { params: { per_page: 100 }, headers });
+    } catch (e1) {
+      try {
+        res = await axios.get('/estoque/locais', { params: { per_page: 100, active: true }, headers });
+      } catch (e2) {
+        throw e1?.response?.data?.message ? { ...e1, message: e1.response.data.message } : e1;
+      }
+    }
     const data = res?.data;
-    locais.value = data?.data ?? (Array.isArray(data) ? data : []) ?? [];
-    if (!Array.isArray(locais.value)) locais.value = [];
+    const list = data?.data ?? (Array.isArray(data) ? data : []) ?? [];
+    locais.value = Array.isArray(list) ? list : [];
   } catch (e) {
     locais.value = [];
     const msg = e?.response?.data?.message || e?.message || 'Erro ao carregar locais.';
@@ -284,6 +316,12 @@ onMounted(async () => {
       detail: msg,
       life: 6000,
     });
+  } finally {
+    carregandoLocais.value = false;
   }
+};
+
+onMounted(() => {
+  carregarLocais();
 });
 </script>
