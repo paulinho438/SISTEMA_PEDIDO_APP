@@ -242,8 +242,13 @@ watch(
 );
 
 async function carregarProdutosEstoque(page = 1) {
+  console.log('[TermosForm] carregarProdutosEstoque INÍCIO', { page });
   const locationId = form.stock_location_id;
-  if (locationId == null || locationId === '') return;
+  if (locationId == null || locationId === '') {
+    console.log('[TermosForm] locationId vazio, retornando');
+    return;
+  }
+  console.log('[TermosForm] locationId:', locationId);
 
   erroCarregarProdutos.value = '';
   loadingProdutos.value = true;
@@ -256,12 +261,19 @@ async function carregarProdutosEstoque(page = 1) {
       location_id: locationId,
     };
     if (filtroProduto.value?.trim()) params.search = filtroProduto.value.trim();
+    console.log('[TermosForm] chamando StockProductService.buscar com params:', params);
     const { data } = await StockProductService.buscar(params);
+    console.log('[TermosForm] resposta recebida:', data);
     const list = data?.data ?? data ?? [];
     listaProdutosEstoque.value = Array.isArray(list) ? list : [];
     const pag = data?.pagination ?? {};
     totalProdutos.value = Number(pag.total) ?? listaProdutosEstoque.value.length;
+    console.log('[TermosForm] sucesso - list.length:', listaProdutosEstoque.value.length, 'total:', totalProdutos.value);
   } catch (e) {
+    console.error('[TermosForm] CATCH erro:', e);
+    console.error('[TermosForm] e.response:', e?.response);
+    console.error('[TermosForm] e.response?.data:', e?.response?.data);
+    console.error('[TermosForm] e.response?.status:', e?.response?.status);
     listaProdutosEstoque.value = [];
     totalProdutos.value = 0;
     erroCarregarProdutos.value =
@@ -270,6 +282,7 @@ async function carregarProdutosEstoque(page = 1) {
       'Erro ao carregar produtos. Selecione a empresa no menu superior e tente novamente.';
   } finally {
     loadingProdutos.value = false;
+    console.log('[TermosForm] carregarProdutosEstoque FIM');
   }
 }
 

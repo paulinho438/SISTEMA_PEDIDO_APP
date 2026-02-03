@@ -10,7 +10,17 @@ export default class StockProductService {
     };
 
     buscar = async (params = {}, config = {}) => {
-        return await axios.get('/estoque/produtos/buscar', { params, ...config });
+        console.log('[StockProductService] buscar INÍCIO', { params, config });
+        try {
+            const res = await axios.get('/estoque/produtos/buscar', { params, ...config });
+            console.log('[StockProductService] buscar OK', { status: res?.status, dataKeys: res?.data ? Object.keys(res.data) : [] });
+            return res;
+        } catch (err) {
+            console.error('[StockProductService] buscar ERRO:', err);
+            console.error('[StockProductService] err.response:', err?.response);
+            console.error('[StockProductService] err.response?.data:', err?.response?.data);
+            throw err;
+        }
     };
 
     save = async (product) => {
