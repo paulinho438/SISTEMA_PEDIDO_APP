@@ -51,19 +51,69 @@
 
     <div class="mt-4">
       <label>Itens (ferramentas/equipamentos) *</label>
-      <div class="flex gap-2 mb-2">
-        <span class="p-input-icon-left flex-grow-1">
-          <i class="pi pi-search" />
-          <InputText
-            v-model="buscaProduto"
-            placeholder="Buscar produto por código ou descrição..."
-            class="w-full"
-            @keyup.enter="adicionarProdutoBusca"
-          />
-        </span>
-        <Button label="Adicionar" icon="pi pi-plus" class="p-button-outlined" @click="adicionarProdutoBusca" />
-      </div>
 
+      <!-- Lista paginada de produtos do local selecionado -->
+      <div v-if="form.stock_location_id" class="mb-4">
+        <div class="flex flex-wrap align-items-center gap-2 mb-2">
+          <span class="p-input-icon-left flex-grow-1" style="max-width: 280px">
+            <i class="pi pi-search" />
+            <InputText
+              v-model="filtroProduto"
+              placeholder="Filtrar por código ou descrição..."
+              class="w-full"
+              @keyup.enter="carregarProdutosEstoque(1)"
+            />
+          </span>
+          <Button label="Buscar" icon="pi pi-search" class="p-button-outlined" @click="carregarProdutosEstoque(1)" />
+        </div>
+        <DataTable
+          :value="listaProdutosEstoque"
+          :loading="loadingProdutos"
+          :lazy="true"
+          :paginator="true"
+          :rows="rowsProdutos"
+          :totalRecords="totalProdutos"
+          :rowsPerPageOptions="[10, 20, 50]"
+          dataKey="id"
+          class="p-datatable-sm"
+          responsiveLayout="scroll"
+          @page="onPageProdutos"
+          paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} produtos"
+        >
+          <Column field="code" header="Código" sortable style="min-width: 100px" />
+          <Column field="description" header="Descrição" sortable style="min-width: 180px">
+            <template #body="slotProps">
+              <span class="text-wrap">{{ slotProps.data.description || '-' }}</span>
+            </template>
+          </Column>
+          <Column field="unit" header="Un." style="width: 70px" />
+          <Column header="Qtd disponível" style="width: 120px">
+            <template #body="slotProps">
+              {{ qtdDisponivel(slotProps.data) }}
+            </template>
+          </Column>
+          <Column header="" style="width: 100px">
+            <template #body="slotProps">
+              <Button
+                label="Adicionar"
+                icon="pi pi-plus"
+                class="p-button-sm p-button-outlined"
+                :disabled="jaAdicionado(slotProps.data)"
+                @click="adicionarProdutoDaLista(slotProps.data)"
+              />
+            </template>
+          </Column>
+          <template #empty>
+            <div class="text-center text-600 py-3">
+              {{ loadingProdutos ? 'Carregando...' : 'Nenhum produto com estoque neste local. Use o filtro para buscar.' }}
+            </div>
+          </template>
+        </DataTable>
+      </div>
+      <p v-else class="text-600 text-sm mb-2">Selecione o local de estoque acima para listar os produtos disponíveis.</p>
+
+      <label class="block mt-3 mb-2 text-600 text-sm">Itens adicionados</label>
       <DataTable :value="form.items" dataKey="tempId" class="p-datatable-sm" responsiveLayout="scroll">
         <Column header="Produto" field="description">
           <template #body="slotProps">
@@ -88,7 +138,7 @@
           </template>
         </Column>
         <template #empty>
-          <div class="text-center text-600 py-3">Nenhum item. Busque e adicione produtos acima.</div>
+          <div class="text-center text-600 py-3">Nenhum item. Selecione o local e adicione produtos da lista acima.</div>
         </template>
       </DataTable>
     </div>
@@ -97,34 +147,6 @@
       <Button label="Cancelar" class="p-button-text" @click="voltar" />
       <Button label="Gerar Termo (saída do estoque)" icon="pi pi-check" class="p-button-success" :loading="salvando" :disabled="!podeSalvar" @click="salvar" />
     </div>
-
-    <Dialog
-      v-model:visible="modalProduto.visible"
-      header="Selecionar produto"
-      :style="{ width: '500px' }"
-      modal
-      :closable="true"
-    >
-      <div class="mb-2">
-        <InputText v-model="modalProduto.busca" placeholder="Código ou descrição" class="w-full" @keyup.enter="buscarProdutos" />
-      </div>
-      <DataTable
-        :value="modalProduto.lista"
-        :loading="modalProduto.loading"
-        selectionMode="single"
-        v-model:selection="modalProduto.selecionado"
-        dataKey="id"
-        class="p-datatable-sm"
-        @row-select="onProdutoSelecionado"
-      >
-        <Column field="code" header="Código" />
-        <Column field="description" header="Descrição" />
-        <Column field="unit" header="Un." />
-      </DataTable>
-      <template #footer>
-        <Button label="Fechar" class="p-button-text" @click="modalProduto.visible = false" />
-      </template>
-    </Dialog>
 
     <Toast />
   </div>
@@ -140,7 +162,6 @@ import InputNumber from 'primevue/inputnumber';
 import Dropdown from 'primevue/dropdown';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Dialog from 'primevue/dialog';
 import Toast from 'primevue/toast';
 import Message from 'primevue/message';
 import { useStore } from 'vuex';
@@ -157,7 +178,6 @@ const empresaSelecionada = computed(() => store.getters?.isCompany != null);
 const salvando = ref(false);
 const carregandoLocais = ref(false);
 const locais = ref([]);
-const buscaProduto = ref('');
 
 const form = reactive({
   responsible_name: '',
@@ -169,13 +189,13 @@ const form = reactive({
 });
 
 let tempIdCounter = 0;
-const modalProduto = reactive({
-  visible: false,
-  busca: '',
-  lista: [],
-  loading: false,
-  selecionado: null,
-});
+
+const listaProdutosEstoque = ref([]);
+const totalProdutos = ref(0);
+const loadingProdutos = ref(false);
+const pageProdutos = ref(1);
+const rowsProdutos = ref(10);
+const filtroProduto = ref('');
 
 const podeSalvar = computed(() => {
   return (
@@ -187,52 +207,63 @@ const podeSalvar = computed(() => {
 });
 
 const voltar = () => router.push({ name: 'estoqueTermosResponsabilidade' });
-const onLocationChange = () => {};
 
-const adicionarProdutoBusca = () => {
-  if (!buscaProduto.value?.trim()) {
-    modalProduto.visible = true;
-    modalProduto.busca = '';
-    buscarProdutos();
-    return;
-  }
-  modalProduto.visible = true;
-  modalProduto.busca = buscaProduto.value.trim();
-  buscarProdutos();
+const onLocationChange = () => {
+  listaProdutosEstoque.value = [];
+  totalProdutos.value = 0;
+  pageProdutos.value = 1;
+  filtroProduto.value = '';
+  if (form.stock_location_id) carregarProdutosEstoque(1);
 };
 
-const buscarProdutos = async () => {
-  if (!form.stock_location_id) {
-    toast.add({ severity: 'warn', summary: 'Selecione o local', detail: 'Escolha o local de estoque antes de adicionar itens.', life: 3000 });
-    return;
-  }
+const carregarProdutosEstoque = async (page = 1) => {
+  if (!form.stock_location_id) return;
   const companyId = getCompanyId();
   if (!companyId) {
-    toast.add({ severity: 'warn', summary: 'Selecione a empresa', detail: 'Selecione uma empresa no menu superior para buscar produtos do estoque.', life: 4000 });
+    toast.add({ severity: 'warn', summary: 'Selecione a empresa', detail: 'Selecione uma empresa no menu superior.', life: 4000 });
     return;
   }
-  modalProduto.loading = true;
+  loadingProdutos.value = true;
   try {
-    const params = { per_page: 20, location_id: form.stock_location_id };
-    if (modalProduto.busca?.trim()) params.search = modalProduto.busca.trim();
+    const params = {
+      per_page: rowsProdutos.value,
+      page,
+      location_id: form.stock_location_id,
+    };
+    if (filtroProduto.value?.trim()) params.search = filtroProduto.value.trim();
     const config = { headers: { 'company-id': String(companyId) } };
     const { data } = await StockProductService.buscar(params, config);
     const list = data?.data ?? data ?? [];
-    modalProduto.lista = Array.isArray(list) ? list : [];
+    listaProdutosEstoque.value = Array.isArray(list) ? list : [];
+    const pag = data?.pagination ?? {};
+    totalProdutos.value = pag.total ?? listaProdutosEstoque.value.length;
   } catch (e) {
-    modalProduto.lista = [];
-    const msg = e?.response?.data?.message || 'Erro ao buscar produtos do estoque.';
-    toast.add({ severity: 'error', summary: 'Erro ao buscar', detail: msg, life: 4000 });
+    listaProdutosEstoque.value = [];
+    totalProdutos.value = 0;
+    const msg = e?.response?.data?.message || 'Erro ao carregar produtos do estoque.';
+    toast.add({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
   } finally {
-    modalProduto.loading = false;
+    loadingProdutos.value = false;
   }
 };
 
-const onProdutoSelecionado = (event) => {
-  const p = event.data;
+const onPageProdutos = (event) => {
+  pageProdutos.value = event.page + 1;
+  rowsProdutos.value = event.rows;
+  carregarProdutosEstoque(pageProdutos.value);
+};
+
+const qtdDisponivel = (product) => {
+  const locs = product?.locations ?? [];
+  const loc = locs.find((l) => Number(l.location_id) === Number(form.stock_location_id));
+  return loc != null ? Number(loc.quantity_available ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : '-';
+};
+
+const jaAdicionado = (product) => form.items.some((i) => i.stock_product_id === product.id);
+
+const adicionarProdutoDaLista = (p) => {
   if (!p) return;
-  const jaAdicionado = form.items.some((i) => i.stock_product_id === p.id);
-  if (jaAdicionado) {
+  if (jaAdicionado(p)) {
     toast.add({ severity: 'warn', summary: 'Item já adicionado', detail: 'Este produto já está na lista.', life: 3000 });
     return;
   }
@@ -243,8 +274,6 @@ const onProdutoSelecionado = (event) => {
     description: p.description ?? p.code,
     quantity: 1,
   });
-  modalProduto.visible = false;
-  modalProduto.selecionado = null;
 };
 
 const removerItem = (row) => {
