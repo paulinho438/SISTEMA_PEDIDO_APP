@@ -80,6 +80,7 @@
     >
       <Column field="numero" header="Nº da Cotação" sortable></Column>
       <Column field="solicitacao" header="Solicitação vinculada" sortable></Column>
+      <Column field="solicitante" header="Solicitante" sortable></Column>
       <Column field="comprador" header="Comprador responsável" sortable></Column>
       <Column field="dataInicio" header="Data de início" sortable></Column>
       <Column field="valorTotal" header="Valor total" sortable>
@@ -242,6 +243,7 @@ export default {
           id: item.id,
           numero: item.numero,
           solicitacao: item.solicitacao ?? item.numero_solicitacao ?? '-',
+          solicitante: item.solicitante ?? '-',
           comprador: item.buyer?.name || item.buyer?.label || '-',
           dataInicio: item.data ?? '-',
           valorTotal: item.valor_total ?? 0,
