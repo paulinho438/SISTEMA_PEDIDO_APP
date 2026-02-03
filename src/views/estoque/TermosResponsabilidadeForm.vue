@@ -40,7 +40,6 @@
           placeholder="Selecione o local"
           class="w-full"
           :filter="true"
-          @change="aoMudarLocal"
         />
       </div>
       <div class="col-12">
@@ -208,8 +207,9 @@ const podeSalvar = computed(() => {
 
 const voltar = () => router.push({ name: 'estoqueTermosResponsabilidade' });
 
-// Chamado ao selecionar/trocar local (Dropdown @change + watch para garantir)
+// Chamado ao selecionar/trocar local. Só dispara carga se não estiver já carregando (evita duplo request e dois toasts).
 function aoMudarLocal() {
+  if (loadingProdutos.value) return;
   listaProdutosEstoque.value = [];
   totalProdutos.value = 0;
   pageProdutos.value = 1;
@@ -220,6 +220,7 @@ function aoMudarLocal() {
   }
 }
 
+// Apenas o watch dispara a carga (evita duplo disparo com @change). nextTick garante v-model atualizado.
 watch(
   () => form.stock_location_id,
   (novoId) => {
@@ -238,11 +239,14 @@ async function carregarProdutosEstoque(page = 1) {
   const locationId = form.stock_location_id;
   if (locationId == null || locationId === '') return;
 
-  let companyId = getCompanyId();
+  // Usar empresa do local selecionado (quando disponível) para bater com o back; senão empresa do menu
+  const local = locais.value.find((l) => Number(l.id) === Number(locationId));
+  let companyId = local?.company_id != null ? local.company_id : getCompanyId();
   if (!companyId) {
     toast.add({ severity: 'warn', summary: 'Selecione a empresa', detail: 'Selecione uma empresa no menu superior.', life: 4000 });
     return;
   }
+  companyId = Number(companyId);
 
   loadingProdutos.value = true;
   listaProdutosEstoque.value = [];
