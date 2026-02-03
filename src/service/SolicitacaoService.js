@@ -9,6 +9,10 @@ class SolicitacaoService {
     return axios.get('/cotacoes/buyers');
   }
 
+  listRequesters() {
+    return axios.get('/cotacoes/requesters');
+  }
+
   show(id) {
     return axios.get(`/cotacoes/${id}`);
   }

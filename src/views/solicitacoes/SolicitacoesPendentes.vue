@@ -26,17 +26,17 @@
         />
       </div>
       <div class="flex align-items-center gap-2">
-        <label for="filtroComprador" class="text-900 font-medium">Comprador:</label>
+        <label for="filtroSolicitante" class="text-900 font-medium">Solicitante:</label>
         <Dropdown
-          id="filtroComprador"
-          v-model="filtroComprador"
-          :options="compradores"
+          id="filtroSolicitante"
+          v-model="filtroSolicitante"
+          :options="solicitantes"
           optionLabel="name"
           optionValue="id"
           placeholder="Todos"
           class="w-10rem"
           showClear
-          :loading="carregandoCompradores"
+          :loading="carregandoSolicitantes"
           @change="() => carregar(true)"
         />
       </div>
@@ -133,10 +133,10 @@ export default {
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
     const filtroStatus = ref(null);
-    const filtroComprador = ref(null);
+    const filtroSolicitante = ref(null);
     const opcoesStatus = OPCOES_STATUS;
-    const compradores = ref([]);
-    const carregandoCompradores = ref(false);
+    const solicitantes = ref([]);
+    const carregandoSolicitantes = ref(false);
     const carregando = ref(false);
     const totalRecords = ref(0);
     const page = ref(saved.page);
@@ -155,7 +155,7 @@ export default {
         } else {
           params.status_in = 'aguardando,autorizado';
         }
-        if (filtroComprador.value) params.buyer_id = filtroComprador.value;
+        if (filtroSolicitante.value) params.requester_id = filtroSolicitante.value;
         if (filtroGlobal.value?.trim()) {
           params.search = filtroGlobal.value.trim();
         }
@@ -193,20 +193,20 @@ export default {
       carregar();
     };
 
-    const carregarCompradores = async () => {
+    const carregarSolicitantes = async () => {
       try {
-        carregandoCompradores.value = true;
-        const { data } = await SolicitacaoService.listBuyers();
-        compradores.value = data?.data ?? [];
+        carregandoSolicitantes.value = true;
+        const { data } = await SolicitacaoService.listRequesters();
+        solicitantes.value = data?.data ?? [];
       } catch {
-        compradores.value = [];
+        solicitantes.value = [];
       } finally {
-        carregandoCompradores.value = false;
+        carregandoSolicitantes.value = false;
       }
     };
 
     onMounted(() => {
-      carregarCompradores();
+      carregarSolicitantes();
       page.value = 1;
       carregar();
     });
@@ -274,10 +274,10 @@ export default {
       solicitacoes,
       filtroGlobal,
       filtroStatus,
-      filtroComprador,
+      filtroSolicitante,
       opcoesStatus,
-      compradores,
-      carregandoCompradores,
+      solicitantes,
+      carregandoSolicitantes,
       totalRecords,
       rows,
       onPage,

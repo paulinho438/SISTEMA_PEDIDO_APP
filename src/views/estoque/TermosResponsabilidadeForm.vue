@@ -40,7 +40,6 @@
           placeholder="Selecione o local"
           class="w-full"
           :filter="true"
-          @change="onLocationChange"
         />
       </div>
       <div class="col-12">
@@ -153,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
@@ -215,6 +214,21 @@ const onLocationChange = () => {
   filtroProduto.value = '';
   if (form.stock_location_id) carregarProdutosEstoque(1);
 };
+
+// Garantir que produtos sejam carregados ao selecionar o local (o @change do Dropdown pode não disparar em alguns casos)
+watch(
+  () => form.stock_location_id,
+  (novoId, idAnterior) => {
+    if (novoId != null && novoId !== '') {
+      onLocationChange();
+    } else {
+      listaProdutosEstoque.value = [];
+      totalProdutos.value = 0;
+      pageProdutos.value = 1;
+      filtroProduto.value = '';
+    }
+  }
+);
 
 const carregarProdutosEstoque = async (page = 1) => {
   if (!form.stock_location_id) return;

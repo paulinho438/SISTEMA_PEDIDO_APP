@@ -35,17 +35,17 @@
           />
         </div>
         <div class="flex align-items-center gap-2">
-          <label for="filtroComprador" class="text-900 font-medium">Comprador:</label>
+          <label for="filtroSolicitante" class="text-900 font-medium">Solicitante:</label>
           <Dropdown
-              id="filtroComprador"
-              v-model="filtroComprador"
-              :options="compradores"
+              id="filtroSolicitante"
+              v-model="filtroSolicitante"
+              :options="solicitantes"
               optionLabel="name"
               optionValue="id"
               placeholder="Todos"
               class="w-10rem"
               showClear
-              :loading="carregandoCompradores"
+              :loading="carregandoSolicitantes"
               @change="onFilterChange"
           />
         </div>
@@ -193,10 +193,10 @@ export default {
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
     const filtroStatus = ref(null);
-    const filtroComprador = ref(null);
+    const filtroSolicitante = ref(null);
     const opcoesStatus = OPCOES_STATUS;
-    const compradores = ref([]);
-    const carregandoCompradores = ref(false);
+    const solicitantes = ref([]);
+    const carregandoSolicitantes = ref(false);
     const selecionadas = ref([]);
     const carregando = ref(false);
     const exportando = ref(false);
@@ -246,7 +246,7 @@ export default {
         }
         
         if (filtroStatus.value) params.status = filtroStatus.value;
-        if (filtroComprador.value) params.buyer_id = filtroComprador.value;
+        if (filtroSolicitante.value) params.requester_id = filtroSolicitante.value;
         if (filtroGlobal.value && filtroGlobal.value.trim()) {
           params.search = filtroGlobal.value.trim();
         }
@@ -292,15 +292,15 @@ export default {
       carregarSolicitacoes();
     };
 
-    const carregarCompradores = async () => {
+    const carregarSolicitantes = async () => {
       try {
-        carregandoCompradores.value = true;
-        const { data } = await SolicitacaoService.listBuyers();
-        compradores.value = data?.data ?? [];
+        carregandoSolicitantes.value = true;
+        const { data } = await SolicitacaoService.listRequesters();
+        solicitantes.value = data?.data ?? [];
       } catch {
-        compradores.value = [];
+        solicitantes.value = [];
       } finally {
-        carregandoCompradores.value = false;
+        carregandoSolicitantes.value = false;
       }
     };
     
@@ -333,7 +333,7 @@ export default {
         };
         if (!podeVerTodas.value) baseParams.my_requests = 'true';
         if (filtroStatus.value) baseParams.status = filtroStatus.value;
-        if (filtroComprador.value) baseParams.buyer_id = filtroComprador.value;
+        if (filtroSolicitante.value) baseParams.requester_id = filtroSolicitante.value;
         if (filtroGlobal.value?.trim()) baseParams.search = filtroGlobal.value.trim();
 
         let raw = [];
@@ -423,7 +423,7 @@ export default {
     };
 
     onMounted(() => {
-      carregarCompradores();
+      carregarSolicitantes();
       carregarSolicitacoes();
     });
 
@@ -563,10 +563,10 @@ export default {
       solicitacoes,
       filtroGlobal,
       filtroStatus,
-      filtroComprador,
+      filtroSolicitante,
       opcoesStatus,
-      compradores,
-      carregandoCompradores,
+      solicitantes,
+      carregandoSolicitantes,
       selecionadas,
       paginacao,
       mapaStatus,
