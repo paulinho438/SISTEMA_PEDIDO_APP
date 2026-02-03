@@ -53,6 +53,10 @@
 
       <!-- Lista paginada de produtos do local selecionado -->
       <div v-if="form.stock_location_id" class="mb-4">
+        <Message v-if="erroCarregarProdutos" severity="error" :closable="true" class="mb-2" @close="erroCarregarProdutos = ''">
+          {{ erroCarregarProdutos }}
+          <Button label="Tentar novamente" class="p-button-sm p-button-outlined ml-2" @click="erroCarregarProdutos = ''; carregarProdutosEstoque(1)" />
+        </Message>
         <div class="flex flex-wrap align-items-center gap-2 mb-2">
           <span class="p-input-icon-left flex-grow-1" style="max-width: 280px">
             <i class="pi pi-search" />
@@ -192,6 +196,7 @@ let tempIdCounter = 0;
 const listaProdutosEstoque = ref([]);
 const totalProdutos = ref(0);
 const loadingProdutos = ref(false);
+const erroCarregarProdutos = ref('');
 const pageProdutos = ref(1);
 const rowsProdutos = ref(10);
 const filtroProduto = ref('');
@@ -210,6 +215,7 @@ const voltar = () => router.push({ name: 'estoqueTermosResponsabilidade' });
 // Chamado ao selecionar/trocar local. Só dispara carga se não estiver já carregando (evita duplo request e dois toasts).
 function aoMudarLocal() {
   if (loadingProdutos.value) return;
+  erroCarregarProdutos.value = '';
   listaProdutosEstoque.value = [];
   totalProdutos.value = 0;
   pageProdutos.value = 1;
@@ -248,6 +254,7 @@ async function carregarProdutosEstoque(page = 1) {
   }
   companyId = Number(companyId);
 
+  erroCarregarProdutos.value = '';
   loadingProdutos.value = true;
   listaProdutosEstoque.value = [];
   totalProdutos.value = 0;
@@ -266,11 +273,10 @@ async function carregarProdutosEstoque(page = 1) {
   } catch (e) {
     listaProdutosEstoque.value = [];
     totalProdutos.value = 0;
-    const msg =
+    erroCarregarProdutos.value =
       e?.response?.data?.message ||
       (e?.response?.data?.errors ? Object.values(e.response.data.errors).flat().join(' ') : null) ||
-      'Erro ao carregar produtos do estoque. Tente selecionar a empresa no menu superior e o local novamente.';
-    toast.add({ severity: 'error', summary: 'Erro', detail: msg, life: 5000 });
+      'Erro ao carregar produtos. Selecione a empresa no menu superior e tente novamente.';
   } finally {
     loadingProdutos.value = false;
   }
