@@ -261,15 +261,24 @@ export default {
     const exportar = async () => {
       exportando.value = true;
       try {
-        const params = {
-          page: 1,
-          per_page: 99999,
+        const baseParams = {
+          per_page: 100,
         };
-        if (!podeVerTodas.value) params.my_requests = 'true';
-        if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
+        if (!podeVerTodas.value) baseParams.my_requests = 'true';
+        if (filtroGlobal.value?.trim()) baseParams.search = filtroGlobal.value.trim();
 
-        const { data } = await SolicitacaoService.list(params);
-        const raw = data?.data || [];
+        let raw = [];
+        let page = 1;
+        let lastPage = 1;
+        do {
+          const { data } = await SolicitacaoService.list({ ...baseParams, page });
+          const items = data?.data || [];
+          raw = raw.concat(items);
+          const pag = data?.pagination || {};
+          lastPage = pag.last_page ?? 1;
+          page += 1;
+        } while (page <= lastPage);
+
         const lista = raw.map((item) => ({
           numero: item.numero,
           data: item.data,
@@ -306,15 +315,25 @@ export default {
         ];
         const csvContent = csvRows.join('\r\n');
         const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `solicitacoes_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        const fileName = `solicitacoes_${new Date().toISOString().split('T')[0]}.csv`;
+
+        if (typeof navigator.msSaveBlob === 'function') {
+          navigator.msSaveBlob(blob, fileName);
+        } else {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          link.style.display = 'none';
+          link.setAttribute('download', fileName);
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          }, 200);
+        }
+
         toast.add({
           severity: 'success',
           summary: 'Exportação concluída',
