@@ -240,8 +240,11 @@ const carregarProdutosEstoque = async (page = 1) => {
   } catch (e) {
     listaProdutosEstoque.value = [];
     totalProdutos.value = 0;
-    const msg = e?.response?.data?.message || 'Erro ao carregar produtos do estoque.';
-    toast.add({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+    const msg =
+      e?.response?.data?.message ||
+      (e?.response?.data?.errors ? Object.values(e.response.data.errors).flat().join(' ') : null) ||
+      'Erro ao carregar produtos do estoque. Verifique se a empresa está selecionada e se você tem permissão para visualizar produtos.';
+    toast.add({ severity: 'error', summary: 'Erro', detail: msg, life: 5000 });
   } finally {
     loadingProdutos.value = false;
   }
