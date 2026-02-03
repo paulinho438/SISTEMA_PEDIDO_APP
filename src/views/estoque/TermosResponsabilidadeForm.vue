@@ -206,15 +206,23 @@ const buscarProdutos = async () => {
     toast.add({ severity: 'warn', summary: 'Selecione o local', detail: 'Escolha o local de estoque antes de adicionar itens.', life: 3000 });
     return;
   }
+  const companyId = getCompanyId();
+  if (!companyId) {
+    toast.add({ severity: 'warn', summary: 'Selecione a empresa', detail: 'Selecione uma empresa no menu superior para buscar produtos do estoque.', life: 4000 });
+    return;
+  }
   modalProduto.loading = true;
   try {
     const params = { per_page: 20, location_id: form.stock_location_id };
     if (modalProduto.busca?.trim()) params.search = modalProduto.busca.trim();
-    const { data } = await StockProductService.buscar(params);
+    const config = { headers: { 'company-id': String(companyId) } };
+    const { data } = await StockProductService.buscar(params, config);
     const list = data?.data ?? data ?? [];
     modalProduto.lista = Array.isArray(list) ? list : [];
   } catch (e) {
     modalProduto.lista = [];
+    const msg = e?.response?.data?.message || 'Erro ao buscar produtos do estoque.';
+    toast.add({ severity: 'error', summary: 'Erro ao buscar', detail: msg, life: 4000 });
   } finally {
     modalProduto.loading = false;
   }

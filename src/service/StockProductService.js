@@ -9,8 +9,8 @@ export default class StockProductService {
         return await axios.get('/estoque/produtos', { params });
     };
 
-    buscar = async (params = {}) => {
-        return await axios.get('/estoque/produtos/buscar', { params });
+    buscar = async (params = {}, config = {}) => {
+        return await axios.get('/estoque/produtos/buscar', { params, ...config });
     };
 
     save = async (product) => {
