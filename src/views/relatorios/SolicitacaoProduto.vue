@@ -121,9 +121,19 @@
 
       <Column field="numero" header="Cotação" sortable />
       <Column field="data" header="Data" sortable />
+      <Column field="solicitante" header="Solicitante" sortable style="min-width: 160px">
+        <template #body="slotProps">
+          <span class="text-wrap">{{ slotProps.data.solicitante ?? '-' }}</span>
+        </template>
+      </Column>
       <Column field="produto" header="Produto" sortable style="min-width: 200px">
         <template #body="slotProps">
           <span class="text-wrap">{{ slotProps.data.produto }}</span>
+        </template>
+      </Column>
+      <Column field="unidade" header="Unidade" sortable style="width: 90px">
+        <template #body="slotProps">
+          {{ slotProps.data.unidade ?? '-' }}
         </template>
       </Column>
       <Column field="qtd" header="Qtd" sortable style="width: 80px" />
@@ -145,6 +155,8 @@
       <template #footer>
         <tr>
           <td colspan="2" class="text-right font-semibold text-900">Total:</td>
+          <td></td>
+          <td></td>
           <td></td>
           <td class="font-semibold text-900">{{ totalQtd }}</td>
           <td colspan="2"></td>
@@ -427,7 +439,7 @@ const exportarExcel = () => {
   }
   exportando.value = true;
   try {
-    const headers = ['Cotação', 'Data', 'Produto', 'Qtd', 'Obs'];
+    const headers = ['Cotação', 'Data', 'Solicitante', 'Produto', 'Unidade', 'Qtd', 'Obs'];
     const sep = ';';
     const csvRows = [
       headers.join(sep),
@@ -435,7 +447,9 @@ const exportarExcel = () => {
         [
           escapeCsv(r.numero),
           escapeCsv(r.data),
+          escapeCsv(r.solicitante ?? '-'),
           escapeCsv(r.produto),
+          escapeCsv(r.unidade ?? '-'),
           escapeCsv(r.qtd),
           escapeCsv(r.obs),
         ].join(sep)
@@ -485,7 +499,7 @@ const exportarTodosExcel = async () => {
       });
       return;
     }
-    const headers = ['Cotação', 'Data', 'Produto', 'Qtd', 'Obs'];
+    const headers = ['Cotação', 'Data', 'Solicitante', 'Produto', 'Unidade', 'Qtd', 'Obs'];
     const sep = ';';
     const csvRows = [
       headers.join(sep),
@@ -493,7 +507,9 @@ const exportarTodosExcel = async () => {
         [
           escapeCsv(r.numero),
           escapeCsv(r.data),
+          escapeCsv(r.solicitante ?? '-'),
           escapeCsv(r.produto),
+          escapeCsv(r.unidade ?? '-'),
           escapeCsv(r.qtd),
           escapeCsv(r.obs),
         ].join(sep)
