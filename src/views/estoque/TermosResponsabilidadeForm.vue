@@ -172,6 +172,8 @@ import ResponsibilityTermService from '@/service/ResponsibilityTermService';
 import StockLocationService from '@/service/StockLocationService';
 import StockProductService from '@/service/StockProductService';
 
+const stockProductService = new StockProductService();
+
 const router = useRouter();
 const toast = useToast();
 const store = useStore();
@@ -262,7 +264,7 @@ async function carregarProdutosEstoque(page = 1) {
     };
     if (filtroProduto.value?.trim()) params.search = filtroProduto.value.trim();
     console.log('[TermosForm] chamando StockProductService.buscar com params:', params);
-    const { data } = await StockProductService.buscar(params);
+    const { data } = await stockProductService.buscar(params);
     console.log('[TermosForm] resposta recebida:', data);
     const list = data?.data ?? data ?? [];
     listaProdutosEstoque.value = Array.isArray(list) ? list : [];
