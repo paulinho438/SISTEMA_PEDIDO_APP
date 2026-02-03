@@ -245,15 +245,6 @@ async function carregarProdutosEstoque(page = 1) {
   const locationId = form.stock_location_id;
   if (locationId == null || locationId === '') return;
 
-  // Usar empresa do local selecionado (quando disponível) para bater com o back; senão empresa do menu
-  const local = locais.value.find((l) => Number(l.id) === Number(locationId));
-  let companyId = local?.company_id != null ? local.company_id : getCompanyId();
-  if (!companyId) {
-    toast.add({ severity: 'warn', summary: 'Selecione a empresa', detail: 'Selecione uma empresa no menu superior.', life: 4000 });
-    return;
-  }
-  companyId = Number(companyId);
-
   erroCarregarProdutos.value = '';
   loadingProdutos.value = true;
   listaProdutosEstoque.value = [];
@@ -265,7 +256,7 @@ async function carregarProdutosEstoque(page = 1) {
       location_id: locationId,
     };
     if (filtroProduto.value?.trim()) params.search = filtroProduto.value.trim();
-    const { data } = await StockProductService.buscar(params, { headers: { 'company-id': String(companyId) } });
+    const { data } = await StockProductService.buscar(params);
     const list = data?.data ?? data ?? [];
     listaProdutosEstoque.value = Array.isArray(list) ? list : [];
     const pag = data?.pagination ?? {};
