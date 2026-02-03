@@ -9,17 +9,48 @@
     <!-- Título -->
     <h5 class="text-900 mb-3">Listagem de Solicitações Pendentes de aprovação</h5>
 
-    <!-- Campo de busca -->
-    <div class="flex justify-content-end mb-3">
-            <span class="p-input-icon-left">
-                <i class="pi pi-search" />
-                <InputText
-                    v-model="filtroGlobal"
-                    placeholder="Buscar..."
-                    class="p-inputtext-sm"
-                    style="width: 16rem"
-                />
-            </span>
+    <!-- Filtros -->
+    <div class="flex flex-wrap align-items-center gap-3 mb-3">
+      <div class="flex align-items-center gap-2">
+        <label for="filtroStatus" class="text-900 font-medium">Status:</label>
+        <Dropdown
+          id="filtroStatus"
+          v-model="filtroStatus"
+          :options="opcoesStatus"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todos"
+          class="w-10rem"
+          showClear
+          @change="() => carregar(true)"
+        />
+      </div>
+      <div class="flex align-items-center gap-2">
+        <label for="filtroComprador" class="text-900 font-medium">Comprador:</label>
+        <Dropdown
+          id="filtroComprador"
+          v-model="filtroComprador"
+          :options="compradores"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Todos"
+          class="w-10rem"
+          showClear
+          :loading="carregandoCompradores"
+          @change="() => carregar(true)"
+        />
+      </div>
+      <span class="p-input-icon-left ml-auto">
+        <i class="pi pi-search" />
+        <InputText
+          v-model="filtroGlobal"
+          placeholder="Buscar..."
+          class="p-inputtext-sm"
+          style="width: 16rem"
+          @keyup.enter="() => carregar(true)"
+        />
+      </span>
+      <Button label="Buscar" icon="pi pi-search" class="p-button-outlined" @click="() => carregar(true)" />
     </div>
 
     <!-- Tabela (paginação sempre envia page e per_page para o back) -->
@@ -74,9 +105,25 @@ import { ToastSeverity } from 'primevue/api';
 import { useRouter } from 'vue-router';
 import SolicitacaoService from '@/service/SolicitacaoService';
 import { usePaginationPersist } from '@/composables/usePaginationPersist';
+import Dropdown from 'primevue/dropdown';
+import Button from 'primevue/button';
+
+const OPCOES_STATUS = [
+  { value: 'aguardando', label: 'Aguardando' },
+  { value: 'autorizado', label: 'Autorizado' },
+  { value: 'em_analise_supervisor', label: 'Em análise (Supervisor)' },
+  { value: 'cotacao', label: 'Cotação' },
+  { value: 'compra_em_andamento', label: 'Compra em andamento' },
+  { value: 'finalizada', label: 'Finalizada' },
+  { value: 'analisada', label: 'Analisada' },
+  { value: 'analisada_aguardando', label: 'Analisada / Aguardando' },
+  { value: 'analise_gerencia', label: 'Análise Gerência' },
+  { value: 'aprovado', label: 'Aprovado' },
+];
 
 export default {
   name: 'SolicitacoesPendentes',
+  components: { Dropdown, Button },
   setup() {
     const toast = useToast();
     const router = useRouter();
@@ -85,19 +132,30 @@ export default {
 
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
+    const filtroStatus = ref(null);
+    const filtroComprador = ref(null);
+    const opcoesStatus = OPCOES_STATUS;
+    const compradores = ref([]);
+    const carregandoCompradores = ref(false);
     const carregando = ref(false);
     const totalRecords = ref(0);
     const page = ref(saved.page);
     const rows = ref(saved.rows);
 
-    const carregar = async () => {
+    const carregar = async (resetarPagina = false) => {
       try {
         carregando.value = true;
+        if (resetarPagina) page.value = 1;
         const params = {
           page: page.value,
           per_page: rows.value,
-          status_in: 'aguardando,autorizado',
         };
+        if (filtroStatus.value) {
+          params.status = filtroStatus.value;
+        } else {
+          params.status_in = 'aguardando,autorizado';
+        }
+        if (filtroComprador.value) params.buyer_id = filtroComprador.value;
         if (filtroGlobal.value?.trim()) {
           params.search = filtroGlobal.value.trim();
         }
@@ -135,7 +193,20 @@ export default {
       carregar();
     };
 
+    const carregarCompradores = async () => {
+      try {
+        carregandoCompradores.value = true;
+        const { data } = await SolicitacaoService.listBuyers();
+        compradores.value = data?.data ?? [];
+      } catch {
+        compradores.value = [];
+      } finally {
+        carregandoCompradores.value = false;
+      }
+    };
+
     onMounted(() => {
+      carregarCompradores();
       page.value = 1;
       carregar();
     });
@@ -202,6 +273,11 @@ export default {
     return {
       solicitacoes,
       filtroGlobal,
+      filtroStatus,
+      filtroComprador,
+      opcoesStatus,
+      compradores,
+      carregandoCompradores,
       totalRecords,
       rows,
       onPage,

@@ -19,25 +19,54 @@
         />
       </div>
 
-      <div class="flex align-items-center">
+      <div class="flex flex-wrap align-items-center gap-2">
+        <div class="flex align-items-center gap-2">
+          <label for="filtroStatus" class="text-900 font-medium">Status:</label>
+          <Dropdown
+              id="filtroStatus"
+              v-model="filtroStatus"
+              :options="opcoesStatus"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Todos"
+              class="w-10rem"
+              showClear
+              @change="onFilterChange"
+          />
+        </div>
+        <div class="flex align-items-center gap-2">
+          <label for="filtroComprador" class="text-900 font-medium">Comprador:</label>
+          <Dropdown
+              id="filtroComprador"
+              v-model="filtroComprador"
+              :options="compradores"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Todos"
+              class="w-10rem"
+              showClear
+              :loading="carregandoCompradores"
+              @change="onFilterChange"
+          />
+        </div>
         <Button
             label="Exportar"
             icon="pi pi-file-excel"
-            class="p-button-outlined p-button-success mr-3"
+            class="p-button-outlined p-button-success mr-2"
             @click="exportar"
             :loading="exportando"
             :disabled="carregando"
         />
         <span class="p-input-icon-left">
-                    <i class="pi pi-search" />
-                    <InputText
-                        v-model="filtroGlobal"
-                        placeholder="Buscar..."
-                        class="p-inputtext-sm"
-                        style="width: 16rem"
-                        @input="onSearchChange"
-                    />
-                </span>
+          <i class="pi pi-search" />
+          <InputText
+              v-model="filtroGlobal"
+              placeholder="Buscar..."
+              class="p-inputtext-sm"
+              style="width: 16rem"
+              @input="onSearchChange"
+          />
+        </span>
       </div>
     </div>
 
@@ -135,9 +164,24 @@ import { useRouter } from 'vue-router';
 import SolicitacaoService from '@/service/SolicitacaoService';
 import PermissionsService from '@/service/PermissionsService';
 import { usePaginationPersist } from '@/composables/usePaginationPersist';
+import Dropdown from 'primevue/dropdown';
+
+const OPCOES_STATUS = [
+  { value: 'aguardando', label: 'Aguardando' },
+  { value: 'autorizado', label: 'Autorizado' },
+  { value: 'em_analise_supervisor', label: 'Em análise (Supervisor)' },
+  { value: 'cotacao', label: 'Cotação' },
+  { value: 'compra_em_andamento', label: 'Compra em andamento' },
+  { value: 'finalizada', label: 'Finalizada' },
+  { value: 'analisada', label: 'Analisada' },
+  { value: 'analisada_aguardando', label: 'Analisada / Aguardando' },
+  { value: 'analise_gerencia', label: 'Análise Gerência' },
+  { value: 'aprovado', label: 'Aprovado' },
+];
 
 export default {
   name: 'CicomList',
+  components: { Dropdown },
   setup() {
     const toast = useToast();
     const confirm = useConfirm();
@@ -148,6 +192,11 @@ export default {
 
     const solicitacoes = ref([]);
     const filtroGlobal = ref('');
+    const filtroStatus = ref(null);
+    const filtroComprador = ref(null);
+    const opcoesStatus = OPCOES_STATUS;
+    const compradores = ref([]);
+    const carregandoCompradores = ref(false);
     const selecionadas = ref([]);
     const carregando = ref(false);
     const exportando = ref(false);
@@ -196,7 +245,8 @@ export default {
           params.my_requests = 'true';
         }
         
-        // Adicionar busca se houver filtro
+        if (filtroStatus.value) params.status = filtroStatus.value;
+        if (filtroComprador.value) params.buyer_id = filtroComprador.value;
         if (filtroGlobal.value && filtroGlobal.value.trim()) {
           params.search = filtroGlobal.value.trim();
         }
@@ -236,6 +286,23 @@ export default {
       paginacao.value.perPage = newRows;
       carregarSolicitacoes();
     };
+
+    const onFilterChange = () => {
+      paginacao.value.page = 1;
+      carregarSolicitacoes();
+    };
+
+    const carregarCompradores = async () => {
+      try {
+        carregandoCompradores.value = true;
+        const { data } = await SolicitacaoService.listBuyers();
+        compradores.value = data?.data ?? [];
+      } catch {
+        compradores.value = [];
+      } finally {
+        carregandoCompradores.value = false;
+      }
+    };
     
     const onSearchChange = () => {
       // Debounce: aguardar 500ms após o usuário parar de digitar
@@ -265,6 +332,8 @@ export default {
           per_page: 100,
         };
         if (!podeVerTodas.value) baseParams.my_requests = 'true';
+        if (filtroStatus.value) baseParams.status = filtroStatus.value;
+        if (filtroComprador.value) baseParams.buyer_id = filtroComprador.value;
         if (filtroGlobal.value?.trim()) baseParams.search = filtroGlobal.value.trim();
 
         let raw = [];
@@ -353,7 +422,10 @@ export default {
       }
     };
 
-    onMounted(carregarSolicitacoes);
+    onMounted(() => {
+      carregarCompradores();
+      carregarSolicitacoes();
+    });
 
     const novaSolicitacao = () => router.push({ name: 'solicitacoesAdd' });
     const visualizar = (item) => {
@@ -490,6 +562,11 @@ export default {
     return {
       solicitacoes,
       filtroGlobal,
+      filtroStatus,
+      filtroComprador,
+      opcoesStatus,
+      compradores,
+      carregandoCompradores,
       selecionadas,
       paginacao,
       mapaStatus,
@@ -509,6 +586,7 @@ export default {
       podeAlterarCentroCusto,
       alterarCentroCusto,
       onPageChange,
+      onFilterChange,
       onSearchChange,
     };
   },
