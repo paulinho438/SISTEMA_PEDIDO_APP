@@ -40,6 +40,7 @@
           placeholder="Selecione o local"
           class="w-full"
           :filter="true"
+          @change="aoMudarLocal"
         />
       </div>
       <div class="col-12">
@@ -152,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue';
+import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
@@ -207,20 +208,23 @@ const podeSalvar = computed(() => {
 
 const voltar = () => router.push({ name: 'estoqueTermosResponsabilidade' });
 
-const onLocationChange = () => {
+// Chamado ao selecionar/trocar local (Dropdown @change + watch para garantir)
+function aoMudarLocal() {
   listaProdutosEstoque.value = [];
   totalProdutos.value = 0;
   pageProdutos.value = 1;
   filtroProduto.value = '';
-  if (form.stock_location_id) carregarProdutosEstoque(1);
-};
+  const id = form.stock_location_id;
+  if (id != null && id !== '') {
+    carregarProdutosEstoque(1);
+  }
+}
 
-// Garantir que produtos sejam carregados ao selecionar o local (o @change do Dropdown pode não disparar em alguns casos)
 watch(
   () => form.stock_location_id,
-  (novoId, idAnterior) => {
+  (novoId) => {
     if (novoId != null && novoId !== '') {
-      onLocationChange();
+      nextTick(() => aoMudarLocal());
     } else {
       listaProdutosEstoque.value = [];
       totalProdutos.value = 0;
@@ -230,39 +234,43 @@ watch(
   }
 );
 
-const carregarProdutosEstoque = async (page = 1) => {
-  if (!form.stock_location_id) return;
-  const companyId = getCompanyId();
+async function carregarProdutosEstoque(page = 1) {
+  const locationId = form.stock_location_id;
+  if (locationId == null || locationId === '') return;
+
+  let companyId = getCompanyId();
   if (!companyId) {
     toast.add({ severity: 'warn', summary: 'Selecione a empresa', detail: 'Selecione uma empresa no menu superior.', life: 4000 });
     return;
   }
+
   loadingProdutos.value = true;
+  listaProdutosEstoque.value = [];
+  totalProdutos.value = 0;
   try {
     const params = {
       per_page: rowsProdutos.value,
       page,
-      location_id: form.stock_location_id,
+      location_id: locationId,
     };
     if (filtroProduto.value?.trim()) params.search = filtroProduto.value.trim();
-    const config = { headers: { 'company-id': String(companyId) } };
-    const { data } = await StockProductService.buscar(params, config);
+    const { data } = await StockProductService.buscar(params, { headers: { 'company-id': String(companyId) } });
     const list = data?.data ?? data ?? [];
     listaProdutosEstoque.value = Array.isArray(list) ? list : [];
     const pag = data?.pagination ?? {};
-    totalProdutos.value = pag.total ?? listaProdutosEstoque.value.length;
+    totalProdutos.value = Number(pag.total) ?? listaProdutosEstoque.value.length;
   } catch (e) {
     listaProdutosEstoque.value = [];
     totalProdutos.value = 0;
     const msg =
       e?.response?.data?.message ||
       (e?.response?.data?.errors ? Object.values(e.response.data.errors).flat().join(' ') : null) ||
-      'Erro ao carregar produtos do estoque. Verifique se a empresa está selecionada e se você tem permissão para visualizar produtos.';
+      'Erro ao carregar produtos do estoque. Tente selecionar a empresa no menu superior e o local novamente.';
     toast.add({ severity: 'error', summary: 'Erro', detail: msg, life: 5000 });
   } finally {
     loadingProdutos.value = false;
   }
-};
+}
 
 const onPageProdutos = (event) => {
   pageProdutos.value = event.page + 1;
@@ -323,13 +331,17 @@ const salvar = async () => {
   }
 };
 
-const getCompanyId = () => {
+function getCompanyId() {
   const c = store.getters?.isCompany;
   if (c?.id != null) return c.id;
   const list = store.getters?.companies;
-  if (Array.isArray(list) && list.length > 0 && list[0]?.id != null) return list[0].id;
+  if (!Array.isArray(list) || list.length === 0) return null;
+  if (list.length === 1 && list[0]?.id != null) {
+    store.commit('setCompany', list[0]);
+    return list[0].id;
+  }
   return null;
-};
+}
 
 const carregarLocais = async () => {
   let companyId = getCompanyId();
