@@ -1896,9 +1896,12 @@ export default {
       replicarAplicacaoPrioridadeTagDoPrimeiro,
       voltar,
       salvar,
+      salvarRascunho,
+      finalizarRascunho,
       isSaving,
       loading,
       isEditMode,
+      statusAtual,
       statusReprovado: computed(() => statusAtual.value === 'reprovado'),
       
       // Verificar se pode editar baseado no status da cotação
