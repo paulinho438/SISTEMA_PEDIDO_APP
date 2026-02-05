@@ -129,9 +129,9 @@
       <table class="tabela-cotacao">
         <thead>
         <tr>
-          <th rowspan="2">N°</th>
-          <th rowspan="2">Qtd</th>
-          <th rowspan="2">Medida</th>
+          <th rowspan="2" style="position: sticky; left: 0px; background: #fff; z-index: 5; ">N°</th>
+          <th rowspan="2" style="position: sticky; left: 26px; background: #fff; z-index: 5; ">Qtd</th>
+          <th rowspan="2" style="position: sticky; left: 59px; background: #fff; z-index: 5; ">Medida</th>
           <th rowspan="2" style="min-width: 140px;">Referência do Produto</th>
           <th rowspan="2" style="min-width: 250px;">Descrição do Produto</th>
           <template v-for="(cot, i) in cotacoes" :key="'cab-' + i">
