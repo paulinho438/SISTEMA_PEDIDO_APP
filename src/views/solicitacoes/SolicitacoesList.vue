@@ -167,6 +167,7 @@ import { usePaginationPersist } from '@/composables/usePaginationPersist';
 import Dropdown from 'primevue/dropdown';
 
 const OPCOES_STATUS = [
+  { value: 'rascunho', label: 'Rascunho' },
   { value: 'aguardando', label: 'Aguardando' },
   { value: 'autorizado', label: 'Autorizado' },
   { value: 'em_analise_supervisor', label: 'Em análise (Supervisor)' },
@@ -220,6 +221,7 @@ export default {
     });
 
     const mapaStatus = {
+      rascunho: 'secondary',
       aguardando: 'warning',
       autorizado: 'info',
       cotacao: 'warning',
@@ -534,8 +536,8 @@ export default {
     };
 
     const podeEditar = (statusSlug) => {
-      // Pode editar solicitação completa apenas quando status for "aguardando" ou "reprovado"
-      return statusSlug === 'aguardando' || statusSlug === 'reprovado';
+      // Pode editar solicitação completa quando status for "rascunho", "aguardando" ou "reprovado"
+      return statusSlug === 'rascunho' || statusSlug === 'aguardando' || statusSlug === 'reprovado';
     };
 
     const podeAlterarQuantidade = (statusSlug) => {
@@ -545,6 +547,7 @@ export default {
 
     const statusStyle = (slug) => {
       const styles = {
+        rascunho: { backgroundColor: '#E5E5E5', color: '#6C757D' },
         aguardando: { backgroundColor: '#FFEED0', color: '#C47F17' },
         autorizado: { backgroundColor: '#CDE7FF', color: '#1363B4' },
         cotacao: { backgroundColor: '#FFEED0', color: '#C47F17' },
