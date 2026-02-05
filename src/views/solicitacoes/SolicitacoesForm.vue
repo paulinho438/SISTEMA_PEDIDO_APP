@@ -135,7 +135,7 @@
           </template>
         </Column>
 
-        <Column field="mercadoria" header="Mercadoria">
+        <Column field="mercadoria" header="Mercadoria" style="min-width: 220px">
           <template #body="{ data }">
             <InputText 
               v-model="data.mercadoria" 
@@ -145,7 +145,7 @@
           </template>
         </Column>
 
-        <Column field="quantidade" header="Quant solicitada">
+        <Column field="quantidade" header="Quant." style="width: 50px; max-width: 50px">
           <template #body="{ data }">
             <InputNumber 
               v-model="data.quantidade" 
@@ -155,7 +155,7 @@
           </template>
         </Column>
 
-        <Column field="unidade" header="Medida">
+        <Column field="unidade" header="Medida" style="width: 50px; max-width: 50px">
           <template #body="{ data }">
             <InputText 
               v-model="data.unidade" 
