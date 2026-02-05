@@ -99,6 +99,10 @@ class SolicitacaoService {
   alterarCentroCustoItens(id, payload) {
     return axios.put(`/cotacoes/${id}/itens-centro-custo`, payload);
   }
+
+  finalizarRascunho(id) {
+    return axios.post(`/cotacoes/${id}/finalizar-rascunho`);
+  }
 }
 
 export default new SolicitacaoService();

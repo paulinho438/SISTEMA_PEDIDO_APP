@@ -247,9 +247,55 @@
     </div>
 
     <!-- Botões -->
-    <div class="flex justify-content-end mt-4">
-      <Button label="Cancelar" class="p-button-text mr-2" @click="voltar" />
-      <Button label="Salvar" icon="pi pi-check" class="p-button-success" :loading="isSaving" :disabled="isSaving" @click="salvar" />
+    <div class="flex justify-content-end mt-4 gap-2">
+      <Button label="Cancelar" class="p-button-text" @click="voltar" />
+      <!-- Mostrar botões diferentes para rascunho e criação normal -->
+      <template v-if="isEditMode && statusAtual === 'rascunho'">
+        <Button 
+          label="Salvar como Rascunho" 
+          icon="pi pi-save" 
+          class="p-button-outlined p-button-secondary" 
+          :loading="isSaving" 
+          :disabled="isSaving" 
+          @click="salvarRascunho" 
+        />
+        <Button 
+          label="Finalizar Solicitação" 
+          icon="pi pi-check" 
+          class="p-button-success" 
+          :loading="isSaving" 
+          :disabled="isSaving" 
+          @click="finalizarRascunho" 
+        />
+      </template>
+      <template v-else-if="!isEditMode">
+        <Button 
+          label="Salvar como Rascunho" 
+          icon="pi pi-save" 
+          class="p-button-outlined p-button-secondary" 
+          :loading="isSaving" 
+          :disabled="isSaving" 
+          @click="salvarRascunho" 
+        />
+        <Button 
+          label="Finalizar Solicitação" 
+          icon="pi pi-check" 
+          class="p-button-success" 
+          :loading="isSaving" 
+          :disabled="isSaving" 
+          @click="salvar" 
+        />
+      </template>
+      <template v-else>
+        <Button 
+          label="Salvar" 
+          icon="pi pi-check" 
+          class="p-button-success" 
+          :loading="isSaving" 
+          :disabled="isSaving" 
+          @click="salvar" 
+        />
+      </template>
     </div>
 
     <!-- Modal de seleção de produto -->
@@ -1609,6 +1655,162 @@ export default {
     };
 
     const voltar = () => router.push('/solicitacoes');
+    
+    // Função auxiliar para preparar payload
+    const prepararPayload = (incluirRascunho = false) => {
+      const formatDate = (value) => {
+        if (!value) return null;
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return null;
+        }
+        const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const year = localDate.getFullYear();
+        const month = String(localDate.getMonth() + 1).padStart(2, '0');
+        const day = String(localDate.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const usuario = store.state.usuario;
+      const company = store.state.company;
+      
+      let solicitantePayload;
+      if (podeSelecionarSolicitante.value && form.value.solicitanteSelecionado) {
+        solicitantePayload = {
+          id: form.value.solicitanteSelecionado.id || null,
+          label: form.value.solicitanteSelecionado.label || form.value.solicitante || ''
+        };
+      } else {
+        solicitantePayload = {
+          id: usuario?.id || null,
+          label: form.value.solicitante || usuario?.nome_completo || usuario?.name || usuario?.login || ''
+        };
+      }
+      
+      return {
+        numero: form.value.numero,
+        data_solicitacao: formatDate(form.value.data),
+        solicitante: solicitantePayload,
+        empresa: {
+          id: company?.id || null,
+          label: form.value.empresa || company?.company || company?.name || ''
+        },
+        local: form.value.local || null,
+        work_front: form.value.workFront || null,
+        observacao: form.value.observacao || null,
+        rascunho: incluirRascunho,
+        itens: form.value.itens.map((item) => ({
+          id: item.id ?? null,
+          codigo: item.codigo || null,
+          referencia: item.referencia || null,
+          mercadoria: item.mercadoria,
+          quantidade: item.quantidade || 0,
+          unidade: item.unidade || null,
+          aplicacao: item.aplicacao || null,
+          prioridade: item.prioridade || null,
+          tag: item.tag || null,
+          centro_custo: item.centroCusto
+            ? {
+              codigo: item.centroCusto.CTT_CUSTO,
+              descricao: item.centroCusto.CTT_DESC01,
+              classe: item.centroCusto.CTT_CLASSE,
+            }
+            : null,
+        })),
+      };
+    };
+
+    // Salvar como rascunho (sem validações obrigatórias)
+    const salvarRascunho = async () => {
+      if (isSaving.value) {
+        return;
+      }
+
+      errors.value = {};
+
+      // Validação mínima: pelo menos um item
+      if (!form.value.itens || form.value.itens.length === 0) {
+        toast.add({ severity: 'warn', summary: 'Itens obrigatórios', detail: 'Adicione ao menos um item antes de salvar.', life: 3000 });
+        return;
+      }
+
+      isSaving.value = true;
+
+      try {
+        const payload = prepararPayload(true);
+        let response;
+        
+        if (isEditMode.value && route.params.id) {
+          response = await SolicitacaoService.update(route.params.id, payload);
+        } else {
+          response = await SolicitacaoService.create(payload);
+        }
+
+        toast.add({
+          severity: 'success',
+          summary: 'Rascunho salvo!',
+          detail: `Rascunho ${response?.data?.data?.numero ?? ''} salvo com sucesso.`,
+          life: 3000,
+        });
+
+        // Se for criação, redirecionar para edição do rascunho
+        if (!isEditMode.value && response?.data?.data?.id) {
+          router.push({ name: 'solicitacoesEdit', params: { id: String(response.data.data.id) } });
+        }
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Não foi possível salvar o rascunho.';
+        toast.add({ severity: 'error', summary: 'Erro ao salvar', detail, life: 4000 });
+      } finally {
+        isSaving.value = false;
+      }
+    };
+
+    // Finalizar rascunho (mudar status de rascunho para aguardando)
+    const finalizarRascunho = async () => {
+      if (isSaving.value) {
+        return;
+      }
+
+      errors.value = {};
+
+      // Validações completas para finalizar
+      if (!form.value.itens || form.value.itens.length === 0) {
+        toast.add({ severity: 'warn', summary: 'Itens obrigatórios', detail: 'Adicione ao menos um item antes de finalizar.', life: 3000 });
+        return;
+      }
+
+      if (!form.value.observacao || !form.value.observacao.trim()) {
+        errors.value.observacao = 'Justificativa / Motivo é obrigatório.';
+        toast.add({ severity: 'warn', summary: 'Campo obrigatório', detail: 'Preencha a Justificativa / Motivo antes de finalizar.', life: 3000 });
+        return;
+      }
+
+      isSaving.value = true;
+
+      try {
+        // Primeiro atualizar os dados (incluindo a observação)
+        const payload = prepararPayload(false);
+        await SolicitacaoService.update(route.params.id, payload);
+        
+        // Depois chamar endpoint para finalizar rascunho (mudar status)
+        await SolicitacaoService.finalizarRascunho(route.params.id);
+
+        toast.add({
+          severity: 'success',
+          summary: 'Solicitação finalizada!',
+          detail: `Solicitação ${form.value.numero ?? ''} finalizada com sucesso e encaminhada para análise.`,
+          life: 3000,
+        });
+
+        router.push({ name: 'solicitacoesList' });
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Não foi possível finalizar a solicitação.';
+        toast.add({ severity: 'error', summary: 'Erro ao finalizar', detail, life: 4000 });
+      } finally {
+        isSaving.value = false;
+      }
+    };
+
     const salvar = async () => {
       if (isSaving.value) {
         return;
@@ -1633,71 +1835,7 @@ export default {
 
       isSaving.value = true;
 
-      const formatDate = (value) => {
-        if (!value) return null;
-        const date = value instanceof Date ? value : new Date(value);
-        if (Number.isNaN(date.getTime())) {
-          return null;
-        }
-        // Criar uma nova data usando valores locais para evitar problemas de timezone
-        // Isso garante que a data selecionada pelo usuário seja preservada corretamente
-        const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const year = localDate.getFullYear();
-        const month = String(localDate.getMonth() + 1).padStart(2, '0');
-        const day = String(localDate.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
-      // Obter dados do usuário e empresa do store
-      const usuario = store.state.usuario;
-      const company = store.state.company;
-      
-      // Determinar o solicitante: usar o selecionado se tiver permissão, senão usar o usuário atual
-      let solicitantePayload;
-      if (podeSelecionarSolicitante.value && form.value.solicitanteSelecionado) {
-        // Usar o solicitante selecionado
-        solicitantePayload = {
-          id: form.value.solicitanteSelecionado.id || null,
-          label: form.value.solicitanteSelecionado.label || form.value.solicitante || ''
-        };
-      } else {
-        // Usar o usuário atual (comportamento padrão)
-        solicitantePayload = {
-          id: usuario?.id || null,
-          label: form.value.solicitante || usuario?.nome_completo || usuario?.name || usuario?.login || ''
-        };
-      }
-      
-      const payload = {
-        numero: form.value.numero,
-        data_solicitacao: formatDate(form.value.data),
-        solicitante: solicitantePayload,
-        empresa: {
-          id: company?.id || null,
-          label: form.value.empresa || company?.company || company?.name || ''
-        },
-        local: form.value.local || null,
-        work_front: form.value.workFront || null,
-        observacao: form.value.observacao || null,
-        itens: form.value.itens.map((item) => ({
-          id: item.id ?? null,
-          codigo: item.codigo || null,
-          referencia: item.referencia || null,
-          mercadoria: item.mercadoria,
-          quantidade: item.quantidade || 0,
-          unidade: item.unidade || null,
-          aplicacao: item.aplicacao || null,
-          prioridade: item.prioridade || null,
-          tag: item.tag || null,
-          centro_custo: item.centroCusto
-            ? {
-              codigo: item.centroCusto.CTT_CUSTO,
-              descricao: item.centroCusto.CTT_DESC01,
-              classe: item.centroCusto.CTT_CLASSE,
-            }
-            : null,
-        })),
-      };
+      const payload = prepararPayload(false);
 
       try {
         let response;
