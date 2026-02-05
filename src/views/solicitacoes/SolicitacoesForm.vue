@@ -102,7 +102,7 @@
       
       <!-- Mensagem informativa quando não pode editar -->
       <Message 
-        v-if="isEditMode && !podeEditarQuantidade" 
+        v-if="isEditMode && !podeEditarQuantidade && statusAtual !== 'rascunho'" 
         severity="info" 
         :closable="false" 
         class="mb-3"
@@ -1907,8 +1907,8 @@ export default {
       // Verificar se pode editar baseado no status da cotação
       podeEditarQuantidade: computed(() => {
         const status = statusAtual.value;
-        // Permitir edição: aguardando (ex.: após reset), cotacao, compra_em_andamento
-        const statusPermitidos = ['aguardando', 'cotacao', 'compra_em_andamento'];
+        // Permitir edição: rascunho, aguardando (ex.: após reset), cotacao, compra_em_andamento
+        const statusPermitidos = ['rascunho', 'aguardando', 'cotacao', 'compra_em_andamento'];
         const statusBloqueados = ['analisada', 'analisada_aguardando', 'analise_gerencia', 'em_analise_supervisor', 'autorizado', 'aprovado', 'finalizada'];
         
         // Se não há status (criação), permitir edição
