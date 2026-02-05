@@ -100,9 +100,9 @@
         </div>
       </div>
       
-      <!-- Mensagem informativa quando não pode editar -->
+      <!-- Mensagem informativa quando não pode editar (exceto em modo admin) -->
       <Message 
-        v-if="isEditMode && !podeEditarQuantidade && statusAtual !== 'rascunho'" 
+        v-if="isEditMode && !podeEditarQuantidade && statusAtual !== 'rascunho' && !isAdminEdit" 
         severity="info" 
         :closable="false" 
         class="mb-3"
@@ -1906,6 +1906,11 @@ export default {
       
       // Verificar se pode editar baseado no status da cotação
       podeEditarQuantidade: computed(() => {
+        // Se estiver em modo admin/master edit, sempre permitir edição
+        if (isAdminEdit.value) {
+          return true;
+        }
+        
         const status = statusAtual.value;
         // Permitir edição: rascunho, aguardando (ex.: após reset), cotacao, compra_em_andamento
         const statusPermitidos = ['rascunho', 'aguardando', 'cotacao', 'compra_em_andamento'];
@@ -1944,7 +1949,8 @@ export default {
       podeSelecionarSolicitante,
       solicitantesFiltrados,
       carregandoSolicitantes,
-      buscarSolicitantes
+      buscarSolicitantes,
+      isAdminEdit
     };
   },
   components: {
