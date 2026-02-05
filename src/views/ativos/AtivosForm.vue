@@ -17,7 +17,7 @@
           <div class="grid">
             <div class="col-12 md:col-6">
               <label>Número do Ativo</label>
-              <InputText v-model="form.asset_number" class="w-full" :disabled="!!id || isViewMode || !podeEditar" />
+              <InputText v-model="form.asset_number" class="w-full" :disabled="isViewMode || !podeEditar" />
             </div>
             <div class="col-12 md:col-6">
               <label>Data de Aquisição *</label>

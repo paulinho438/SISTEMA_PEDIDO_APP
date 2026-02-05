@@ -150,15 +150,20 @@ export default {
           page: page.value,
           per_page: rows.value,
         };
-        if (filtroStatus.value) {
+        
+        // Aplicar filtro de status: se definido, usar status específico, senão usar status_in padrão
+        if (filtroStatus.value !== null && filtroStatus.value !== undefined && filtroStatus.value !== '') {
           params.status = filtroStatus.value;
         } else {
+          // Quando não há filtro específico, mostrar apenas pendentes (aguardando e autorizado)
           params.status_in = 'aguardando,autorizado';
         }
+        
         if (filtroSolicitante.value) params.requester_id = filtroSolicitante.value;
         if (filtroGlobal.value?.trim()) {
           params.search = filtroGlobal.value.trim();
         }
+        
         const { data } = await SolicitacaoService.list(params);
 
         const list = data?.data || [];
@@ -212,6 +217,16 @@ export default {
     });
 
     watch(filtroGlobal, () => {
+      page.value = 1;
+      carregar();
+    });
+
+    watch(filtroStatus, () => {
+      page.value = 1;
+      carregar();
+    });
+
+    watch(filtroSolicitante, () => {
       page.value = 1;
       carregar();
     });
