@@ -13,6 +13,10 @@
       </template>
       <strong>Modo Edição Master:</strong> Você está editando esta cotação com permissão master. 
       O status não será alterado automaticamente e os pedidos de compra serão sincronizados após salvar.
+      <br />
+      <small v-if="process.env.NODE_ENV === 'development'">
+        Debug: isAdminEdit={{ isAdminEdit }}, isReadOnly={{ isReadOnly }}, modo={{ route.query.modo }}
+      </small>
     </Message>
     <!-- Header -->
     <div class="flex justify-content-between align-items-center mb-3">
@@ -854,7 +858,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useStore } from 'vuex'
@@ -997,7 +1001,19 @@ const readOnlyStatuses = ['finalizada', 'analisada', 'analisada_aguardando', 'an
 const isAdminEdit = computed(() => {
   const modoAdmin = route.query.modo === 'admin'
   const hasMasterPerm = permissionService.hasPermissions('edit_cotacoes_master')
-  return modoAdmin && hasMasterPerm
+  const result = modoAdmin && hasMasterPerm
+  
+  // Debug
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[isAdminEdit]', {
+      modoAdmin,
+      hasMasterPerm,
+      query: route.query,
+      result
+    })
+  }
+  
+  return result
 })
 
 // isReadOnly: não pode editar se o status está em readOnlyStatuses OU se não tem permissão para editar
@@ -1006,6 +1022,10 @@ const isAdminEdit = computed(() => {
 const isReadOnly = computed(() => {
   // Modo admin: sempre permite edição, independente do status
   if (isAdminEdit.value) {
+    // Debug
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[isReadOnly] Modo admin ativo - retornando false')
+    }
     return false
   }
   
@@ -2827,7 +2847,29 @@ const imprimirCotacao = async () => {
   }
 }
 
+// Watch para garantir reatividade do modo admin
+watch(
+  () => route.query.modo,
+  (novoModo) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[watch route.query.modo]', { novoModo, isAdminEdit: isAdminEdit.value, isReadOnly: isReadOnly.value })
+    }
+  },
+  { immediate: true }
+)
+
 onMounted(async () => {
+  // Debug inicial
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[onMounted]', {
+      query: route.query,
+      modo: route.query.modo,
+      isAdminEdit: isAdminEdit.value,
+      isReadOnly: isReadOnly.value,
+      hasPerm: permissionService.hasPermissions('edit_cotacoes_master')
+    })
+  }
+  
   await carregarTodosDados()
   await carregarAssinaturas()
 })

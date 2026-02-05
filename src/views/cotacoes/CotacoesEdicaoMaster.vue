@@ -66,14 +66,22 @@
           />
         </template>
       </Column>
-      <Column header="Ações" style="width: 7rem">
+      <Column header="Ações" style="width: 10rem">
         <template #body="slotProps">
-          <Button
-            icon="pi pi-pencil"
-            class="p-button-rounded p-button-text p-button-info"
-            v-tooltip.top="'Editar cotação (modo master)'"
-            @click="editar(slotProps.data)"
-          />
+          <div class="flex gap-1">
+            <Button
+              icon="pi pi-file-edit"
+              class="p-button-rounded p-button-text p-button-warning"
+              v-tooltip.top="'Editar solicitação (modo master)'"
+              @click="editarSolicitacao(slotProps.data)"
+            />
+            <Button
+              icon="pi pi-pencil"
+              class="p-button-rounded p-button-text p-button-info"
+              v-tooltip.top="'Editar cotação (modo master)'"
+              @click="editar(slotProps.data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -156,6 +164,13 @@ const onPage = (event) => {
 
 const editar = (row) => {
   router.push({ name: 'novaCotacao', params: { id: String(row.id) }, query: { modo: 'admin' } });
+};
+
+const editarSolicitacao = (row) => {
+  // Buscar o ID da solicitação relacionada à cotação
+  // Como não temos o ID da solicitação diretamente, vamos tentar navegar para a edição da solicitação
+  // O backend pode precisar de um endpoint para buscar a solicitação por cotação_id
+  router.push({ name: 'solicitacoesEdit', params: { id: String(row.id) }, query: { modo: 'admin' } });
 };
 
 const statusSeverity = (slug) => {
