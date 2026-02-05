@@ -246,6 +246,45 @@
       <small v-if="errors.observacao" class="p-error block mt-1">{{ errors.observacao }}</small>
     </div>
 
+    <!-- QUADRO RESUMO -->
+    <div v-if="isEditMode && resumo.length > 0" class="quadro-resumo mt-6">
+      <h4 class="text-center mb-3 font-semibold">
+        Quadro resumo da cotação e compra
+        <span v-if="form.numero" class="ml-2 text-600">– Solicitação nº {{ form.numero }}</span>
+      </h4>
+      <table class="tabela-cotacao">
+        <thead>
+          <tr>
+            <th style="width: 50px;">N°</th>
+            <th style="min-width: 300px; max-width: 400px;">Descrição</th>
+            <th style="width: 100px;">Marca</th>
+            <th style="width: 180px; max-width: 200px;">Fornecedor ganhador</th>
+            <th style="width: 120px;">Valor Unitário</th>
+            <th style="width: 80px;">Quantidade</th>
+            <th style="width: 120px;">Total</th>
+            <th style="width: 150px;">Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(r, index) in resumo" :key="'res-' + index">
+            <td style="width: 50px;">{{ index + 1 }}</td>
+            <td style="min-width: 300px; max-width: 400px; word-wrap: break-word;">{{ r.produto }}</td>
+            <td style="width: 100px;">{{ r.marca || '-' }}</td>
+            <td style="width: 180px; max-width: 200px; word-wrap: break-word;">{{ r.fornecedor }}</td>
+            <td style="width: 120px;">{{ formatCurrencyValue(r.valorUnit) }}</td>
+            <td style="width: 80px;">{{ r.qtd }}</td>
+            <td style="width: 120px;">{{ formatCurrencyValue(r.total) }}</td>
+            <td style="width: 150px;">{{ r.motivo || '-' }}</td>
+          </tr>
+          <tr class="bg-surface-100 font-semibold">
+            <td colspan="6" class="text-right">Total geral:</td>
+            <td>{{ formatCurrencyValue(totalGeral) }}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- Botões -->
     <div class="flex justify-content-end mt-4 gap-2">
       <Button label="Cancelar" class="p-button-text" @click="voltar" />
@@ -752,6 +791,103 @@ export default {
     const solicitantesFiltrados = ref([]);
     const carregandoSolicitantes = ref(false);
     const todosSolicitantes = ref([]);
+    const cotacoes = ref([]);
+    const selecoes = ref([]);
+    const motivos = ref([]);
+
+    // Função auxiliar para encontrar o menor preço
+    const encontrarMenorPreco = (itemIndex) => {
+      if (!cotacoes.value.length) return null;
+      
+      let menorIndice = null;
+      let menorPreco = Infinity;
+      
+      cotacoes.value.forEach((cot, cotIndex) => {
+        const item = cot.itens?.[itemIndex];
+        if (item) {
+          const preco = parseFloat(item.custoFinal || item.custo_unit || 0);
+          if (preco > 0 && preco < menorPreco) {
+            menorPreco = preco;
+            menorIndice = cotIndex;
+          }
+        }
+      });
+      
+      return menorIndice;
+    };
+
+    // Função para formatar valores monetários
+    const formatCurrencyValue = (valor) => {
+      const numero = parseFloat(valor);
+      if (isNaN(numero)) {
+        return 'R$ 0,00';
+      }
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(numero);
+    };
+
+    // Computed para o quadro de resumo
+    const resumo = computed(() => {
+      if (!cotacoes.value.length || !form.value.itens.length) {
+        return [];
+      }
+      
+      return form.value.itens.map((item, index) => {
+        // Buscar seleção pelo item_id
+        const selecao = selecoes.value.find(sel => sel.item_id === item.id);
+        
+        // Encontrar o índice da cotação selecionada
+        let indiceCotacao = null;
+        if (selecao && selecao.supplier_id) {
+          // Se há seleção manual, encontrar o índice da cotação pelo supplier_id
+          indiceCotacao = cotacoes.value.findIndex(cot => 
+            cot.id === selecao.supplier_id || 
+            cot.fornecedor?.A2_COD === selecao.supplier_codigo
+          );
+        }
+        
+        // Se não encontrou pela seleção manual, usar o menor preço
+        if (indiceCotacao === -1 || indiceCotacao === null) {
+          indiceCotacao = encontrarMenorPreco(index);
+        }
+        
+        const cot = indiceCotacao !== undefined && indiceCotacao !== null && indiceCotacao !== -1
+          ? cotacoes.value[indiceCotacao] 
+          : null;
+        
+        const quantidade = parseFloat(item.quantidade) || 0;
+        const itemCotacao = cot?.itens?.[index];
+        
+        // Se há seleção manual com valor_total, usar esse valor dividido pela quantidade
+        // Caso contrário, usar o valor da cotação
+        let valorUnitario = 0;
+        if (selecao && selecao.valor_total) {
+          valorUnitario = parseFloat(selecao.valor_total) / quantidade;
+        } else if (selecao && selecao.valor_unitario) {
+          valorUnitario = parseFloat(selecao.valor_unitario);
+        } else if (itemCotacao) {
+          valorUnitario = parseFloat(itemCotacao.custoFinal || itemCotacao.custo_unit || 0);
+        }
+        
+        const valorTotal = valorUnitario * quantidade;
+        
+        return {
+          produto: item.mercadoria || '',
+          marca: itemCotacao?.marca || null,
+          fornecedor: cot?.fornecedor?.A2_NOME || cot?.nome || 'Fornecedor não informado',
+          valorUnit: valorUnitario,
+          qtd: quantidade,
+          total: valorTotal,
+          motivo: selecao?.motivo || null,
+        };
+      });
+    });
+    
+    const totalGeral = computed(() => {
+      return resumo.value.reduce((sum, r) => sum + (r.total || 0), 0);
+    });
 
     // Verificar se está em modo admin/master edit
     const isAdminEdit = computed(() => {
@@ -891,6 +1027,23 @@ export default {
         
         // Armazenar status atual
         statusAtual.value = detalhe.status?.slug || null;
+        
+        // Carregar dados de cotações para o quadro de resumo
+        cotacoes.value = detalhe.cotacoes || [];
+        selecoes.value = detalhe.selecoes || [];
+        
+        // Extrair motivos das seleções (selecoes é um array de objetos com item_id e motivo)
+        const motivosMap = {};
+        (detalhe.selecoes || []).forEach(sel => {
+          if (sel.item_id && sel.motivo) {
+            // Encontrar o índice do item pelo ID
+            const itemIndex = detalhe.itens.findIndex(item => item.id === sel.item_id);
+            if (itemIndex !== -1) {
+              motivosMap[itemIndex] = sel.motivo;
+            }
+          }
+        });
+        motivos.value = motivosMap;
         
         // Filtrar mensagens de reprovação
         const mensagens = detalhe.mensagens || [];
@@ -1934,6 +2087,7 @@ export default {
         // Para outros status, não permitir edição
         return false;
       }),
+      
       mensagensReprovacao,
       abrirModalCadastroProduto,
       fecharModalCadastroProduto,
@@ -1950,7 +2104,10 @@ export default {
       solicitantesFiltrados,
       carregandoSolicitantes,
       buscarSolicitantes,
-      isAdminEdit
+      isAdminEdit,
+      resumo,
+      totalGeral,
+      formatCurrencyValue
     };
   },
   components: {
@@ -2002,5 +2159,38 @@ export default {
   background: none !important;
   border: 1px solid #28a745 !important;
   font-weight: 500;
+}
+
+.quadro-resumo {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #fffefc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.quadro-resumo .tabela-cotacao {
+  min-width: 800px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quadro-resumo .tabela-cotacao th,
+.quadro-resumo .tabela-cotacao td {
+  padding: 0.75rem;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+}
+
+.quadro-resumo .tabela-cotacao th {
+  background-color: #f8fafb;
+  font-weight: 600;
+}
+
+.quadro-resumo .tabela-cotacao .bg-surface-100 {
+  background-color: #f8fafb;
 }
 </style>
