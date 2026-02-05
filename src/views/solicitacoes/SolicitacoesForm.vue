@@ -155,7 +155,7 @@
           </template>
         </Column>
 
-        <Column field="unidade" header="Medida" style="width: 50px; max-width: 50px">
+        <Column field="unidade" header="Medida" style="width: 70px; max-width: 70px">
           <template #body="{ data }">
             <InputText 
               v-model="data.unidade" 
@@ -175,7 +175,7 @@
           </template>
         </Column>
 
-        <Column field="prioridade" header="Prioridade dias">
+        <Column field="prioridade" header="Prioridade dias" style="width: 50px; max-width: 50px">
           <template #body="{ data }">
             <InputNumber 
               v-model="data.prioridade" 
@@ -185,7 +185,7 @@
           </template>
         </Column>
 
-        <Column field="tag" header="TAG">
+        <Column field="tag" header="TAG" style="width: 100px; max-width: 100px">
           <template #body="{ data }">
             <InputText 
               v-model="data.tag" 
