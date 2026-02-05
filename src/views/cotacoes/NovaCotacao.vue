@@ -132,8 +132,8 @@
           <th rowspan="2" style="position: sticky; left: 0px; background: #fff; z-index: 5; ">N°</th>
           <th rowspan="2" style="position: sticky; left: 26px; background: #fff; z-index: 5; ">Qtd</th>
           <th rowspan="2" style="position: sticky; left: 59px; background: #fff; z-index: 5; ">Medida</th>
-          <th rowspan="2" style="min-width: 140px;">Referência do Produto</th>
-          <th rowspan="2" style="min-width: 250px;">Descrição do Produto</th>
+          <th rowspan="2" style="min-width: 140px; position: sticky; left: 111px; background: #fff; z-index: 5;">Referência do Produto</th>
+          <th rowspan="2" style="min-width: 250px; position: sticky; left: 251px; background: #fff; z-index: 5;">Descrição do Produto</th>
           <template v-for="(cot, i) in cotacoes" :key="'cab-' + i">
             <th colspan="8" class="text-center bg-fornecedor" :class="{ 'separador-cotacao': i > 0 }">
               <div class="flex justify-content-between align-items-center mb-2">
@@ -294,11 +294,11 @@
 
         <tbody>
         <tr v-for="(prod, p) in produtos" :key="'row-' + p">
-          <td>{{ p + 1 }}</td>
-          <td>{{ prod.qtd }}</td>
-          <td>{{ prod.medida || '-' }}</td>
-          <td style="min-width: 140px;">{{ prod.referencia || '-' }}</td>
-          <td style="min-width: 250px;">{{ prod.descricao }}</td>
+          <td style="position: sticky; left: 0px; background: #fff; z-index: 5; ">{{ p + 1 }}</td>
+          <td style="position: sticky; left: 26px; background: #fff; z-index: 5; ">{{ prod.qtd }}</td>
+          <td style="position: sticky; left: 59px; background: #fff; z-index: 5; ">{{ prod.medida || '-' }}</td>
+          <td style="min-width: 140px; position: sticky; left: 111px; background: #fff; z-index: 5; ">{{ prod.referencia || '-' }}</td>
+          <td style="min-width: 250px; position: sticky; left: 251px; background: #fff; z-index: 5; ">{{ prod.descricao }}</td>
 
           <template v-for="(cot, i) in cotacoes" :key="'linha-' + i + '-' + p">
             <td :class="{ 'separador-cotacao': i > 0 }">
