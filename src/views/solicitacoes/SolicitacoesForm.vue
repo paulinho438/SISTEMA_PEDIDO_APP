@@ -1941,12 +1941,9 @@ export default {
       isSaving.value = true;
 
       try {
-        // Primeiro atualizar os dados (incluindo a observação)
+        // Atualizar com rascunho: false - o backend já faz a transição de rascunho para aguardando
         const payload = prepararPayload(false);
         await SolicitacaoService.update(route.params.id, payload);
-        
-        // Depois chamar endpoint para finalizar rascunho (mudar status)
-        await SolicitacaoService.finalizarRascunho(route.params.id);
 
         toast.add({
           severity: 'success',
