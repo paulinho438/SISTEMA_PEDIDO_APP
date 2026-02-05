@@ -2630,7 +2630,7 @@ const analisarCotacao = async (status, observacao = '') => {
     const mensagensAnalise = {
       analisada: 'Status atualizado para Analisada.',
       analisada_aguardando: 'Status atualizado para Analisada / Aguardando.',
-      analise_gerencia: 'Status atualizado para Analis. / Ger.',
+      analise_gerencia: 'Status atualizado para Análise Diretoria.',
       aprovado: 'Status atualizado para Aprovado.',
     }
 

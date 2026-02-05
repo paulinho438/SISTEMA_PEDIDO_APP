@@ -117,7 +117,7 @@ const OPCOES_STATUS = [
   { value: 'finalizada', label: 'Finalizada' },
   { value: 'analisada', label: 'Analisada' },
   { value: 'analisada_aguardando', label: 'Analisada / Aguardando' },
-  { value: 'analise_gerencia', label: 'Análise Gerência' },
+  { value: 'analise_gerencia', label: 'Análise Diretoria' },
   { value: 'aprovado', label: 'Aprovado' },
 ];
 

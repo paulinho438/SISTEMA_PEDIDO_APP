@@ -208,7 +208,7 @@ const statusOptions = [
   { label: 'Finalizada', value: 'finalizada' },
   { label: 'Analisada', value: 'analisada' },
   { label: 'Analisada / Aguardando', value: 'analisada_aguardando' },
-  { label: 'Análise / Gerência', value: 'analise_gerencia' },
+  { label: 'Análise Diretoria', value: 'analise_gerencia' },
   { label: 'Aprovado', value: 'aprovado' },
   // Status do pedido de compra
   { label: 'Pedido Pendente', value: 'pendente' },
