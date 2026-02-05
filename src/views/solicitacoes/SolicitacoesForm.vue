@@ -707,8 +707,27 @@ export default {
     const carregandoSolicitantes = ref(false);
     const todosSolicitantes = ref([]);
 
+    // Verificar se está em modo admin/master edit
+    const isAdminEdit = computed(() => {
+      const modoAdmin = route.query.modo === 'admin';
+      const hasMasterPerm = permissionService.hasPermissions('edit_cotacoes_master');
+      return modoAdmin && hasMasterPerm;
+    });
+
     // Verificar se o usuário pode selecionar solicitante customizado
+    // Permite também em modo de edição e edição master
     const podeSelecionarSolicitante = computed(() => {
+      // Modo admin/master edit: sempre permite selecionar solicitante
+      if (isAdminEdit.value) {
+        return true;
+      }
+      
+      // Modo de edição: sempre permite selecionar solicitante
+      if (isEditMode.value) {
+        return true;
+      }
+      
+      // Modo de criação: verifica permissão específica
       return permissionService.hasPermissions('create_solicitacao_custom_solicitante');
     });
 
@@ -779,6 +798,28 @@ export default {
         }
         
         form.value.solicitante = detalhe.solicitante?.label || detalhe.solicitante || '';
+        
+        // Preencher solicitanteSelecionado se tiver dados do solicitante
+        if (detalhe.solicitante) {
+          if (typeof detalhe.solicitante === 'object' && detalhe.solicitante.id) {
+            form.value.solicitanteSelecionado = {
+              id: detalhe.solicitante.id,
+              label: detalhe.solicitante.label || detalhe.solicitante.name || detalhe.solicitante
+            };
+          } else {
+            // Se for string, tentar encontrar no array de usuários ou criar objeto básico
+            form.value.solicitanteSelecionado = {
+              id: null,
+              label: detalhe.solicitante
+            };
+          }
+        }
+        
+        // Carregar lista de usuários se estiver em modo de edição ou admin
+        if (podeSelecionarSolicitante.value) {
+          carregarUsuarios();
+        }
+        
         form.value.empresa = detalhe.empresa?.label || detalhe.empresa || '';
         form.value.local = detalhe.local || '';
         form.value.workFront = detalhe.work_front || '';
