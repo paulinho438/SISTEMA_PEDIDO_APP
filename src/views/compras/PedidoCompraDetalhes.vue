@@ -113,6 +113,14 @@
               <strong>Valor Total:</strong><br />
               <span class="text-primary font-bold">{{ formatarValor(pedido.total_amount) }}</span>
             </div>
+            <div class="col-12 md:col-3" v-if="pedido.freight_type || pedido.freight_value">
+              <strong>Tipo de Frete:</strong><br />
+              {{ pedido.freight_type === 'F' ? 'FOB' : (pedido.freight_type === 'C' ? 'CIF' : pedido.freight_type || '-') }}
+            </div>
+            <div class="col-12 md:col-3" v-if="pedido.freight_value">
+              <strong>Valor do Frete:</strong><br />
+              <span class="text-primary font-bold">{{ formatarValor(pedido.freight_value) }}</span>
+            </div>
             <div class="col-12 md:col-6" v-if="pedido.quote">
               <strong>Cotação:</strong><br />
               {{ pedido.quote.quote_number || `#${pedido.purchase_quote_id}` }}
