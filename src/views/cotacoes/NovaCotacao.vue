@@ -1,6 +1,19 @@
 <template>
   <div class="card p-4">
     <Toast />
+    <!-- Aviso modo admin -->
+    <Message
+        v-if="isAdminEdit"
+        severity="info"
+        :closable="false"
+        class="mb-3"
+    >
+      <template #messageicon>
+        <i class="pi pi-info-circle"></i>
+      </template>
+      <strong>Modo Edição Master:</strong> Você está editando esta cotação com permissão master. 
+      O status não será alterado automaticamente e os pedidos de compra serão sincronizados após salvar.
+    </Message>
     <!-- Header -->
     <div class="flex justify-content-between align-items-center mb-3">
       <div class="flex align-items-center gap-2">
@@ -854,6 +867,7 @@ import Textarea from 'primevue/textarea'
 import RadioButton from 'primevue/radiobutton'
 import Toast from 'primevue/toast'
 import InputMask from 'primevue/inputmask'
+import Message from 'primevue/message'
 
 document.title = 'Nova Cotação'
 
@@ -978,9 +992,23 @@ const approvalTransitions = {
 }
 
 const readOnlyStatuses = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado']
+
+// Modo admin: edição master (detecta via query param + permissão)
+const isAdminEdit = computed(() => {
+  const modoAdmin = route.query.modo === 'admin'
+  const hasMasterPerm = permissionService.hasPermissions('edit_cotacoes_master')
+  return modoAdmin && hasMasterPerm
+})
+
 // isReadOnly: não pode editar se o status está em readOnlyStatuses OU se não tem permissão para editar
 // Mas o comprador responsável pode editar mesmo quando can_edit é false, se o status permitir
+// E modo admin sempre permite edição
 const isReadOnly = computed(() => {
+  // Modo admin: sempre permite edição, independente do status
+  if (isAdminEdit.value) {
+    return false
+  }
+  
   // Se o status está na lista de read-only, sempre read-only
   if (readOnlyStatuses.includes(cotacao.status?.slug)) {
     return true
@@ -1190,7 +1218,13 @@ const temPermissaoAprovarDiretor = computed(() => {
 
 // Verificar se pode adicionar fornecedor
 // O comprador responsável pode adicionar fornecedores mesmo quando não pode editar completamente
+// Modo admin sempre permite adicionar fornecedor
 const podeAdicionarFornecedor = computed(() => {
+  // Modo admin: sempre permite adicionar fornecedor
+  if (isAdminEdit.value) {
+    return true
+  }
+  
   // Se pode editar, pode adicionar fornecedor
   if (cotacao.permissions && cotacao.permissions.can_edit) {
     return true
@@ -1235,6 +1269,11 @@ const podeAdicionarFornecedor = computed(() => {
 })
 
 const approvalAction = computed(() => {
+  // Modo admin: não permite ações de aprovação/análise, apenas edição
+  if (isAdminEdit.value) {
+    return { type: 'none' }
+  }
+  
   const slug = cotacao.status?.slug
 
   // "Finalizar Cotação" é uma ação de mudança de status, não de aprovação

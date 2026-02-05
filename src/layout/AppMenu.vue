@@ -97,6 +97,7 @@ const model = ref([
                     { label: 'Relatório de Solicitações', icon: 'pi pi-fw pi-chart-bar', to: '/solicitacoes/relatorio', permission: 'view_solicitacoes_relatorio' },
                     { label: 'Cotações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/cotacoes', permission: 'view_cotacoes' },
                     { label: 'Pendentes de Análise', icon: 'pi pi-fw pi-check-square', to: '/cotacoes/pendentes_analise', permission: 'view_pendentes_analise' },
+                    { label: 'Edição Master Cotações', icon: 'pi pi-fw pi-pencil', to: '/cotacoes/edicao-master', permission: 'edit_cotacoes_master' },
                     { label: 'Pedidos de Compra', icon: 'pi pi-fw pi-shopping-cart', to: '/compras/pedidos', permission: 'view_cotacoes' },
                     {
                         label: 'Relatórios',
