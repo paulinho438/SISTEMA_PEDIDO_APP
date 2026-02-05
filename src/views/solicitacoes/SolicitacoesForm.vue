@@ -125,7 +125,7 @@
           </template>
         </Column>
 
-        <Column field="referencia" header="Referência">
+        <Column field="referencia" header="Referência" style="width: 130px; max-width: 130px">
           <template #body="{ data }">
             <InputText 
               v-model="data.referencia" 
@@ -135,7 +135,7 @@
           </template>
         </Column>
 
-        <Column field="mercadoria" header="Mercadoria" style="min-width: 220px">
+        <Column field="mercadoria" header="Mercadoria" style="min-width: 320px">
           <template #body="{ data }">
             <InputText 
               v-model="data.mercadoria" 
@@ -165,7 +165,7 @@
           </template>
         </Column>
 
-        <Column field="aplicacao" header="Aplicação">
+        <Column field="aplicacao" header="Aplicação" style="width: 130px; max-width: 130px">
           <template #body="{ data }">
             <InputText 
               v-model="data.aplicacao" 
@@ -175,7 +175,7 @@
           </template>
         </Column>
 
-        <Column field="prioridade" header="Prioridade dias" style="width: 50px; max-width: 50px">
+        <Column field="prioridade" header="Prioridade dias" style="width: 80px; max-width: 80px">
           <template #body="{ data }">
             <InputNumber 
               v-model="data.prioridade" 
