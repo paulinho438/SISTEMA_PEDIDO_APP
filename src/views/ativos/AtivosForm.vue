@@ -20,8 +20,8 @@
               <InputText
                 v-model="form.asset_number"
                 class="w-full"
-                :placeholder="!id ? 'Será gerado automaticamente' : ''"
-                :disabled="!id || isViewMode || !podeEditar"
+                placeholder="Opcional - deixe em branco para gerar automaticamente"
+                :disabled="isViewMode || !podeEditar"
               />
             </div>
             <div class="col-12 md:col-6">
