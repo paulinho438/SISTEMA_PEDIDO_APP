@@ -29,6 +29,7 @@
           :class="isOldStatus(pedido.status) ? 'p-button-warning' : 'p-button-info'"
           @click="abrirModalStatus"
         />
+        <!-- Informações Gerais 
         <Button
           label="Visualizar HTML"
           icon="pi pi-code"
@@ -38,7 +39,7 @@
           :disabled="visualizandoHtml"
           v-if="pedido"
           v-tooltip.top="'Abre o layout em HTML para inspecionar e debugar'"
-        />
+        /> -->
         <Button
           label="Imprimir"
           icon="pi pi-print"
