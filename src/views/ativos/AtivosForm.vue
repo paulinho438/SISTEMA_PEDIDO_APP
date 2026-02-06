@@ -16,11 +16,10 @@
         <TabPanel header="Informações Gerais">
           <div class="grid">
             <div class="col-12 md:col-6">
-              <label>Número do Ativo</label>
+              <label>Número do Ativo <span class="text-red-500">*</span></label>
               <InputText
                 v-model="form.asset_number"
                 class="w-full"
-                placeholder="Opcional - deixe em branco para gerar automaticamente"
                 :disabled="isViewMode || !podeEditar"
               />
             </div>
@@ -435,6 +434,11 @@ export default {
       }
 
       // Validação manual (evita "invalid form control is not focusable" em campos dentro de abas ocultas)
+      const numeroAtivo = (form.value.asset_number ?? '').toString().trim();
+      if (!numeroAtivo) {
+        toast.add({ severity: 'error', summary: 'Campo obrigatório', detail: 'Preencha o Número do Ativo.', life: 3000 });
+        return;
+      }
       if (!form.value.standard_description_id) {
         toast.add({ severity: 'error', summary: 'Campo obrigatório', detail: 'Selecione a Descrição Padrão.', life: 3000 });
         return;
@@ -473,7 +477,8 @@ export default {
         toast.add({ severity: 'success', summary: 'Sucesso', detail: 'Ativo salvo com sucesso', life: 3000 });
         router.push('/ativos/controle');
       } catch (error) {
-        toast.add({ severity: 'error', summary: 'Erro', detail: error.response?.data?.message || 'Erro ao salvar ativo', life: 3000 });
+        const detail = error.response?.data?.error || error.response?.data?.message || 'Erro ao salvar ativo';
+        toast.add({ severity: 'error', summary: 'Erro', detail, life: 3000 });
       } finally {
         salvando.value = false;
       }

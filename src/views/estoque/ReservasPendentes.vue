@@ -144,6 +144,14 @@
             <h6 class="mb-3">Dados do Ativo</h6>
           </div>
           <div class="col-12 md:col-6">
+            <label>Número do Ativo <span class="text-red-500">*</span></label>
+            <InputText
+              v-model="formSaida.assetData.asset_number"
+              class="w-full"
+              placeholder="Informe o número do ativo"
+            />
+          </div>
+          <div class="col-12 md:col-6">
             <label>Filial</label>
             <Dropdown
               v-model="formSaida.assetData.branch_id"
@@ -248,7 +256,7 @@
           icon="pi pi-check"
           class="p-button-success"
           :loading="processando"
-          :disabled="!formSaida.quantidade || formSaida.quantidade <= 0 || formSaida.quantidade > estoqueSelecionado?.quantity_reserved || (formSaida.criarAtivo && (!formSaida.assetData.value_brl || !formSaida.assetData.acquisition_date))"
+          :disabled="!formSaida.quantidade || formSaida.quantidade <= 0 || formSaida.quantidade > estoqueSelecionado?.quantity_reserved || (formSaida.criarAtivo && (!formSaida.assetData.asset_number || !formSaida.assetData.value_brl || !formSaida.assetData.acquisition_date))"
           @click="confirmarSaida"
         />
       </template>
@@ -461,6 +469,7 @@ export default {
       observacao: '',
       criarAtivo: false,
       assetData: {
+        asset_number: '',
         branch_id: null,
         location_id: null,
         responsible_id: null,
@@ -641,6 +650,7 @@ export default {
         observacao: '',
         criarAtivo: false,
         assetData: {
+          asset_number: '',
           branch_id: null,
           location_id: estoque.stock_location_id || null,
           responsible_id: null,
