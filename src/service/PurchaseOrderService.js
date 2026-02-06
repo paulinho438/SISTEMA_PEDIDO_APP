@@ -44,6 +44,25 @@ export default class PurchaseOrderService {
         return response;
     };
 
+    visualizarHtml = async (id) => {
+        const response = await axios.get(`${apiPath}/pedidos-compra/${id}/visualizar-html`, {
+            responseType: 'blob',
+            headers: {
+                'Accept': 'text/html'
+            }
+        });
+
+        const blob = new Blob([response.data], { type: 'text/html; charset=UTF-8' });
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+        }, 100);
+
+        return response;
+    };
+
     updateStatus = async (orderId, status, justification = null) => {
         return await axios.put(`${apiPath}/pedidos-compra/${orderId}/status`, {
             status,

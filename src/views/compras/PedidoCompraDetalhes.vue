@@ -30,6 +30,16 @@
           @click="abrirModalStatus"
         />
         <Button
+          label="Visualizar HTML"
+          icon="pi pi-code"
+          class="p-button-secondary"
+          @click="visualizarHtml"
+          :loading="visualizandoHtml"
+          :disabled="visualizandoHtml"
+          v-if="pedido"
+          v-tooltip.top="'Abre o layout em HTML para inspecionar e debugar'"
+        />
+        <Button
           label="Imprimir"
           icon="pi pi-print"
           class="p-button-info"
@@ -569,6 +579,7 @@ export default {
       carregando,
       imprimindo,
       imprimindoCotacao,
+      visualizandoHtml,
       modalStatusVisible,
       isBuyer,
       formatarValor,
@@ -583,6 +594,7 @@ export default {
       getStatusRecebimento,
       getSeverityRecebimento,
       imprimirPedido,
+      visualizarHtml,
       imprimirCotacao,
       abrirModalStatus,
       fecharModalStatus,
