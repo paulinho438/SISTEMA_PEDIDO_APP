@@ -480,6 +480,32 @@ export default {
       return 'danger';
     };
 
+    const visualizandoHtml = ref(false);
+
+    const visualizarHtml = async () => {
+      try {
+        visualizandoHtml.value = true;
+        const id = route.params.id;
+        await service.visualizarHtml(id);
+        toast.add({
+          severity: 'success',
+          summary: 'Sucesso',
+          detail: 'Abrindo HTML para inspeção...',
+          life: 2000,
+        });
+      } catch (error) {
+        const detail = error?.response?.data?.message || 'Erro ao carregar HTML do pedido';
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail,
+          life: 3000,
+        });
+      } finally {
+        visualizandoHtml.value = false;
+      }
+    };
+
     const imprimirPedido = async () => {
       try {
         imprimindo.value = true;
