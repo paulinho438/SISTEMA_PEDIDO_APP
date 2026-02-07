@@ -84,8 +84,12 @@
             <template #body="slotProps">
               <InputNumber
                 v-model="slotProps.data.quantity"
+                mode="decimal"
                 :min="0.0001"
-                :step="0.0001"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                :step="0.01"
+                locale="pt-BR"
                 class="w-full"
                 :useGrouping="false"
                 @update:modelValue="calcularTotalItem(slotProps.index)"
