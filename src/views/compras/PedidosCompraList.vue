@@ -144,6 +144,7 @@ export default {
 
         const params = { page: page.value, per_page: rows.value };
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
+        if (filtroStatus.value) params.status = filtroStatus.value;
 
         const { data } = await service.getAll(params);
         pedidos.value = data?.data || [];
