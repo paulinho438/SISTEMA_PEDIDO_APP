@@ -6,8 +6,8 @@
       <Button label="Exportar" icon="pi pi-upload" class="p-button-outlined" @click="exportar" />
     </div>
 
-    <!-- Campo de busca -->
-    <div class="flex justify-content-end mb-3">
+    <!-- Filtros -->
+    <div class="flex flex-wrap align-items-end gap-2 mb-3">
       <span class="p-input-icon-left">
         <i class="pi pi-search" />
         <InputText
@@ -18,7 +18,19 @@
           @keyup.enter="() => carregar(true)"
         />
       </span>
-      <Button label="Buscar" icon="pi pi-search" class="p-button-outlined ml-2" @click="() => carregar(true)" />
+      <div class="flex flex-column gap-1">
+        <label class="text-sm text-500">Status</label>
+        <Dropdown
+          v-model="filtroStatus"
+          :options="opcoesStatus"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todos"
+          class="w-10rem"
+          :showClear="true"
+        />
+      </div>
+      <Button label="Buscar" icon="pi pi-search" class="p-button-outlined" @click="() => carregar(true)" />
     </div>
 
     <!-- Tabela -->
@@ -92,6 +104,22 @@ import { useRouter } from 'vue-router';
 import PurchaseOrderService from '@/service/PurchaseOrderService';
 import { usePaginationPersist } from '@/composables/usePaginationPersist';
 
+const opcoesStatus = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'link', label: 'Aguardando LINK' },
+  { value: 'link_aprovado', label: 'LINK Aprovado' },
+  { value: 'link_reprovado', label: 'LINK Reprovado' },
+  { value: 'coleta', label: 'Coleta' },
+  { value: 'em_transito', label: 'Em Trânsito' },
+  { value: 'atendido', label: 'Atendido' },
+  { value: 'atendido_parcial', label: 'Atendido Parcial' },
+  { value: 'pagamento', label: 'Pagamento' },
+  { value: 'encerrado', label: 'Encerrado' },
+  { value: 'recebido', label: 'Recebido' },
+  { value: 'parcial', label: 'Parcial' },
+  { value: 'cancelado', label: 'Cancelado' },
+];
+
 export default {
   name: 'PedidosCompraList',
   setup() {
@@ -102,6 +130,7 @@ export default {
 
     const pedidos = ref([]);
     const filtroGlobal = ref('');
+    const filtroStatus = ref(null);
     const carregando = ref(false);
     const totalRecords = ref(0);
     const page = ref(saved.page);
@@ -206,6 +235,8 @@ export default {
     return {
       pedidos,
       filtroGlobal,
+      filtroStatus,
+      opcoesStatus,
       totalRecords,
       rows,
       onPage,
