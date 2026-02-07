@@ -136,7 +136,7 @@ watch(isDarkTheme, aplicarTema);
             class="tabela-processos"
             dataKey="comprador"
             paginator
-            :rows="10"
+            :rows="20"
             :totalRecords="processosFiltrados?.length ?? 0"
             responsiveLayout="scroll"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -214,7 +214,7 @@ watch(isDarkTheme, aplicarTema);
         <DataTable
             :value="statusResumo"
             :paginator="true"
-            :rows="5"
+            :rows="20"
             :totalRecords="statusResumo?.length ?? 0"
             responsiveLayout="scroll"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
