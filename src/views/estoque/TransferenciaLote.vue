@@ -20,13 +20,14 @@
         <Dropdown
           id="localOrigem"
           v-model="localOrigem"
+          @change="carregarEstoques(true)"
           :options="locaisDisponiveis"
           optionLabel="name"
           optionValue="id"
           placeholder="Selecione o local de origem"
           class="w-full"
           :filter="true"
-          @change="carregarEstoques"
+          @change="() => carregarEstoques(true)"
         />
       </div>
       <div class="col-12 md:col-6">
@@ -83,7 +84,7 @@
         <div class="card">
           <div class="flex justify-content-between align-items-center mb-3">
             <h6 class="m-0">Itens Disponíveis</h6>
-            <span class="text-sm text-500">{{ estoques.length }} item(s)</span>
+            <span class="text-sm text-500">{{ totalRecordsEstoques }} item(s)</span>
           </div>
           
           <div class="mb-3">
@@ -93,7 +94,13 @@
                 v-model="filtroBusca" 
                 placeholder="Buscar por código, descrição ou local..." 
                 class="w-full"
-                @input="aplicarFiltro"
+                @keyup.enter="() => carregarEstoques(true)"
+              />
+              <Button 
+                icon="pi pi-search" 
+                class="p-button-text p-button-sm ml-2"
+                @click="() => carregarEstoques(true)"
+                v-tooltip.top="'Buscar'"
               />
             </span>
           </div>
@@ -102,11 +109,18 @@
             :value="estoquesFiltrados"
             :loading="carregandoEstoques"
             :paginator="true"
-            :rows="20"
+            :rows="rowsEstoques"
+            :totalRecords="totalRecordsEstoques"
+            :lazy="true"
+            :first="(pageEstoques - 1) * rowsEstoques"
             dataKey="id"
             responsiveLayout="scroll"
             class="p-datatable-sm"
             :rowClass="getRowClass"
+            @page="onPageEstoques"
+            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} itens"
+            :rowsPerPageOptions="[10, 20, 50, 100]"
           >
             <Column headerStyle="width: 3rem">
               <template #body="slotProps">
@@ -261,6 +275,9 @@ export default {
     const carregandoEstoques = ref(false);
     const processandoTransferencia = ref(false);
     const visualizandoDocumento = ref(false);
+    const pageEstoques = ref(1);
+    const rowsEstoques = ref(20);
+    const totalRecordsEstoques = ref(0);
 
     const podeConfirmar = computed(() => {
       if (!localOrigem.value || !localDestino.value || localOrigem.value === localDestino.value) {
@@ -309,30 +326,43 @@ export default {
       }
     };
 
-    const carregarEstoques = async () => {
+    const carregarEstoques = async (resetarPagina = false) => {
       if (!localOrigem.value) {
         estoques.value = [];
         estoquesFiltrados.value = [];
         itensSelecionados.value = [];
+        totalRecordsEstoques.value = 0;
         return;
       }
 
       try {
         carregandoEstoques.value = true;
-        const response = await stockService.getAll({ 
+        if (resetarPagina) pageEstoques.value = 1;
+
+        const params = { 
           location_id: localOrigem.value,
           has_available: true,
-          per_page: 1000
-        });
+          page: pageEstoques.value,
+          per_page: rowsEstoques.value
+        };
+
+        // Enviar filtro de busca para o backend
+        if (filtroBusca.value && filtroBusca.value.trim()) {
+          params.search = filtroBusca.value.trim();
+        }
+
+        const response = await stockService.getAll(params);
         
         const data = response?.data?.data || response?.data || [];
-        estoques.value = Array.isArray(data) ? data : [];
+        estoquesFiltrados.value = Array.isArray(data) ? data : [];
+        
+        // Obter total de registros da paginação
+        const pagination = response?.data?.pagination || response?.data?.meta || {};
+        totalRecordsEstoques.value = pagination.total || response?.data?.total || estoquesFiltrados.value.length;
         
         // Manter apenas itens selecionados que ainda existem na nova lista
-        const idsDisponiveis = new Set(estoques.value.map(e => e.id));
+        const idsDisponiveis = new Set(estoquesFiltrados.value.map(e => e.id));
         itensSelecionados.value = itensSelecionados.value.filter(item => idsDisponiveis.has(item.id));
-        
-        aplicarFiltro();
       } catch (error) {
         console.error('Erro ao carregar estoques:', error);
         toast.add({ 
@@ -346,19 +376,10 @@ export default {
       }
     };
 
-    const aplicarFiltro = () => {
-      if (!filtroBusca.value || filtroBusca.value.trim() === '') {
-        estoquesFiltrados.value = estoques.value;
-      } else {
-        const busca = filtroBusca.value.toLowerCase().trim();
-        estoquesFiltrados.value = estoques.value.filter(estoque => {
-          const codigo = estoque.product?.code?.toLowerCase() || '';
-          const descricao = estoque.product?.description?.toLowerCase() || '';
-          const local = estoque.location?.name?.toLowerCase() || '';
-          return codigo.includes(busca) || descricao.includes(busca) || local.includes(busca);
-        });
-      }
-      
+    const onPageEstoques = (event) => {
+      pageEstoques.value = event.page + 1;
+      rowsEstoques.value = event.rows;
+      carregarEstoques();
     };
 
 
@@ -512,10 +533,7 @@ export default {
       }
     };
 
-    // Watch para atualizar filtro quando busca mudar
-    watch(filtroBusca, () => {
-      aplicarFiltro();
-    });
+    // Removido watch - filtro agora é enviado para o backend
 
     onMounted(() => {
       carregarLocais();
@@ -536,11 +554,14 @@ export default {
       carregandoEstoques,
       processandoTransferencia,
       visualizandoDocumento,
+      pageEstoques,
+      rowsEstoques,
+      totalRecordsEstoques,
       podeConfirmar,
       quantidadeTotal,
       formatarQuantidade,
       carregarEstoques,
-      aplicarFiltro,
+      onPageEstoques,
       toggleItemSelecao,
       removerItem,
       validarQuantidade,
