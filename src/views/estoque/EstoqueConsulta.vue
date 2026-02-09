@@ -199,10 +199,10 @@
           <InputNumber
             v-model="modalEntrada.custo"
             :min="0"
-            :step="0.01"
+            mode="currency"
+            currency="BRL"
+            locale="pt-BR"
             class="w-full"
-            :useGrouping="false"
-            mode="decimal"
           />
         </div>
 
@@ -302,7 +302,7 @@
         </div>
         <div class="col-12">
           <label>Custo Unitário (opcional)</label>
-          <InputNumber v-model="formAjuste.cost" :min="0" :step="0.01" class="w-full" mode="decimal" />
+          <InputNumber v-model="formAjuste.cost" :min="0" mode="currency" currency="BRL" locale="pt-BR" class="w-full" />
         </div>
         <div class="col-12">
           <label>Observação</label>

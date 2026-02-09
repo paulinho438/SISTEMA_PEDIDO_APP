@@ -281,10 +281,10 @@
           <InputNumber
             v-model="modalAjuste.custo"
             :min="0"
-            :step="0.01"
+            mode="currency"
+            currency="BRL"
+            locale="pt-BR"
             class="w-full"
-            :useGrouping="false"
-            mode="decimal"
           />
         </div>
 
