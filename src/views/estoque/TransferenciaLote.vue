@@ -86,8 +86,8 @@
             <span class="text-sm text-500">{{ totalRecordsEstoques }} item(s)</span>
           </div>
           
-          <div class="mb-3">
-            <span class="p-input-icon-left w-full">
+          <div class="mb-3 flex align-items-center gap-2">
+            <span class="p-input-icon-left flex-1">
               <i class="pi pi-search" />
               <InputText 
                 v-model="filtroBusca" 
@@ -95,13 +95,13 @@
                 class="w-full"
                 @keyup.enter="() => carregarEstoques(true)"
               />
-              <Button 
-                icon="pi pi-search" 
-                class="p-button-text p-button-sm ml-2"
-                @click="() => carregarEstoques(true)"
-                v-tooltip.top="'Buscar'"
-              />
             </span>
+            <Button 
+              icon="pi pi-search" 
+              class="p-button-outlined p-button-sm"
+              @click="() => carregarEstoques(true)"
+              v-tooltip.top="'Buscar'"
+            />
           </div>
 
           <DataTable
