@@ -277,6 +277,8 @@ export default {
     const pageEstoques = ref(1);
     const rowsEstoques = ref(20);
     const totalRecordsEstoques = ref(0);
+    const localOrigemAnterior = ref(null);
+    const filtroBuscaAnterior = ref('');
 
     const podeConfirmar = computed(() => {
       if (!localOrigem.value || !localDestino.value || localOrigem.value === localDestino.value) {
@@ -331,12 +333,34 @@ export default {
         estoquesFiltrados.value = [];
         itensSelecionados.value = [];
         totalRecordsEstoques.value = 0;
+        localOrigemAnterior.value = null;
+        filtroBuscaAnterior.value = '';
         return;
       }
 
       try {
         carregandoEstoques.value = true;
-        if (resetarPagina) pageEstoques.value = 1;
+        
+        // Verificar se local de origem ou filtro mudaram (não apenas a página)
+        const localMudou = localOrigemAnterior.value !== localOrigem.value;
+        const filtroMudou = filtroBuscaAnterior.value !== filtroBusca.value;
+        
+        // Se local mudou, limpar seleção
+        if (localMudou) {
+          itensSelecionados.value = [];
+          localOrigemAnterior.value = localOrigem.value;
+        }
+        
+        // Se filtro mudou, limpar seleção (itens podem não corresponder mais ao filtro)
+        if (filtroMudou) {
+          itensSelecionados.value = [];
+          filtroBuscaAnterior.value = filtroBusca.value || '';
+        }
+        
+        // Resetar página se necessário
+        if (resetarPagina || localMudou || filtroMudou) {
+          pageEstoques.value = 1;
+        }
 
         const params = { 
           location_id: localOrigem.value,
@@ -359,9 +383,8 @@ export default {
         const pagination = response?.data?.pagination || response?.data?.meta || {};
         totalRecordsEstoques.value = pagination.total || response?.data?.total || estoquesFiltrados.value.length;
         
-        // Manter apenas itens selecionados que ainda existem na nova lista
-        const idsDisponiveis = new Set(estoquesFiltrados.value.map(e => e.id));
-        itensSelecionados.value = itensSelecionados.value.filter(item => idsDisponiveis.has(item.id));
+        // Não remover itens selecionados ao mudar apenas de página
+        // Os itens selecionados são mantidos mesmo que não estejam na página atual
       } catch (error) {
         console.error('Erro ao carregar estoques:', error);
         toast.add({ 
