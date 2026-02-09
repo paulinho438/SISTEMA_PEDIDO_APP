@@ -20,14 +20,13 @@
         <Dropdown
           id="localOrigem"
           v-model="localOrigem"
-          @change="carregarEstoques(true)"
+          @change="() => carregarEstoques(true)"
           :options="locaisDisponiveis"
           optionLabel="name"
           optionValue="id"
           placeholder="Selecione o local de origem"
           class="w-full"
           :filter="true"
-          @change="() => carregarEstoques(true)"
         />
       </div>
       <div class="col-12 md:col-6">
