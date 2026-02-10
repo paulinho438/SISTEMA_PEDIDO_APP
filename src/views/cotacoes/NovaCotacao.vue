@@ -34,12 +34,21 @@
       </div>
       <div class="flex gap-2 align-items-center">
     <Button
+        v-if="cotacoes.length > 0"
         label="Imprimir Cotação"
         icon="pi pi-print"
         class="p-button-info"
         :loading="imprimindoCotacao"
         :disabled="imprimindoCotacao || !route.params.id"
         @click="imprimirCotacao"
+    />
+    <Button
+        label="Imprimir Solicitação"
+        icon="pi pi-print"
+        class="p-button-secondary"
+        :loading="imprimindoSolicitacao"
+        :disabled="imprimindoSolicitacao || !route.params.id"
+        @click="imprimirSolicitacao"
     />
     <Button
         label="Selecionar Itens"
@@ -202,6 +211,15 @@
                       placeholder="Selecione a condição"
                       @complete="buscarCondicoesPagamento"
                       class="w-full"
+                  />
+                </div>
+                <div class="col-12">
+                  <label class="font-medium text-700 mb-2 block">Prazo de Entrega</label>
+                  <InputText
+                      v-model="cot.prazoEntrega"
+                      placeholder="Ex: 30 DIAS"
+                      class="w-full"
+                      :disabled="isReadOnly"
                   />
                 </div>
                 <div class="col-12">
@@ -418,7 +436,7 @@
                   </div>
                   <div class="flex justify-content-between">
                     <span class="font-medium text-700">Prazo de Entrega:</span>
-                    <span>-</span>
+                    <span>{{ cot.prazoEntrega || '-' }}</span>
                   </div>
                 </div>
                 <div class="col-12 md:col-6">
@@ -892,6 +910,7 @@ const motivos = ref({})
 const valorNoFocusMoeda = ref({ cotIndex: null, itemIndex: null, campo: null, valor: null })
 const salvandoCotacao = ref(false)
 const imprimindoCotacao = ref(false)
+const imprimindoSolicitacao = ref(false)
 const fornecedoresState = reactive({
   items: [],
   page: 1,
@@ -1598,6 +1617,7 @@ const addCotacao = () => {
     email: '',
     proposta: '',
     condicaoPagamento: null,
+    prazoEntrega: '',
     tipoFrete: null,
     valorFrete: '',
     desconto: '',
@@ -1798,6 +1818,7 @@ const limparFornecedor = (index) => {
     cotacoes.value[index].nome = null
     cotacoes.value[index].cnpj = null
     cotacoes.value[index].condicaoPagamento = null
+    cotacoes.value[index].prazoEntrega = ''
     cotacoes.value[index].tipoFrete = null
   }
 }
@@ -2100,6 +2121,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
                 .join(' - '),
             }
           : null,
+        prazoEntrega: cot.delivery_time ?? '',
         tipoFrete: cot.tipo_frete ?? null,
         valorFrete: formatCurrencyValue(cot.valor_frete),
         desconto: formatCurrencyValue(cot.desconto),
@@ -2844,6 +2866,55 @@ const imprimirCotacao = async () => {
     })
   } finally {
     imprimindoCotacao.value = false
+  }
+}
+
+const imprimirSolicitacao = async () => {
+  try {
+    imprimindoSolicitacao.value = true
+    const id = route.params.id
+    if (!id) {
+      toast.add({
+        severity: 'error',
+        summary: 'Erro',
+        detail: 'ID da cotação não encontrado',
+        life: 3000,
+      })
+      return
+    }
+
+    const response = await SolicitacaoService.imprimir(id, 'solicitacao')
+    
+    // Criar blob do PDF
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    
+    // Criar URL temporária
+    const url = window.URL.createObjectURL(blob)
+    
+    // Abrir PDF em nova aba para visualização/impressão
+    window.open(url, '_blank')
+    
+    // Limpar URL após um tempo
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url)
+    }, 100)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Sucesso',
+      detail: 'Abrindo PDF da solicitação para impressão...',
+      life: 2000,
+    })
+  } catch (error) {
+    const detail = error?.response?.data?.message || 'Erro ao gerar PDF da solicitação'
+    toast.add({
+      severity: 'error',
+      summary: 'Erro',
+      detail,
+      life: 3000,
+    })
+  } finally {
+    imprimindoSolicitacao.value = false
   }
 }
 
