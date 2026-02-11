@@ -313,7 +313,21 @@
         <tbody>
         <tr v-for="(prod, p) in produtos" :key="'row-' + p">
           <td style="position: sticky; left: 0px; background: #fff; z-index: 5; ">{{ p + 1 }}</td>
-          <td style="position: sticky; left: 26px; background: #fff; z-index: 5; ">{{ prod.qtd }}</td>
+          <td style="position: sticky; left: 26px; background: #fff; z-index: 5; ">
+            <InputNumber
+              v-model="prod.qtd"
+              mode="decimal"
+              locale="pt-BR"
+              :min="0.0001"
+              :step="0.01"
+              :minFractionDigits="0"
+              :maxFractionDigits="2"
+              class="w-full p-inputtext-sm"
+              :useGrouping="false"
+              :disabled="isReadOnly"
+              style="width: 80px;"
+            />
+          </td>
           <td style="position: sticky; left: 59px; background: #fff; z-index: 5; ">{{ prod.medida || '-' }}</td>
           <td style="min-width: 140px; position: sticky; left: 111px; background: #fff; z-index: 5; ">{{ prod.referencia || '-' }}</td>
           <td style="min-width: 250px; position: sticky; left: 251px; background: #fff; z-index: 5; ">{{ prod.descricao }}</td>
@@ -606,7 +620,22 @@
             <h5 class="m-0 font-semibold text-lg text-900">
               {{ prod.descricao }}
             </h5>
-            <span class="text-sm text-500">Qtd: {{ prod.qtd }}</span>
+            <div class="flex align-items-center gap-2">
+              <label class="text-sm text-500 m-0">Qtd:</label>
+              <InputNumber
+                v-model="prod.qtd"
+                mode="decimal"
+                locale="pt-BR"
+                :min="0.0001"
+                :step="0.01"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                class="p-inputtext-sm"
+                :useGrouping="false"
+                :disabled="isReadOnly"
+                style="width: 100px;"
+              />
+            </div>
           </div>
 
           <div class="grid formgrid">
@@ -890,6 +919,7 @@ import RadioButton from 'primevue/radiobutton'
 import Toast from 'primevue/toast'
 import InputMask from 'primevue/inputmask'
 import Message from 'primevue/message'
+import InputNumber from 'primevue/inputnumber'
 
 document.title = 'Nova Cotação'
 
