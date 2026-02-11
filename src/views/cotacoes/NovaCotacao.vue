@@ -620,22 +620,7 @@
             <h5 class="m-0 font-semibold text-lg text-900">
               {{ prod.descricao }}
             </h5>
-            <div class="flex align-items-center gap-2">
-              <label class="text-sm text-500 m-0">Qtd:</label>
-              <InputNumber
-                v-model="prod.qtd"
-                mode="decimal"
-                locale="pt-BR"
-                :min="0.0001"
-                :step="0.01"
-                :minFractionDigits="0"
-                :maxFractionDigits="2"
-                class="p-inputtext-sm"
-                :useGrouping="false"
-                :disabled="isReadOnly"
-                style="width: 100px;"
-              />
-            </div>
+            <span class="text-sm text-500">Qtd: {{ prod.qtd }}</span>
           </div>
 
           <div class="grid formgrid">
@@ -919,7 +904,6 @@ import RadioButton from 'primevue/radiobutton'
 import Toast from 'primevue/toast'
 import InputMask from 'primevue/inputmask'
 import Message from 'primevue/message'
-import InputNumber from 'primevue/inputnumber'
 
 document.title = 'Nova Cotação'
 

@@ -149,7 +149,14 @@
           <template #body="{ data }">
             <InputNumber 
               v-model="data.quantidade" 
+              mode="decimal"
+              locale="pt-BR"
+              :min="0.01"
+              :step="0.01"
+              :minFractionDigits="0"
+              :maxFractionDigits="2"
               class="w-full p-inputtext-sm" 
+              :useGrouping="false"
               :disabled="!podeEditarQuantidade"
             />
           </template>
