@@ -100,11 +100,14 @@
           <template #body="{ data }">
             <InputNumber 
               v-model="data.novaQuantidade" 
+              mode="decimal"
+              locale="pt-BR"
+              :min="0.01"
+              :step="0.01"
               class="w-full p-inputtext-sm" 
-              :min="1"
               :useGrouping="false"
               :minFractionDigits="0"
-              :maxFractionDigits="0"
+              :maxFractionDigits="2"
             />
           </template>
         </Column>
@@ -181,9 +184,10 @@ export default {
 
     const formatarQuantidade = (quantidade) => {
       if (!quantidade && quantidade !== 0) return '-';
-      return parseInt(quantidade).toLocaleString('pt-BR', {
+      const num = parseFloat(quantidade) || 0;
+      return num.toLocaleString('pt-BR', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 0
+        maximumFractionDigits: 2
       });
     };
 
@@ -246,13 +250,13 @@ export default {
           status: detalhe.status || null
         };
 
-        // Carregar itens e inicializar novaQuantidade com a quantidade atual (convertendo para inteiro)
+        // Carregar itens e inicializar novaQuantidade com a quantidade atual
         const itensCarregados = detalhe.itens || [];
         console.log('Total de itens:', itensCarregados.length);
         
         itens.value = itensCarregados.map(item => {
           console.log('Processando item:', item);
-          const quantidadeAtual = parseInt(item.quantidade) || 0;
+          const quantidadeAtual = parseFloat(item.quantidade) || 0;
           return {
             id: item.id,
             codigo: item.codigo || null,
@@ -268,7 +272,7 @@ export default {
               descricao: item.centro_custo.descricao || item.centro_custo.CTT_DESC01,
               classe: item.centro_custo.classe || item.centro_custo.CTT_CLASSE
             } : null,
-            novaQuantidade: quantidadeAtual // Inicializar com quantidade atual (inteiro)
+            novaQuantidade: quantidadeAtual // Inicializar com quantidade atual
           };
         });
 
@@ -305,9 +309,9 @@ export default {
     const salvar = async () => {
       // Validar se há alterações
       const temAlteracoes = itens.value.some(item => {
-        const quantidadeAtual = parseInt(item.quantidade) || 0;
-        const novaQuantidade = parseInt(item.novaQuantidade) || 0;
-        return quantidadeAtual !== novaQuantidade;
+        const quantidadeAtual = parseFloat(item.quantidade) || 0;
+        const novaQuantidade = parseFloat(item.novaQuantidade) || 0;
+        return Math.abs(quantidadeAtual - novaQuantidade) > 0.001; // Comparação com tolerância para decimais
       });
 
       if (!temAlteracoes) {
@@ -320,17 +324,17 @@ export default {
         return;
       }
 
-      // Validar se todas as novas quantidades são válidas (números inteiros)
+      // Validar se todas as novas quantidades são válidas (números decimais)
       const itensInvalidos = itens.value.filter(item => {
-        const novaQuantidade = parseInt(item.novaQuantidade) || 0;
-        return novaQuantidade < 1 || !Number.isInteger(parseFloat(item.novaQuantidade));
+        const novaQuantidade = parseFloat(item.novaQuantidade) || 0;
+        return novaQuantidade < 0.01 || isNaN(novaQuantidade);
       });
 
       if (itensInvalidos.length > 0) {
         toast.add({
           severity: 'warn',
           summary: 'Validação',
-          detail: 'Todas as quantidades devem ser números inteiros maiores que zero.',
+          detail: 'Todas as quantidades devem ser números válidos maiores ou iguais a 0,01.',
           life: 4000
         });
         return;
@@ -339,10 +343,10 @@ export default {
       try {
         salvando.value = true;
 
-        // Preparar payload apenas com id e nova quantidade (convertendo para inteiro)
+        // Preparar payload apenas com id e nova quantidade
         const itensAtualizados = itens.value.map(item => ({
           id: item.id,
-          quantidade: parseInt(item.novaQuantidade) || 0
+          quantidade: parseFloat(item.novaQuantidade) || 0
         }));
 
         // Usar endpoint específico para alterar apenas quantidade
