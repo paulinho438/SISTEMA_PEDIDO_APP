@@ -492,33 +492,21 @@
                         const userId = saved?.id || this.usuario?.id;
                         const isNewUser = !this.usuario?.id;
 
-                        // Se for almoxarife e tiver locais selecionados, salvar associações
-                        if (this.isAlmoxarife && userId && this.locaisSelecionados?.length > 0) {
+                        // Se for almoxarife, sempre enviar a lista atual de locais (backend exclui todos e salva só o que vier)
+                        if (this.isAlmoxarife && userId) {
                             try {
-                                // Se for um novo usuário, aguardar um pouco para garantir que a permissão foi associada
                                 if (isNewUser) {
                                     await new Promise(resolve => setTimeout(resolve, 500));
                                 }
-                                await this.almoxarifeService.associateMultiple(userId, this.locaisSelecionados);
+                                const ids = Array.isArray(this.locaisSelecionados) ? this.locaisSelecionados : [];
+                                await this.almoxarifeService.associateMultiple(userId, ids);
                             } catch (error) {
-                                console.error('Erro ao associar locais:', error);
-                                // Não bloquear o salvamento do usuário se falhar a associação
+                                console.error('Erro ao atualizar locais do almoxarife:', error);
                                 this.toast.add({
                                     severity: ToastSeverity.WARN,
-                                    detail: 'Usuário salvo, mas houve erro ao associar locais. Você pode associar os locais na tela de "Gerenciar Almoxarifes".',
+                                    detail: 'Usuário salvo, mas houve erro ao atualizar locais. Você pode ajustar na tela de "Gerenciar Almoxarifes".',
                                     life: 5000
                                 });
-                            }
-                        } else if (this.isAlmoxarife && userId && this.locaisSelecionados?.length === 0) {
-                            // Se for almoxarife mas não tiver locais selecionados, remover todas as associações existentes
-                            try {
-                                const { data: existingData } = await this.almoxarifeService.listByAlmoxarife(userId);
-                                const existingLocationIds = (existingData.locations || []).map(loc => loc.id);
-                                if (existingLocationIds.length > 0) {
-                                    await this.almoxarifeService.disassociateMultiple(userId, existingLocationIds);
-                                }
-                            } catch (error) {
-                                console.error('Erro ao remover associações:', error);
                             }
                         }
 
