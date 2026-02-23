@@ -92,7 +92,7 @@ const model = ref([
                 label: 'PROCESSOS',
                 icon: 'pi pi-fw pi-arrow-right-arrow-left',
                 items: [
-                    { label: 'Solicitações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes', permission: 'create_cotacoes' },
+                    { label: 'Solicitações', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes', permissions: ['create_cotacoes', 'view_all_solicitacoes'] },
                     { label: 'Solicitações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/solicitacoes_pendentes', permission: 'view_solicitacoes_pendentes' },
                     { label: 'Relatório de Solicitações', icon: 'pi pi-fw pi-chart-bar', to: '/solicitacoes/relatorio', permission: 'view_solicitacoes_relatorio' },
                     { label: 'Cotações Pendentes', icon: 'pi pi-fw pi-arrow-right-arrow-left', to: '/cotacoes', permission: 'view_cotacoes' },
