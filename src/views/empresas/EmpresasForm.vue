@@ -283,10 +283,6 @@ export default {
                             <InputText id="cnpj" v-model="empresas.cnpj" type="text" />
                         </div>
                         <div class="field">
-                            <label for="email">E-mail</label>
-                            <InputText id="email" v-model="empresas.email" type="email" />
-                        </div>
-                        <div class="field">
                             <label for="regime_tributario">Regime Tributário</label>
                             <Dropdown 
                                 id="regime_tributario" 

@@ -341,23 +341,21 @@ export default {
       try {
         carregandoEstoques.value = true;
         
-        // Verificar se local de origem ou filtro mudaram (não apenas a página)
+        // Verificar se local de origem mudou (não limpar seleção ao apenas buscar/filtrar)
         const localMudou = localOrigemAnterior.value !== localOrigem.value;
-        const filtroMudou = filtroBuscaAnterior.value !== filtroBusca.value;
-        
-        // Se local mudou, limpar seleção
+
+        // Só limpar itens selecionados quando trocar o local de origem
         if (localMudou) {
           itensSelecionados.value = [];
           localOrigemAnterior.value = localOrigem.value;
         }
-        
-        // Se filtro mudou, limpar seleção (itens podem não corresponder mais ao filtro)
+
+        const filtroMudou = filtroBuscaAnterior.value !== filtroBusca.value;
         if (filtroMudou) {
-          itensSelecionados.value = [];
           filtroBuscaAnterior.value = filtroBusca.value || '';
         }
-        
-        // Resetar página se necessário
+
+        // Resetar página ao mudar local, filtro ou ao clicar em buscar
         if (resetarPagina || localMudou || filtroMudou) {
           pageEstoques.value = 1;
         }

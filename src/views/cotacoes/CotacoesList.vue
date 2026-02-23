@@ -49,6 +49,21 @@
                 @change="() => carregar(true)"
             />
         </div>
+        <div class="flex align-items-center gap-2">
+            <label for="filtroSolicitante" class="text-900 font-medium">Solicitante:</label>
+            <Dropdown
+                id="filtroSolicitante"
+                v-model="filtroSolicitante"
+                :options="solicitantes"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Todos"
+                class="w-10rem"
+                showClear
+                :loading="carregandoSolicitantes"
+                @change="() => carregar(true)"
+            />
+        </div>
         <span class="p-input-icon-left ml-auto">
             <i class="pi pi-search" />
             <InputText
@@ -186,9 +201,12 @@ export default {
     const filtrarMinhasCotacoes = ref(!isGerenteOuDiretor(store));
     const filtroStatus = ref(null);
     const filtroComprador = ref(null);
+    const filtroSolicitante = ref(null);
     const opcoesStatus = OPCOES_STATUS;
     const compradores = ref([]);
+    const solicitantes = ref([]);
     const carregandoCompradores = ref(false);
+    const carregandoSolicitantes = ref(false);
     const carregando = ref(false);
     const totalRecords = ref(0);
     const { getInitialPagination, savePagination } = usePaginationPersist('cotacoes-list', 10);
@@ -235,6 +253,7 @@ export default {
           else params.my_approvals = 'true';
         }
         if (filtroComprador.value) params.buyer_id = filtroComprador.value;
+        if (filtroSolicitante.value) params.requester_id = filtroSolicitante.value;
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
         const { data } = await SolicitacaoService.list(params);
@@ -287,8 +306,21 @@ export default {
       }
     };
 
+    const carregarSolicitantes = async () => {
+      try {
+        carregandoSolicitantes.value = true;
+        const { data } = await SolicitacaoService.listRequesters();
+        solicitantes.value = data?.data ?? [];
+      } catch {
+        solicitantes.value = [];
+      } finally {
+        carregandoSolicitantes.value = false;
+      }
+    };
+
     onMounted(() => {
       carregarCompradores();
+      carregarSolicitantes();
       carregar();
     });
 
@@ -489,9 +521,12 @@ export default {
       filtrarMinhasCotacoes,
       filtroStatus,
       filtroComprador,
+      filtroSolicitante,
       opcoesStatus,
       compradores,
+      solicitantes,
       carregandoCompradores,
+      carregandoSolicitantes,
       totalRecords,
       rows,
       onPage,

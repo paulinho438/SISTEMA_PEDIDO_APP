@@ -64,7 +64,7 @@ const model = ref([
                     { label: 'Controle de Transferências', icon: 'pi pi-fw pi-list', to: '/estoque/transferencias', permission: 'view_estoque_movimentacoes' },
                     { label: 'Gerenciar Almoxarifes', icon: 'pi pi-fw pi-users', to: '/estoque/almoxarifes', permission: 'view_estoque_almoxarifes' },
                     { label: 'Análise de Reservas', icon: 'pi pi-fw pi-check-circle', to: '/estoque/reservas', permission: 'view_estoque_reservas' },
-                    { label: 'Termos de Responsabilidade (Ferramentas)', icon: 'pi pi-fw pi-file-edit', to: '/estoque/termos-responsabilidade', permission: 'view_estoque_movimentacoes' },
+                    { label: 'Termos de Responsabilidade (Ferramentas)', icon: 'pi pi-fw pi-file-edit', to: '/estoque/termos-responsabilidade', permissions: ['view_estoque_movimentacoes', 'view_estoque_almoxarifes'] },
                     { label: 'Nota Fiscal e Entrada', icon: 'pi pi-fw pi-file', to: '/estoque/nota-fiscal/nova', permission: 'view_estoque_nota_fiscal' },
                     { label: 'Controle de Notas Fiscais', icon: 'pi pi-fw pi-list', to: '/estoque/notas-fiscais', permission: 'view_controle_notas_fiscais' }
                 ]
@@ -144,12 +144,10 @@ const changeCompany = async (companyId) => {
         if (allPermissions.value.length > 0) {
             let res = allPermissions.value.filter((item) => Number(item.company_id) === companyIdNum);
 
-            if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                // As permissões já vêm como array de strings (slugs)
-                store.commit('setPermissions', res[0]['permissions']);
-            } else {
-                store.commit('setPermissions', []);
-            }
+            // Mesclar permissões de TODOS os grupos da empresa (não só o primeiro)
+            const allSlugs = (res || []).flatMap((r) => (r && Array.isArray(r['permissions']) ? r['permissions'] : []));
+            const uniqueSlugs = [...new Set(allSlugs)];
+            store.commit('setPermissions', uniqueSlugs);
         } else {
             store.commit('setPermissions', []);
         }
@@ -167,10 +165,10 @@ onMounted(() => {
         const companyId = Number(currentCompany.value.id);
         let res = allPermissions.value.filter((item) => Number(item.company_id) === companyId);
 
-        if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-            // As permissões já vêm como array de strings (slugs)
-            store.commit('setPermissions', res[0]['permissions']);
-        }
+        // Mesclar permissões de TODOS os grupos da empresa (não só o primeiro)
+        const allSlugs = (res || []).flatMap((r) => (r && Array.isArray(r['permissions']) ? r['permissions'] : []));
+        const uniqueSlugs = [...new Set(allSlugs)];
+        store.commit('setPermissions', uniqueSlugs);
     }
 });
 </script>

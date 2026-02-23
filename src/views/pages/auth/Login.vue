@@ -90,26 +90,18 @@ export default {
                         const companyId = Number(response.data.user.companies[0]['id']);
                         res = response.data.user.permissions.filter((item) => Number(item.company_id) === companyId);
 
-                        if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                            // As permissões já vêm como array de strings (slugs)
-                            this.$store.commit('setPermissions', res[0]['permissions']);
-                        } else {
-                            this.$store.commit('setPermissions', []);
-                        }
+                        // Mesclar permissões de TODOS os grupos da empresa (não só o primeiro)
+                        const allSlugs = (res || []).flatMap((r) => (r && Array.isArray(r['permissions']) ? r['permissions'] : []));
+                        const uniqueSlugs = [...new Set(allSlugs)];
+                        this.$store.commit('setPermissions', uniqueSlugs);
                     } else {
                         this.$store.commit('setPermissions', []);
                     }
 
                     // Verificar permissões de dashboard (prioridade: compras > estoque > welcome)
-                    // As permissões vêm no formato: [{ company_id: X, permissions: ['slug1', 'slug2', ...] }]
-                    let hasStockDashboardPermission = false;
-                    let hasPurchaseDashboardPermission = false;
-                    
-                    if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                        const permissions = res[0]['permissions'];
-                        hasStockDashboardPermission = permissions.includes('view_estoque_dashboard');
-                        hasPurchaseDashboardPermission = permissions.includes('view_dashboard');
-                    }
+                    const permissions = (res || []).flatMap((r) => (r && Array.isArray(r['permissions']) ? r['permissions'] : []));
+                    const hasStockDashboardPermission = permissions.includes('view_estoque_dashboard');
+                    const hasPurchaseDashboardPermission = permissions.includes('view_dashboard');
                     
                     // Priorizar dashboard de compras se tiver ambas as permissões
                     if (hasPurchaseDashboardPermission) {
@@ -166,15 +158,11 @@ export default {
                 // Converter para número para comparação correta (API retorna string)
                 const companyId = Number(this.selectedTipo.id);
                 let res = this.permissions.filter((item) => Number(item.company_id) === companyId);
-                
-                let companyPermissions = [];
-                if (res.length > 0 && res[0] && res[0]['permissions'] && Array.isArray(res[0]['permissions'])) {
-                    companyPermissions = res[0]['permissions'];
-                    // As permissões já vêm como array de strings (slugs)
-                    this.$store.commit('setPermissions', companyPermissions);
-                } else {
-                    this.$store.commit('setPermissions', []);
-                }
+
+                // Mesclar permissões de TODOS os grupos da empresa (não só o primeiro)
+                const companyPermissions = (res || []).flatMap((r) => (r && Array.isArray(r['permissions']) ? r['permissions'] : []));
+                const uniqueSlugs = [...new Set(companyPermissions)];
+                this.$store.commit('setPermissions', uniqueSlugs);
 
                 // Verificar permissões de dashboard (prioridade: compras > estoque > welcome)
                 const hasStockDashboardPermission = companyPermissions.includes('view_estoque_dashboard');

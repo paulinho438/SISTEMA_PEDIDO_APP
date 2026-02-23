@@ -925,10 +925,13 @@ export default {
       const solicitacaoId = route.params.id;
       
       if (!solicitacaoId) {
-        // Modo de criação - apenas inicializar valores padrão
+        // Modo de criação: usar sempre a data de hoje (evita data errada se a tela foi aberta em outro dia)
+        const hoje = new Date();
+        form.value.data = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+
         const usuario = store.state.usuario;
         const company = store.state.company;
-        
+
         if (usuario) {
           form.value.solicitante = usuario.nome_completo || usuario.name || usuario.login;
           

@@ -10,8 +10,23 @@
     <h5 class="text-900 mb-3">Pendentes de Análise</h5>
 
     <!-- Filtros -->
-    <div class="flex justify-content-end align-items-center mb-3">
-        <span class="p-input-icon-left">
+    <div class="flex flex-wrap align-items-center gap-3 mb-3">
+        <div class="flex align-items-center gap-2">
+            <label for="filtroSolicitante" class="text-900 font-medium">Solicitante:</label>
+            <Dropdown
+                id="filtroSolicitante"
+                v-model="filtroSolicitante"
+                :options="solicitantes"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Todos"
+                class="w-10rem"
+                showClear
+                :loading="carregandoSolicitantes"
+                @change="() => carregar(true)"
+            />
+        </div>
+        <span class="p-input-icon-left ml-auto">
             <i class="pi pi-search" />
             <InputText
                 v-model="filtroGlobal"
@@ -21,7 +36,7 @@
                 @keyup.enter="() => carregar(true)"
             />
         </span>
-        <Button label="Buscar" icon="pi pi-search" class="p-button-outlined ml-2" @click="() => carregar(true)" />
+        <Button label="Buscar" icon="pi pi-search" class="p-button-outlined" @click="() => carregar(true)" />
     </div>
 
     <!-- Tabela -->
@@ -113,6 +128,9 @@ export default {
 
     const cotacoes = ref([]);
     const filtroGlobal = ref('');
+    const filtroSolicitante = ref(null);
+    const solicitantes = ref([]);
+    const carregandoSolicitantes = ref(false);
     const carregando = ref(false);
     const totalRecords = ref(0);
     const page = ref(saved.page);
@@ -131,6 +149,7 @@ export default {
           my_approvals: 'true',
           status_in: STATUS_PENDENTES,
         };
+        if (filtroSolicitante.value) params.requester_id = filtroSolicitante.value;
         if (filtroGlobal.value?.trim()) params.search = filtroGlobal.value.trim();
 
         const { data } = await SolicitacaoService.list(params);
@@ -165,7 +184,22 @@ export default {
       carregar();
     };
 
-    onMounted(carregar);
+    const carregarSolicitantes = async () => {
+      try {
+        carregandoSolicitantes.value = true;
+        const { data } = await SolicitacaoService.listRequesters();
+        solicitantes.value = data?.data ?? [];
+      } catch {
+        solicitantes.value = [];
+      } finally {
+        carregandoSolicitantes.value = false;
+      }
+    };
+
+    onMounted(() => {
+      carregarSolicitantes();
+      carregar();
+    });
 
     const formatarValor = (valor) => {
       return Number(valor || 0).toLocaleString('pt-BR', {
@@ -263,6 +297,9 @@ export default {
     return {
       cotacoes,
       filtroGlobal,
+      filtroSolicitante,
+      solicitantes,
+      carregandoSolicitantes,
       totalRecords,
       rows,
       onPage,
