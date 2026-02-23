@@ -5,6 +5,7 @@
     <div class="flex justify-content-between align-items-center mb-4">
       <div>
         <Button
+            v-if="podeCriarSolicitacao"
             label="Nova Solicitação"
             icon="pi pi-plus"
             class="p-button-success mr-2"
@@ -218,6 +219,11 @@ export default {
     // Permissão para alterar centro de custo (independente do status)
     const podeAlterarCentroCusto = computed(() => {
       return permissionService.hasPermissions('alterar_centro_custo_solicitacao');
+    });
+
+    // Permissão para criar solicitação (exibe o botão Nova Solicitação)
+    const podeCriarSolicitacao = computed(() => {
+      return permissionService.hasPermissions('create_cotacoes');
     });
 
     const mapaStatus = {
@@ -587,6 +593,7 @@ export default {
       podeEditar,
       podeAlterarQuantidade,
       podeAlterarCentroCusto,
+      podeCriarSolicitacao,
       alterarCentroCusto,
       onPageChange,
       onFilterChange,
