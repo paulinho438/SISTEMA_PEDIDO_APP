@@ -2,26 +2,30 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { FilterMatchMode, PrimeIcons, ToastSeverity } from 'primevue/api';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from 'primevue/useconfirm';
 import EmpresasService from '@/service/EmpresasService';
 import PermissionsService from '@/service/PermissionsService';
 import { useToast } from 'primevue/usetoast';
 
 export default {
 	name: 'CicomList',
+	components: { ConfirmDialog },
 	setup() {
 		return {
 			empresasService: new EmpresasService(),
 			permissionsService: new PermissionsService(),
 			router: useRouter(),
 			icons: PrimeIcons,
-			toast: useToast()
+			toast: useToast(),
+			confirm: useConfirm()
 		};
 	},
 	data() {
 		return {
 			empresas: ref([]),
 			loading: ref(false),
-			filters: ref(null)
+			filters: ref(null),
 		};
 	},
 	methods: {
@@ -50,28 +54,36 @@ export default {
 			if (undefined === id) this.router.push('/empresas/add');
 			else this.router.push(`/empresas/${id}/edit`);
 		},
-		deleteCategory(permissionId) {
-			this.loading = true;
-
-			this.clientService.delete(permissionId)
-			.then((e) => {
-				console.log(e)
-				this.toast.add({
-					severity: ToastSeverity.SUCCESS,
-					detail: e?.data?.message,
-					life: 3000
-				});
-				this.getEmpresas();
-			})
-			.catch((error) => {
-				this.toast.add({
-					severity: ToastSeverity.ERROR,
-					detail: error?.data?.message,
-					life: 3000
-				});
-			})
-			.finally(() => {
-				this.loading = false;
+		confirmDelete(empresa) {
+			this.confirm.require({
+				message: `Deseja realmente excluir a empresa "${empresa.company}"?`,
+				header: 'Confirmar Exclusão',
+				icon: 'pi pi-exclamation-triangle',
+				acceptClass: 'p-button-danger',
+				acceptLabel: 'Excluir',
+				rejectLabel: 'Cancelar',
+				accept: () => {
+					this.loading = true;
+					this.empresasService.delete(empresa.id)
+						.then((response) => {
+							this.toast.add({
+								severity: ToastSeverity.SUCCESS,
+								detail: response?.data?.message ?? 'Empresa excluída com sucesso.',
+								life: 3000
+							});
+							this.getEmpresas();
+						})
+						.catch((error) => {
+							this.toast.add({
+								severity: ToastSeverity.ERROR,
+								detail: error?.response?.data?.message ?? error?.message ?? 'Erro ao excluir empresa.',
+								life: 3000
+							});
+						})
+						.finally(() => {
+							this.loading = false;
+						});
+				}
 			});
 		},
 		initFilters() {
@@ -95,6 +107,7 @@ export default {
 
 <template>
 	<Toast />
+	<ConfirmDialog />
 	<div class="grid">
 		<div class="col-12">
 			<div class="grid flex flex-wrap mb-3 px-4 pt-2">
@@ -143,9 +156,10 @@ export default {
 						</template>
 					</Column>
 
-					<Column v-if="permissionsService.hasPermissions('edit_empresas')" field="edit" header="Ações" :sortable="false" class="w-1">
+					<Column v-if="permissionsService.hasPermissions('edit_empresas') || permissionsService.hasPermissions('delete_empresas')" field="edit" header="Ações" :sortable="false" class="w-1">
 						<template #body="slotProps">
-							<Button v-if="!slotProps.data.standard" class="p-button p-button-icon-only p-button-text p-button-secondary m-0 p-0" type="button" :icon="icons.FILE_EDIT" v-tooltip.top="'Editar'" @click.prevent="editCategory(slotProps.data.id)" />
+							<Button v-if="permissionsService.hasPermissions('edit_empresas') && !slotProps.data.standard" class="p-button p-button-icon-only p-button-text p-button-secondary m-0 p-0 mr-1" type="button" :icon="icons.FILE_EDIT" v-tooltip.top="'Editar'" @click.prevent="editCategory(slotProps.data.id)" />
+							<Button v-if="permissionsService.hasPermissions('delete_empresas') && !slotProps.data.standard" class="p-button p-button-icon-only p-button-text p-button-danger m-0 p-0" type="button" icon="pi pi-trash" v-tooltip.top="'Excluir'" @click.prevent="confirmDelete(slotProps.data)" />
 						</template>
 					</Column>
 					</DataTable>

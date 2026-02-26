@@ -74,14 +74,14 @@ export default {
                             this.selectedAtivo = { name: 'Inativo', value: 0 };
                         }
 
-						if (this.empresas?.plano_id) {
-							this.selectedPlano = this.planos.find((plano) => plano.id == this.empresas.plano_id);
+						if (this.empresas?.plano_id && this.planos?.length) {
+							this.selectedPlano = this.planos.find((plano) => plano.id == this.empresas.plano_id) ?? null;
 						}
                     })
                     .catch((error) => {
                         this.toast.add({
                             severity: ToastSeverity.ERROR,
-                            detail: UtilService.message(e),
+                            detail: UtilService.message(error?.response?.data ?? error),
                             life: 3000
                         });
                     })
@@ -105,7 +105,7 @@ export default {
                     .catch((error) => {
                         this.toast.add({
                             severity: ToastSeverity.ERROR,
-                            detail: UtilService.message(e),
+                            detail: UtilService.message(error?.response?.data ?? error),
                             life: 3000
                         });
                     })
@@ -117,17 +117,22 @@ export default {
             }
         },
         getPlanos() {
-            this.planos = ref(null);
+            this.planos = ref([]);
             this.loading = true;
             this.planosService
                 .getAll()
                 .then((response) => {
-                    this.planos = response.data;
+                    this.planos = Array.isArray(response?.data) ? response.data : [];
+                    // Se já carregou empresa (edição), preencher selectedPlano
+                    if (this.empresas?.plano_id && this.planos?.length) {
+                        this.selectedPlano = this.planos.find((p) => p.id == this.empresas.plano_id) ?? null;
+                    }
                 })
                 .catch((error) => {
+                    this.planos = [];
                     this.toast.add({
                         severity: ToastSeverity.ERROR,
-                        detail: UtilService.message(e),
+                        detail: UtilService.message(error?.response?.data ?? error),
                         life: 3000
                     });
                 })
@@ -145,9 +150,9 @@ export default {
             this.changeLoading();
             this.errors = [];
 
-            this.empresas.ativo = this.selectedAtivo.value;
-
-			this.empresas.plano_id = this.selectedPlano.id;
+            // Evitar "Attempt to read property 'id' on null" quando dropdown não selecionado
+            this.empresas.ativo = this.selectedAtivo?.value ?? (this.empresas?.ativo ?? 1);
+            this.empresas.plano_id = this.selectedPlano?.id ?? this.empresas?.plano_id ?? null;
 
             this.empresasService
                 .save(this.empresas)
