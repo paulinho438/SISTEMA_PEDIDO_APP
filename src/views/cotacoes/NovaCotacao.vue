@@ -1269,6 +1269,18 @@ const temPermissaoAprovarDiretor = computed(() => {
   return permissions.includes('cotacoes_aprovar_diretor')
 })
 
+const niveisAssinaturaSimples = ['ENGENHEIRO', 'GERENTE_LOCAL', 'GERENTE_GERAL']
+const podeAssinarSemMudarStatus = computed(() => {
+  if (isAdminEdit.value) return false
+
+  const statusAtual = cotacao.status?.slug
+  const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia']
+  if (!statusPermitidos.includes(statusAtual)) return false
+
+  const nivelPendente = cotacao.permissions?.next_pending_level
+  return niveisAssinaturaSimples.includes(nivelPendente)
+})
+
 // Verificar se pode adicionar fornecedor
 // O comprador responsável pode adicionar fornecedores mesmo quando não pode editar completamente
 // Modo admin sempre permite adicionar fornecedor
@@ -1339,6 +1351,16 @@ const approvalAction = computed(() => {
     // Se for o comprador responsável, permitir finalizar
     if (isBuyer) {
       return { type: 'finalize' }
+    }
+  }
+
+  if (podeAssinarSemMudarStatus.value) {
+    return {
+      type: 'sign',
+      buttonLabel: 'Assinar',
+      buttonClass: 'p-button-success',
+      icon: 'pi pi-pencil',
+      description: 'Registrar assinatura sem alterar o status da cotação.',
     }
   }
 
@@ -2497,11 +2519,43 @@ const abrirModalAnalise = (status) => {
 }
 
 const abrirAnaliseDireta = async (action) => {
-  if (!action?.targetStatus) {
+  if (!action || (action.type !== 'sign' && !action.targetStatus)) {
     return
   }
 
   const currentStatus = cotacao.status?.slug
+
+  if (action.type === 'sign') {
+    try {
+      analisandoCotacao.value = true
+      await SolicitacaoService.approve(cotacao.id, {
+        observacao: '',
+        signature_only: true,
+      })
+
+      toast.add({
+        severity: 'success',
+        summary: 'Assinatura registrada',
+        detail: 'Assinatura registrada sem alterar o status da cotação.',
+        life: 4000,
+      })
+
+      await carregarCotacao()
+      await carregarAssinaturas()
+      router.push({ name: 'cotacoesList' })
+    } catch (error) {
+      const detail = error?.response?.data?.message || 'Não foi possível registrar a assinatura.'
+      toast.add({
+        severity: 'error',
+        summary: 'Erro ao assinar',
+        detail,
+        life: 4000,
+      })
+    } finally {
+      analisandoCotacao.value = false
+    }
+    return
+  }
 
   // Se o Diretor está aprovando diretamente para "aprovado" (com permissão cotacoes_aprovar_diretor)
   if (action.targetStatus === 'aprovado' && temPermissaoAprovarDiretor.value && cotacao.buyer && cotacao.buyer.id) {
