@@ -1269,7 +1269,20 @@ const temPermissaoAprovarDiretor = computed(() => {
   return permissions.includes('cotacoes_aprovar_diretor')
 })
 
-const niveisAssinaturaSimples = ['ENGENHEIRO', 'GERENTE_LOCAL', 'GERENTE_GERAL']
+const mapNivelParaPerfilAssinatura = {
+  ENGENHEIRO: 'ENGENHEIRO',
+  GERENTE_LOCAL: 'GERENTE LOCAL',
+  GERENTE_GERAL: 'GERENTE GERAL',
+}
+
+const nivelAssinaturaUsuarioAtual = computed(() => {
+  const permissions = store.getters?.permissions || []
+  if (permissions.includes('cotacoes_aprovar_gerente_geral')) return 'GERENTE_GERAL'
+  if (permissions.includes('cotacoes_aprovar_gerente_local')) return 'GERENTE_LOCAL'
+  if (permissions.includes('cotacoes_aprovar_engenheiro')) return 'ENGENHEIRO'
+  return null
+})
+
 const podeAssinarSemMudarStatus = computed(() => {
   if (isAdminEdit.value) return false
 
@@ -1277,8 +1290,14 @@ const podeAssinarSemMudarStatus = computed(() => {
   const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia']
   if (!statusPermitidos.includes(statusAtual)) return false
 
-  const nivelPendente = cotacao.permissions?.next_pending_level
-  return niveisAssinaturaSimples.includes(nivelPendente)
+  const nivel = nivelAssinaturaUsuarioAtual.value
+  if (!nivel) return false
+
+  const perfil = mapNivelParaPerfilAssinatura[nivel]
+  if (!perfil) return false
+
+  if (!assinaturas.value || Object.keys(assinaturas.value).length === 0) return false
+  return !(assinaturas.value?.[perfil] && assinaturas.value?.[perfil]?.signature_url)
 })
 
 // Verificar se pode adicionar fornecedor
@@ -2531,6 +2550,7 @@ const abrirAnaliseDireta = async (action) => {
       await SolicitacaoService.approve(cotacao.id, {
         observacao: '',
         signature_only: true,
+        signature_level: nivelAssinaturaUsuarioAtual.value,
       })
 
       toast.add({
