@@ -13,8 +13,8 @@ export default {
     return axios.post('/estoque/termos-responsabilidade', payload);
   },
 
-  devolver(id) {
-    return axios.post(`/estoque/termos-responsabilidade/${id}/devolver`);
+  devolver(id, payload = {}) {
+    return axios.post(`/estoque/termos-responsabilidade/${id}/devolver`, payload);
   },
 
   pdf(id) {

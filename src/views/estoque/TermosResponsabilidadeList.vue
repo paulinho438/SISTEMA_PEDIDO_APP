@@ -71,8 +71,8 @@
       <Column field="status" header="Status">
         <template #body="slotProps">
           <Tag
-            :value="slotProps.data.status === 'devolvido' ? 'Devolvido' : 'Aberto'"
-            :severity="slotProps.data.status === 'devolvido' ? 'success' : 'warning'"
+            :value="statusLabel(slotProps.data.status)"
+            :severity="statusSeverity(slotProps.data.status)"
           />
         </template>
       </Column>
@@ -97,18 +97,17 @@
               @click="baixarPdf(slotProps.data.id)"
             />
             <Button
-              v-if="slotProps.data.status === 'aberto'"
+              v-if="slotProps.data.status !== 'devolvido'"
               icon="pi pi-replay"
               class="p-button-rounded p-button-text p-button-success p-button-sm"
-              v-tooltip.top="'Devolver (retornar ao estoque)'"
-              @click="confirmarDevolver(slotProps.data)"
+              v-tooltip.top="'Devolver itens'"
+              @click="visualizar(slotProps.data)"
             />
           </div>
         </template>
       </Column>
     </DataTable>
 
-    <ConfirmDialog />
     <Toast />
   </div>
 </template>
@@ -117,20 +116,17 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { useConfirm } from 'primevue/useconfirm';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
-import ConfirmDialog from 'primevue/confirmdialog';
 import Toast from 'primevue/toast';
 import ResponsibilityTermService from '@/service/ResponsibilityTermService';
 
 const router = useRouter();
 const toast = useToast();
-const confirm = useConfirm();
 
 const termos = ref([]);
 const carregando = ref(false);
@@ -139,8 +135,21 @@ const filtros = reactive({ status: null, search: '' });
 
 const statusOptions = [
   { label: 'Aberto', value: 'aberto' },
+  { label: 'Parcial', value: 'parcial' },
   { label: 'Devolvido', value: 'devolvido' },
 ];
+
+const statusLabel = (status) => {
+  if (status === 'devolvido') return 'Devolvido';
+  if (status === 'parcial') return 'Parcial';
+  return 'Aberto';
+};
+
+const statusSeverity = (status) => {
+  if (status === 'devolvido') return 'success';
+  if (status === 'parcial') return 'info';
+  return 'warning';
+};
 
 const formatarData = (v) => {
   if (!v) return '-';
@@ -197,26 +206,6 @@ const baixarPdf = async (id) => {
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Erro', detail: e?.response?.data?.message || 'Falha ao gerar PDF.', life: 4000 });
   }
-};
-
-const confirmarDevolver = (row) => {
-  confirm.require({
-    message: `Confirmar devolução do termo ${row.numero}? Os itens retornarão ao estoque.`,
-    header: 'Devolver Termo',
-    icon: 'pi pi-replay',
-    acceptClass: 'p-button-success',
-    acceptLabel: 'Sim, devolver',
-    rejectLabel: 'Cancelar',
-    accept: async () => {
-      try {
-        await ResponsibilityTermService.devolver(row.id);
-        toast.add({ severity: 'success', summary: 'Devolvido', detail: 'Itens retornaram ao estoque.', life: 4000 });
-        carregar();
-      } catch (e) {
-        toast.add({ severity: 'error', summary: 'Erro', detail: e?.response?.data?.message || 'Falha ao devolver.', life: 4000 });
-      }
-    },
-  });
 };
 
 onMounted(carregar);
