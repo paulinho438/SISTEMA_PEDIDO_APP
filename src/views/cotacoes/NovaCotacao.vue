@@ -1328,7 +1328,13 @@ const podeAssinarSemMudarStatus = computed(() => {
   const aprovacaoNivel = aprovacoes.find((item) => item?.level === nivel && item?.required)
   if (!aprovacaoNivel) return false
 
-  return !aprovacaoNivel.approved
+  const approvedBy = String(aprovacaoNivel.approved_by || '').toLowerCase()
+  const notes = String(aprovacaoNivel.notes || '').toLowerCase()
+  const autoAprovadoDiretor =
+    approvedBy.includes('automaticamente pelo diretor') ||
+    notes.includes('automaticamente pelo diretor')
+
+  return !aprovacaoNivel.approved || autoAprovadoDiretor
 })
 
 const coletarEstadoAssinarDebug = () => {
