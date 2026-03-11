@@ -1455,7 +1455,7 @@ const approvalAction = computed(() => {
   // Se sim, pode aprovar diretamente para "aprovado" quando a cotação tem comprador
   // e está em status: finalizada, analisada, analisada_aguardando, ou analise_gerencia
   if (temPermissaoAprovarDiretor.value && cotacao.buyer && cotacao.buyer.id) {
-    const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia']
+  const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado']
     if (statusPermitidos.includes(slug)) {
       return {
         type: 'single',
