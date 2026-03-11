@@ -95,6 +95,16 @@
             @click="abrirAnaliseDireta(approvalAction)"
         />
       </template>
+      <template v-else-if="approvalAction.type === 'sign'">
+        <Button
+            :label="approvalAction.buttonLabel"
+            :icon="approvalAction.icon"
+            :class="approvalAction.buttonClass"
+            :loading="analisandoCotacao"
+            :disabled="analisandoCotacao"
+            @click="abrirAnaliseDireta(approvalAction)"
+        />
+      </template>
       <Button
           v-if="podeResetar"
           label="Resetar Solicitação"
