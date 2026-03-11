@@ -1280,6 +1280,29 @@ const nivelAssinaturaUsuarioAtual = computed(() => {
   if (permissions.includes('cotacoes_aprovar_gerente_geral')) return 'GERENTE_GERAL'
   if (permissions.includes('cotacoes_aprovar_gerente_local')) return 'GERENTE_LOCAL'
   if (permissions.includes('cotacoes_aprovar_engenheiro')) return 'ENGENHEIRO'
+
+  // Fallback por nome de grupo/perfil (alguns usuários não têm slug específico em state.permissions)
+  const usuario = store.state.usuario
+  const grupos = Array.isArray(usuario?.permissions) ? usuario.permissions : []
+  let foundLevel = null
+
+  for (const perm of grupos) {
+    const name = String(perm?.name || '').toLowerCase().replace(/_/g, ' ').trim()
+    if (!name) continue
+
+    if (name.includes('gerente') && name.includes('geral')) {
+      foundLevel = 'GERENTE_GERAL'
+      break
+    }
+    if (!foundLevel && name.includes('gerente') && name.includes('local')) {
+      foundLevel = 'GERENTE_LOCAL'
+    }
+    if (!foundLevel && name.includes('engenheiro')) {
+      foundLevel = 'ENGENHEIRO'
+    }
+  }
+
+  if (foundLevel) return foundLevel
   return null
 })
 
