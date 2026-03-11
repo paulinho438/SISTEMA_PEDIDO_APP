@@ -970,18 +970,22 @@ export default {
         // Converter data string para Date
         // O backend retorna no formato "d/m/Y" (ex: "28/08/2025")
         if (detalhe.data && typeof detalhe.data === 'string') {
-          // Converter "d/m/Y" para "Y-m-d" para criar Date
-          const partes = detalhe.data.split('/');
-          if (partes.length === 3) {
-            // Formato: dia/mês/ano -> ano-mês-dia
-            const [dia, mes, ano] = partes;
-            form.value.data = new Date(`${ano}-${mes}-${dia}`);
+          const rawDate = detalhe.data.trim();
+          const brMatch = rawDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+          const isoMatch = rawDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+          if (brMatch) {
+            const [, dia, mes, ano] = brMatch;
+            form.value.data = new Date(Number(ano), Number(mes) - 1, Number(dia));
+          } else if (isoMatch) {
+            const [, ano, mes, dia] = isoMatch;
+            form.value.data = new Date(Number(ano), Number(mes) - 1, Number(dia));
           } else {
-            // Tentar parse direto se já estiver em formato ISO
-            form.value.data = new Date(detalhe.data);
+            form.value.data = new Date();
           }
         } else {
-          form.value.data = new Date();
+          const hoje = new Date();
+          form.value.data = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
         }
         
         // Validar se a data é válida
