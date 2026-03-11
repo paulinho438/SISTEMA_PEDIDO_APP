@@ -1321,6 +1321,43 @@ const podeAssinarSemMudarStatus = computed(() => {
   return !aprovacaoNivel.approved
 })
 
+const coletarEstadoAssinarDebug = () => {
+  const nivel = nivelAssinaturaUsuarioAtual.value
+  const aprovacaoNivel = (Array.isArray(cotacao.aprovacoes) ? cotacao.aprovacoes : []).find(
+    (item) => item?.level === nivel && item?.required
+  )
+
+  return {
+    quoteId: route.params.id,
+    status: cotacao.status?.slug ?? null,
+    canApprove: cotacao.permissions?.can_approve ?? null,
+    nextPendingLevel: cotacao.permissions?.next_pending_level ?? null,
+    nivelUsuario: nivel,
+    aprovacaoNivel: aprovacaoNivel
+      ? {
+          level: aprovacaoNivel.level,
+          required: aprovacaoNivel.required,
+          approved: aprovacaoNivel.approved,
+        }
+      : null,
+    possuiAssinaturaNoQuadro: (() => {
+      if (!nivel) return null
+      const profileMap = {
+        ENGENHEIRO: 'ENGENHEIRO',
+        GERENTE_LOCAL: 'GERENTE LOCAL',
+        GERENTE_GERAL: 'GERENTE GERAL',
+      }
+      const profileName = profileMap[nivel]
+      return Boolean(assinaturas.value?.[profileName]?.signature_url)
+    })(),
+    mostraBotaoAssinar: podeAssinarSemMudarStatus.value,
+  }
+}
+
+const logAssinarDebug = (origem) => {
+  console.log('[ASSINAR_DEBUG]', { origem, ...coletarEstadoAssinarDebug() })
+}
+
 // Verificar se pode adicionar fornecedor
 // O comprador responsável pode adicionar fornecedores mesmo quando não pode editar completamente
 // Modo admin sempre permite adicionar fornecedor
@@ -2136,6 +2173,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
     cotacao.aprovacoes = Array.isArray(detalhe.aprovacoes) ? detalhe.aprovacoes : []
     cotacao.buyer = detalhe.buyer ?? null
     cotacao.observation = detalhe.observacao ?? ''
+    logAssinarDebug('carregarCotacao')
     mensagens.value = detalhe.mensagens ?? []
 
     // Se houver mensagens e o parâmetro indicar, abrir o modal automaticamente
@@ -2923,6 +2961,7 @@ const carregarAssinaturas = async () => {
     if (response.data?.data) {
       assinaturas.value = response.data.data
     }
+    logAssinarDebug('carregarAssinaturas')
   } catch (error) {
     console.error('Erro ao carregar assinaturas:', error)
   } finally {
@@ -3035,6 +3074,20 @@ watch(
     if (process.env.NODE_ENV === 'development') {
       console.log('[watch route.query.modo]', { novoModo, isAdminEdit: isAdminEdit.value, isReadOnly: isReadOnly.value })
     }
+  },
+  { immediate: true }
+)
+
+watch(
+  [
+    () => cotacao.status?.slug,
+    () => cotacao.permissions?.next_pending_level,
+    () => cotacao.permissions?.can_approve,
+    () => nivelAssinaturaUsuarioAtual.value,
+    () => podeAssinarSemMudarStatus.value,
+  ],
+  () => {
+    logAssinarDebug('watchEstadoAssinar')
   },
   { immediate: true }
 )
