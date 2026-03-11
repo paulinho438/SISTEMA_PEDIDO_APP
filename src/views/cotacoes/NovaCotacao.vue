@@ -1315,7 +1315,7 @@ const podeAssinarSemMudarStatus = computed(() => {
   if (isAdminEdit.value) return false
 
   const statusAtual = cotacao.status?.slug
-  const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia']
+  const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado']
   if (!statusPermitidos.includes(statusAtual)) return false
 
   const nivel = nivelAssinaturaUsuarioAtual.value
