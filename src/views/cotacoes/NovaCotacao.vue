@@ -954,6 +954,7 @@ const cotacao = reactive({
     can_approve: false,
     next_pending_level: null,
   },
+  aprovacoes: [],
   buyer: null,
   observation: '',
 })
@@ -1269,12 +1270,6 @@ const temPermissaoAprovarDiretor = computed(() => {
   return permissions.includes('cotacoes_aprovar_diretor')
 })
 
-const mapNivelParaPerfilAssinatura = {
-  ENGENHEIRO: 'ENGENHEIRO',
-  GERENTE_LOCAL: 'GERENTE LOCAL',
-  GERENTE_GERAL: 'GERENTE GERAL',
-}
-
 const nivelAssinaturaUsuarioAtual = computed(() => {
   const permissions = store.getters?.permissions || []
   if (permissions.includes('cotacoes_aprovar_gerente_geral')) return 'GERENTE_GERAL'
@@ -1316,11 +1311,14 @@ const podeAssinarSemMudarStatus = computed(() => {
   const nivel = nivelAssinaturaUsuarioAtual.value
   if (!nivel) return false
 
-  const perfil = mapNivelParaPerfilAssinatura[nivel]
-  if (!perfil) return false
+  const nivelPendente = cotacao.permissions?.next_pending_level
+  if (nivelPendente === nivel) return true
 
-  if (!assinaturas.value || Object.keys(assinaturas.value).length === 0) return false
-  return !(assinaturas.value?.[perfil] && assinaturas.value?.[perfil]?.signature_url)
+  const aprovacoes = Array.isArray(cotacao.aprovacoes) ? cotacao.aprovacoes : []
+  const aprovacaoNivel = aprovacoes.find((item) => item?.level === nivel && item?.required)
+  if (!aprovacaoNivel) return false
+
+  return !aprovacaoNivel.approved
 })
 
 // Verificar se pode adicionar fornecedor
@@ -2135,6 +2133,7 @@ const carregarCotacao = async (abrirModalMensagens = false) => {
     cotacao.status = detalhe.status ?? null
     cotacao.requires_response = detalhe.requires_response ?? false
     cotacao.permissions = detalhe.permissions ?? { can_edit: false, can_approve: false, next_pending_level: null }
+    cotacao.aprovacoes = Array.isArray(detalhe.aprovacoes) ? detalhe.aprovacoes : []
     cotacao.buyer = detalhe.buyer ?? null
     cotacao.observation = detalhe.observacao ?? ''
     mensagens.value = detalhe.mensagens ?? []
