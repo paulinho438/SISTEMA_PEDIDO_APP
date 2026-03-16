@@ -90,7 +90,14 @@
         currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} solicitações"
     >
       <Column selectionMode="multiple" headerStyle="width:3rem"></Column>
-      <Column field="numero" header="Nº da Solicitação" sortable></Column>
+      <Column field="numero" header="Nº da Solicitação" sortable>
+        <template #body="slotProps">
+          <span>{{ slotProps.data.numero }}</span>
+          <span v-if="slotProps.data.pedidoNumero" class="pedido-vinculado">
+            | PC: {{ slotProps.data.pedidoNumero }}
+          </span>
+        </template>
+      </Column>
       <Column field="data" header="Data" sortable></Column>
       <Column field="solicitante" header="Solicitante" sortable></Column>
       <Column header="Centro de Custo" sortable>
@@ -265,6 +272,7 @@ export default {
         solicitacoes.value = (data?.data || []).map((item) => ({
           id: item.id,
           numero: item.numero,
+          pedidoNumero: item.pedido_numero || null,
           data: item.data,
           solicitante: item.solicitante,
           centroCusto: typeof item.centro_custo === 'string' ? item.centro_custo : item.centro_custo,
@@ -631,5 +639,11 @@ export default {
   color: #c02424 !important;
   border-radius: 10px;
   padding: 0.3rem 1rem;
+}
+
+.pedido-vinculado {
+  margin-left: 0.35rem;
+  font-weight: 600;
+  color: #0c60b9;
 }
 </style>

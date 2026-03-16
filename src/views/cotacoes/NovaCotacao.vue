@@ -1315,7 +1315,12 @@ const podeAssinarSemMudarStatus = computed(() => {
   if (isAdminEdit.value) return false
 
   const statusAtual = cotacao.status?.slug
-  const statusPermitidos = ['finalizada', 'analisada', 'analisada_aguardando', 'analise_gerencia', 'aprovado']
+  // "Assinar" sem alterar status deve aparecer apenas nas etapas finais:
+  // - analise_gerencia: assinatura tardia de nível intermediário
+  // - aprovado: substituir assinatura autoaprovada pelo diretor
+  // Em "finalizada/analisada/analisada_aguardando" o fluxo correto é "Analisar"
+  // para permitir transição automática para análise da diretoria.
+  const statusPermitidos = ['analise_gerencia', 'aprovado']
   if (!statusPermitidos.includes(statusAtual)) return false
 
   const nivel = nivelAssinaturaUsuarioAtual.value
